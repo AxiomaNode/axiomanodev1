@@ -1,0 +1,132 @@
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ===== THEME VARIABLES ===== */
+:root {
+  --bg: #f9f9f9;
+  --text: #111;
+  --card: #ffffff;
+  --border: #e0e0e0;
+  --accent: #2563eb;
+}
+
+[data-theme="dark"] {
+  --bg: #0f1115;
+  --text: #eaeaea;
+  --card: #161a22;
+  --border: #2a2f3a;
+  --accent: #60a5fa;
+}
+
+/* ===== BASE LAYOUT ===== */
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 32px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== TEXT ===== */
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+}
+
+/* ===== FORM ===== */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+button {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+/* ===== THEME TOGGLE ===== */
+.theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.theme-toggle input {
+  display: none;
+}
+
+.toggle {
+  width: 42px;
+  height: 22px;
+  background: var(--border);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle::after {
+  content: "";
+  width: 18px;
+  height: 18px;
+  background: var(--card);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: 0.2s;
+}
+
+.theme-toggle input:checked + .toggle::after {
+  transform: translateX(20px);
+}
