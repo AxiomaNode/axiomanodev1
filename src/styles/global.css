@@ -5,6 +5,22 @@
   box-sizing: border-box;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
+.container{
+  max-width:1440px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+ul{
+  list-style:none;
+}
+a{
+  text-decoration: none;
+}
+button{
+  cursor: pointer;
+}
+
 
 /* ===== THEME VARIABLES ===== */
 :root {
@@ -99,7 +115,7 @@ a {
 .theme-toggle {
   position: absolute;
   top: 20px;
-  right: 20px;
+  right: 60px;
 }
 
 .theme-toggle input {
@@ -129,4 +145,42 @@ a {
 
 .theme-toggle input:checked + .toggle::after {
   transform: translateX(20px);
+}
+/* Loading page */
+
+.container {
+}
+.loagin-page-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+.loading-text {
+  font-size: 50px;
+}
+.container {
+}
+.home-wrapper {
+}
+.home-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 70px;
+}
+.navbar-left {
+}
+.profile-picture {
+}
+.navbar-right {
+}
+.navbar-ul {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+.navbar-li {
+}
+.navbar-link {
 }
