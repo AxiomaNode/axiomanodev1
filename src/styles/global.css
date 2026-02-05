@@ -459,3 +459,10 @@ section {
   padding: 14px 28px;
   border-radius: 14px;
 }
+.theme-toggle-wrapper {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  z-index: 100;
+}
+
