@@ -114,7 +114,7 @@ a {
 /* ===== THEME TOGGLE ===== */
 .theme-toggle {
   position: absolute;
-  top: 20px;
+  top: 25px;
   right: 60px;
 }
 
@@ -161,6 +161,7 @@ a {
 }
 .container {
 }
+
 .home-wrapper {
 }
 .home-navbar {
@@ -183,4 +184,278 @@ a {
 .navbar-li {
 }
 .navbar-link {
+}
+.axioma-logo{
+  width: 50px;
+}
+/* ===== APP LAYOUT ===== */
+.app-layout {
+  display: flex;
+  height: 100vh;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 240px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.sidebar-logo img {
+  width: 36px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.sidebar-item {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--text);
+}
+
+.sidebar-item:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.logout-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.logout-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* ===== MAIN ===== */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: 64px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 130px;
+}
+
+.topbar-links {
+  display: flex;
+  gap: 24px;
+  cursor: pointer;
+}
+
+/* ===== CONTENT ===== */
+.content {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.diagnostics,
+.results {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+section {
+  margin-bottom: 32px;
+}
+
+.question {
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gap-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.submit-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+.page-center {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.panel {
+  width: 100%;
+  max-width: 900px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.subtitle {
+  opacity: 0.7;
+  margin-bottom: 24px;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.question-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.primary-btn {
+  margin-top: 24px;
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+.grid,
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.gap-card,
+.stat-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.success-text {
+  font-size: 18px;
+  color: #22c55e;
+}
+/* ===== QUESTIONS ===== */
+
+.question-text {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* hide ugly default radio */
+.option-card input {
+  display: none;
+}
+
+/* option card */
+.option-card {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--card);
+}
+
+/* hover */
+.option-card:hover {
+  border-color: var(--accent);
+}
+
+/* selected state */
+.option-card input:checked + span {
+  font-weight: 600;
+}
+
+.option-card:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* gap between question blocks */
+.question-card {
+  margin-bottom: 24px;
+}
+.panel h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.section h2 {
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+.subtitle {
+  font-size: 16px;
+}
+.primary-btn {
+  font-size: 18px;
+  padding: 14px 28px;
+  border-radius: 14px;
 }
