@@ -1,20 +1,21 @@
-// src/pages/Login.jsx
+import { useTranslation } from "react-i18next";
 import LoginForm from "../components/auth/LoginForm";
 import { Link } from "react-router-dom";
-import ThemeToggle from "../components/layout/ThemeToggle"; 
+import LanguageSwitcher from "../components/layout/LanguageSwitcher";
 
 export default function Login() {
-  return (
-    <div className="page">
-      <div className="theme-toggle-wrapper">
-        <ThemeToggle />
-      </div>
+  const { t } = useTranslation();
 
-      <div className="card">
-        <h1>Login</h1>
+  return (
+    <div className="page login-page">
+      <LanguageSwitcher />
+
+      <div className="auth-card">
+        <h1>{t("login.title")}</h1>
         <LoginForm />
         <p>
-          No account? <Link to="/register">Register</Link>
+          {t("login.no_account")}{" "}
+          <Link to="/register">{t("login.register")}</Link>
         </p>
       </div>
     </div>

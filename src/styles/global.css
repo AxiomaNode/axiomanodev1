@@ -466,3 +466,25 @@ section {
   z-index: 100;
 }
 
+.language-switcher {
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.language-switcher button {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.language-switcher button.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}

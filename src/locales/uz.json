@@ -1,0 +1,61 @@
+{
+  "common": {
+    "loading": "Yuklanmoqda...",
+    "error": "Xatolik yuz berdi",
+    "success": "Muvaffaqiyatli",
+    "save": "Saqlash",
+    "cancel": "Bekor qilish"
+  },
+  "theme": {
+    "light": "Yorug‘",
+    "dark": "Qorong‘i",
+    "toggle": "Mavzuni o‘zgartirish"
+  },
+  "language": {
+    "uz": "O‘zbek",
+    "ru": "Русский",
+    "en": "English"
+  },
+  "auth": {
+    "login": {
+      "title": "Kirish",
+      "email": "Email",
+      "password": "Parol",
+      "button": "Kirish",
+      "no_account": "Hisobingiz yo‘qmi?",
+      "register_link": "Ro‘yxatdan o‘tish"
+    },
+    "register": {
+      "title": "Ro‘yxatdan o‘tish",
+      "email": "Email",
+      "password": "Parol",
+      "button": "Ro‘yxatdan o‘tish",
+      "have_account": "Hisobingiz bormi?",
+      "login_link": "Kirish"
+    }
+  },
+  "diagnostics": {
+    "title": "Kvadrat tenglamalar bo‘yicha diagnostika",
+    "subtitle": "Bu test emas. Bilimlardagi bo‘shliqlarni aniqlashga yordam beradi.",
+    "finish_button": "Diagnostikani yakunlash",
+    "section": {
+      "conceptual": "A. Tushunchaviy tushunish",
+      "mistakes": "B. Odatdagi xatolar",
+      "method": "C. Usulni tanlash"
+    }
+  },
+  "results": {
+    "title": "Diagnostika natijalari",
+    "loading": "Natijalar yuklanmoqda...",
+    "no_gaps": "Hech qanday bo‘shliq aniqlanmadi",
+    "great_job": "Ajoyib ish! Kvadrat tenglamalarni tushunish yaxshi darajada.",
+    "detected_gaps": "Aniqlangan bo‘shliqlar:",
+    "error": "Natijalarni qayta ishlashda xatolik yuz berdi.",
+    "error_title": "Xato",
+    "restart_button": "Diagnostikani qayta o‘tkazish"
+  },
+  "home": {
+    "title": "Xush kelibsiz",
+    "logout": "Chiqish"
+  }
+}

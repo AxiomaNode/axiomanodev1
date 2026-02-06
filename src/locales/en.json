@@ -1,0 +1,61 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "toggle": "Toggle theme"
+  },
+  "language": {
+    "uz": "O‘zbek",
+    "ru": "Русский",
+    "en": "English"
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "email": "Email",
+      "password": "Password",
+      "button": "Sign In",
+      "no_account": "Don't have an account?",
+      "register_link": "Register"
+    },
+    "register": {
+      "title": "Register",
+      "email": "Email",
+      "password": "Password",
+      "button": "Sign Up",
+      "have_account": "Already have an account?",
+      "login_link": "Login"
+    }
+  },
+  "diagnostics": {
+    "title": "Quadratic Equations Diagnostic",
+    "subtitle": "This is not a test. It helps identify learning gaps.",
+    "finish_button": "Finish Diagnostic",
+    "section": {
+      "conceptual": "A. Conceptual Understanding",
+      "mistakes": "B. Typical Mistakes",
+      "method": "C. Choosing a Method"
+    }
+  },
+  "results": {
+    "title": "Diagnostic Results",
+    "loading": "Loading results...",
+    "no_gaps": "No gaps detected",
+    "great_job": "Great job! Your understanding of quadratic equations looks solid.",
+    "detected_gaps": "Detected learning gaps:",
+    "error": "Something went wrong while processing your results.",
+    "error_title": "Error",
+    "restart_button": "Take the diagnostic again"
+  },
+  "home": {
+    "title": "Welcome",
+    "logout": "Logout"
+  }
+}

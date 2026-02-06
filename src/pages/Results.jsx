@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { analyzeResults } from "../diagnostics/analyzeResults";
 
 export default function Results() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
@@ -17,18 +19,14 @@ export default function Results() {
 
     try {
       const answers = JSON.parse(saved);
-      console.log("Parsed answers:", answers);
-
       const detected = analyzeResults(answers);
-      console.log("Detected gaps:", detected);
-
       setResult(detected);
     } catch (err) {
       console.error("Error processing results:", err);
-      setError("Something went wrong while processing your answers.");
-      setResult([]); // fallback so we don't stay stuck
+      setError(t("results.error"));
+      setResult([]);
     }
-  }, [navigate]);
+  }, [navigate, t]);
 
   const handleRestart = () => {
     localStorage.removeItem("diagnosticAnswers");
@@ -39,9 +37,7 @@ export default function Results() {
   if (result === null) {
     return (
       <div className="page-center">
-        <div className="panel">
-          <h2>Loading results...</h2>
-        </div>
+        <h2>{t("results.loading")}</h2>
       </div>
     );
   }
@@ -50,10 +46,10 @@ export default function Results() {
     return (
       <div className="page-center">
         <div className="panel">
-          <h1>Error</h1>
+          <h1>{t("results.errorTitle")}</h1>
           <p>{error}</p>
           <button className="primary-btn" onClick={handleRestart}>
-            Try again
+            {t("login.take_again")}
           </button>
         </div>
       </div>
@@ -62,17 +58,18 @@ export default function Results() {
 
   return (
     <div className="page-center">
-      <div className="panel">
-        <h1>Diagnostic Results</h1>
+      <div className="panel results-panel">
+        <h1>{t("results.title")}</h1>
 
         {result.length === 0 ? (
           <div className="result-box success">
-            <h2>No gaps detected</h2>
-            <p>Great job! Your understanding of quadratic equations looks solid.</p>
+            <div className="success-icon">✓</div>
+            <h2>{t("results.no_gaps")}</h2>
+            <p>{t("results.great_job")}</p>
           </div>
         ) : (
           <div className="result-box">
-            <h2>Detected learning gaps:</h2>
+            <h2>{t("results.detected_gaps")}</h2>
             <ul className="gaps-list">
               {result.map((gap) => (
                 <li key={gap.id} className="gap-item">
@@ -84,8 +81,8 @@ export default function Results() {
           </div>
         )}
 
-        <button className="primary-btn" onClick={handleRestart}>
-          Take the diagnostic again
+        <button className="primary-btn restart-btn" onClick={handleRestart}>
+          {t("login.take_again")}
         </button>
       </div>
     </div>
