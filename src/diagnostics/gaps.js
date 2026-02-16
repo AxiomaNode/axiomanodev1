@@ -10,7 +10,10 @@ export const gaps = [
         "An answer found by a formula",
         "I don't know",
       ],
-      A2: ["No", "I don't know"],
+      A2: [
+        "No", 
+        "I don't know"
+      ],
     },
   },
 
@@ -30,8 +33,15 @@ export const gaps = [
     description:
       "Difficulties in choosing the appropriate method or approach to solve the problem.",
     signs: {
-      C1: ["Graph", "I don't know"],
-      C2: ["Factoring", "Graph", "I don't know"],
+      C1: [
+        "Graph", 
+        "I don't know"
+      ],
+      C2: [
+        "Factoring",
+        "Graph", 
+        "I don't know"
+      ],
     },
   },
 ];

@@ -1,123 +1,172 @@
-  import { useState } from "react";
-  import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { diagnosticQuestions } from "../diagnostics/questions";
+import { topics } from "../diagnostics/topics";
 
-  export default function Diagnostics() {
-    const navigate = useNavigate();
-    const [answers, setAnswers] = useState({});
+export default function Diagnostics() {
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const [answers, setAnswers] = useState({});
+  const [currentSection, setCurrentSection] = useState(0);
+  const [topicId, setTopicId] = useState(null);
+  const [startTime] = useState(Date.now());
 
-    const setAnswer = (id, value) => {
-      setAnswers((prev) => ({ ...prev, [id]: value }));
-    };
+  useEffect(() => {
+    const savedTopic = localStorage.getItem("currentTopic");
+    if (!savedTopic) {
+      navigate("/");
+      return;
+    }
+    setTopicId(savedTopic);
+  }, [navigate]);
 
-    const submit = () => {
-      localStorage.setItem("diagnosticAnswers", JSON.stringify(answers));
-      localStorage.setItem("diagnosticCompleted", "true");
-      navigate("/results");
-    };
+  if (!topicId || !diagnosticQuestions[topicId]) {
+    return null;
+  }
 
-    return (
-      <div className="page-center">
-        <div className="panel">
-          <h1>📘 Quadratic Equations Diagnostic</h1>
-          <p className="subtitle">
-            This is not a test. It helps identify learning gaps.
-          </p>
+  const topic = topics.find(t => t.id === topicId);
+  const sections = diagnosticQuestions[topicId].sections;
 
-          <Section title="A. Conceptual Understanding">
-            <Question
-              id="A1"
-              text="What is a root of an equation?"
-              options={[
-                "A value that makes the equation true",
-                "An answer found by a formula",
-                "A number after calculations",
-                "I don't know",
-              ]}
-              onSelect={setAnswer}
-            />
+  const setAnswer = (id, value) => {
+    setAnswers((prev) => ({ ...prev, [id]: value }));
+  };
 
-            <Question
-              id="A2"
-              text="Can a quadratic equation have no real solutions?"
-              options={["Yes", "No", "I don't know"]}
-              onSelect={setAnswer}
-            />
-          </Section>
+  const submit = () => {
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000 / 60);
+    
+    localStorage.setItem(`diagnostic_${topicId}_answers`, JSON.stringify(answers));
+    localStorage.setItem(`diagnostic_${topicId}_completed`, "true");
+    localStorage.setItem(`diagnostic_${topicId}_time`, timeSpent.toString());
+    
+    // Update total time
+    const currentTotal = parseInt(localStorage.getItem("totalTime") || "0");
+    localStorage.setItem("totalTime", (currentTotal + timeSpent).toString());
+    
+    navigate("/results");
+  };
 
-          <Section title="B. Typical Mistakes">
-            <Question
-              id="B1"
-              text="Find the mistake: x² − 5x = 0 → x = (5 ± √25)/2"
-              options={[
-                "Wrong formula usage",
-                "Should factor the equation",
-                "No mistake",
-                "I don't know",
-              ]}
-              onSelect={setAnswer}
-            />
-          </Section>
+  const progress = Math.round(
+    (Object.keys(answers).length / 
+    sections.reduce((acc, s) => acc + s.questions.length, 0)) * 100
+  );
 
-          <Section title="C. Choosing a Method">
-            <Question
-              id="C1"
-              text="Best method to solve x² − 9 = 0?"
-              options={[
-                "Factoring",
-                "Discriminant formula",
-                "Graph",
-                "I don't know",
-              ]}
-              onSelect={setAnswer}
-            />
-
-            <Question
-              id="C2"
-              text="Best method to solve 3x² + 7x − 5 = 0?"
-              options={[
-                "Discriminant formula",
-                "Factoring",
-                "Graph",
-                "I don't know",
-              ]}
-              onSelect={setAnswer}
-            />
-          </Section>
-
-          <button className="primary-btn" onClick={submit}>
-            Finish Diagnostic
+  return (
+    <div className="page-center">
+      <div className="panel diagnostic-panel">
+        <div className="diagnostic-header">
+          <button 
+            className="back-btn"
+            onClick={() => navigate("/")}
+          >
+            ← {t("diagnostics.back")}
           </button>
+          
+          <div className="topic-badge">
+            <span className="topic-icon">{topic.icon}</span>
+            <span>{topic.title[i18n.language] || topic.title.en}</span>
+          </div>
         </div>
-      </div>
-    );
-  }
 
-  function Section({ title, children }) {
-    return (
-      <section className="section">
-        <h2>{title}</h2>
-        {children}
-      </section>
-    );
-  }
+        <h1>{t("diagnostics.title")}</h1>
+        <p className="subtitle">{t("diagnostics.subtitle")}</p>
 
-  function Question({ id, text, options, onSelect }) {
-    return (
-      <div className="question-card">
-        <p className="question-text">{text}</p>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width: `${progress}%` }}>
+            <span className="progress-text">{progress}%</span>
+          </div>
+        </div>
 
-        <div className="options">
-          {options.map((option) => (
-            <label key={option} className="option-card">
-              <input
-                type="radio"
-                name={id}
-                onChange={() => onSelect(id, option)}
-              />
-              <span>{option}</span>
-            </label>
+        <div className="section-tabs">
+          {sections.map((section, idx) => (
+            <button
+              key={section.id}
+              className={`tab-btn ${currentSection === idx ? "active" : ""}`}
+              onClick={() => setCurrentSection(idx)}
+            >
+              {section.title[i18n.language] || section.title.en}
+            </button>
           ))}
         </div>
+
+        <Section section={sections[currentSection]} lang={i18n.language}>
+          {sections[currentSection].questions.map((q) => (
+            <Question
+              key={q.id}
+              question={q}
+              lang={i18n.language}
+              onSelect={setAnswer}
+              selected={answers[q.id]}
+            />
+          ))}
+        </Section>
+
+        <div className="diagnostic-footer">
+          <button
+            className="nav-btn"
+            onClick={() => setCurrentSection(Math.max(0, currentSection - 1))}
+            disabled={currentSection === 0}
+          >
+            ← {t("diagnostics.previous")}
+          </button>
+
+          {currentSection < sections.length - 1 ? (
+            <button
+              className="nav-btn primary"
+              onClick={() => setCurrentSection(currentSection + 1)}
+            >
+              {t("diagnostics.next")} →
+            </button>
+          ) : (
+            <button 
+              className="primary-btn" 
+              onClick={submit}
+              disabled={Object.keys(answers).length === 0}
+            >
+              {t("diagnostics.finish_button")}
+            </button>
+          )}
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+function Section({ section, lang, children }) {
+  return (
+    <section className="section diagnostic-section">
+      <h2 className="section-name">{section.title[lang] || section.title.en}</h2>
+      <div className="questions-container">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Question({ question, lang, onSelect, selected }) {
+  const options = question.options[lang] || question.options.en;
+
+  return (
+    <div className="question-card">
+      <p className="question-text">{question.text[lang] || question.text.en}</p>
+
+      <div className="options">
+        {options.map((option) => (
+          <label 
+            key={option} 
+            className={`option-card ${selected === option ? "selected" : ""}`}
+          >
+            <input
+              type="radio"
+              name={question.id}
+              checked={selected === option}
+              onChange={() => onSelect(question.id, option)}
+            />
+            <span>{option}</span>
+            {selected === option && <span className="check-icon">✓</span>}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -1,18 +1,14 @@
-import React from 'react'
-import "../styles/global.css"
+import { useTranslation } from "react-i18next";
 
-function Loading() {
+export default function Loading() {
+  const { t } = useTranslation();
+
   return (
-    <div>
-      <div>
-      <div className="container">
-        <div className="loagin-page-wrapper">
-            <p className="loading-text">Loading...</p>
-        </div>
+    <div className="page-center">
+      <div className="loading-spinner">
+        <div className="spinner"></div>
+        <h2>{t("common.loading")}</h2>
       </div>
     </div>
-    </div>
-  )
+  );
 }
-
-export default Loading

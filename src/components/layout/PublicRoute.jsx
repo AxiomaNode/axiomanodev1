@@ -1,6 +1,6 @@
+import { useAuth } from "../../context/authContext";
 import { Navigate } from "react-router-dom";
 import Loading from "../../pages/Loading";
-import { useAuth } from "../../context/authContext";
 
 export default function PublicRoute({ children }) {
   const { user, loading } = useAuth();
