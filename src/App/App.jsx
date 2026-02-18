@@ -6,7 +6,7 @@ import DiagnosticsPage from "../pages/DiagnosticsPage";
 import PracticePage from "../pages/PracticePage";
 import ProgressPage from "../pages/ProgressPage";
 import ResultsPage from "../pages/ResultsPage";
-import { AuthProvider } from "../context/AuthContext";
+import { AuthProvider } from "../context/Authorisatisdfa";
 
 const App = () => {
   return (
