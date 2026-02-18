@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { useAuth } from "../../context/Authorisatisdfa";
+import { useAuth } from "../../context/AuthContext";
 import { logoutUser } from "../../firebase/auth";
 
 const Header = () => {
