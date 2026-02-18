@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "../context/AuthContext";
 import ProtectedRoute from "../components/layout/ProtectedRoute";
 import AuthPage from "../pages/AuthPage";
 import HomePage from "../pages/HomePage";
@@ -7,6 +6,7 @@ import DiagnosticsPage from "../pages/DiagnosticsPage";
 import PracticePage from "../pages/PracticePage";
 import ProgressPage from "../pages/ProgressPage";
 import ResultsPage from "../pages/ResultsPage";
+import { AuthProvider } from "../context/AuthContext";
 
 const App = () => {
   return (
