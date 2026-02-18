@@ -1,0 +1,34 @@
+:root {
+  --bg-0: #101014;
+  --bg-1: #16161c;
+  --bg-2: #1c1c24;
+  --bg-3: #22222c;
+  --bg-4: #2a2a36;
+
+  --white: #f4f0eb;
+  --white-soft: rgba(244, 240, 235, 0.7);
+  --white-dim: rgba(244, 240, 235, 0.45);
+  --white-faint: rgba(244, 240, 235, 0.12);
+  --white-ghost: rgba(244, 240, 235, 0.06);
+
+  --gold: #4a5ae8;
+  --gold-soft: rgba(232, 196, 74, 0.15);
+  --gold-faint: rgba(232, 196, 74, 0.07);
+
+  --red: #e85d5d;
+  --red-soft: rgba(232, 93, 93, 0.12);
+  --green: #5de8a0;
+  --green-soft: rgba(93, 232, 160, 0.12);
+  --blue: #5d9be8;
+  --blue-soft: rgba(93, 155, 232, 0.12);
+  --orange: #e8965d;
+
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+
+  --r-s: 8px;
+  --r-m: 14px;
+  --r-l: 22px;
+
+  --out: cubic-bezier(0.22, 1, 0.36, 1);
+}

@@ -1,0 +1,196 @@
+.diagnostics-page {
+  animation: up .6s var(--out);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.diag-topic-select h2 {
+  font-family: var(--serif);
+  font-size: 2.2rem;
+  font-style: italic;
+  letter-spacing: -.5px;
+  margin-bottom: .3rem;
+}
+
+.diag-topic-select p {
+  color: var(--white-dim);
+  font-size: .88rem;
+  margin-bottom: 1.25rem;
+}
+
+.diag-topic-list { display: flex; flex-wrap: wrap; gap: .45rem; }
+
+.diag-topic-btn {
+  padding: .6rem 1.3rem;
+  background: var(--bg-2);
+  border: 1px solid var(--white-ghost);
+  border-radius: var(--r-s);
+  font-size: .85rem;
+  font-weight: 500;
+  transition: .15s;
+}
+
+.diag-topic-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--gold-faint);
+}
+
+/* ── PROGRESS ── */
+
+.diag-progress-bar {
+  width: 100%;
+  height: 2px;
+  background: var(--bg-3);
+  border-radius: 1px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.diag-progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 1px;
+  transition: width .4s var(--out);
+}
+
+/* ── CARD ── */
+
+.diag-question-card {
+  background: var(--bg-2);
+  border: 1px solid var(--white-ghost);
+  border-radius: var(--r-l);
+  padding: 2rem 1.75rem;
+  animation: pop .25s var(--out);
+}
+
+.diag-question-number {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: var(--gold);
+  margin-bottom: .85rem;
+}
+
+.diag-question-text {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.65;
+  margin-bottom: 1.35rem;
+}
+
+/* ── OPTIONS ── */
+
+.diag-options { display: flex; flex-direction: column; gap: .4rem; }
+
+.diag-option {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .78rem .9rem;
+  background: var(--bg-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-s);
+  cursor: pointer;
+  transition: .15s;
+  font-size: .88rem;
+}
+
+.diag-option:hover {
+  background: var(--bg-4);
+  border-color: var(--white-faint);
+}
+
+.diag-option.selected {
+  border-color: var(--gold);
+  background: var(--gold-faint);
+}
+
+.diag-option-label {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--white-ghost);
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--white-dim);
+  flex-shrink: 0;
+  transition: .15s;
+}
+
+.diag-option.selected .diag-option-label {
+  background: var(--gold);
+  color: var(--bg-0);
+}
+
+/* ── NAV ── */
+
+.diag-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+}
+
+.diag-nav-btn {
+  padding: .55rem 1.4rem;
+  border-radius: var(--r-s);
+  font-size: .83rem;
+  font-weight: 600;
+  transition: .15s;
+}
+
+.diag-nav-btn.secondary {
+  color: var(--white-dim);
+  border: 1px solid var(--white-ghost);
+}
+
+.diag-nav-btn.secondary:hover:not(:disabled) {
+  color: var(--white-soft);
+  border-color: var(--white-faint);
+}
+
+.diag-nav-btn.primary {
+  background: var(--gold);
+  color: var(--bg-0);
+}
+
+.diag-nav-btn.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.diag-nav-btn:disabled { opacity: .2; cursor: not-allowed; }
+
+/* ── COMPLETE ── */
+
+.diag-complete {
+  text-align: center;
+  padding: 5rem 2rem;
+  animation: pop .5s var(--out);
+}
+
+.diag-complete-icon { font-size: 2.8rem; margin-bottom: .75rem; }
+
+.diag-complete h2 {
+  font-family: var(--serif);
+  font-size: 2rem;
+  font-style: italic;
+  letter-spacing: -.5px;
+  margin-bottom: .3rem;
+}
+
+.diag-complete p { color: var(--white-dim); margin-bottom: 1.75rem; font-size: .9rem; }
+
+.diag-complete-btn {
+  padding: .7rem 2rem;
+  background: var(--gold);
+  color: var(--bg-0);
+  font-weight: 700;
+  border-radius: var(--r-s);
+  font-size: .88rem;
+  transition: .2s;
+}
+
+.diag-complete-btn:hover { filter: brightness(1.1); }

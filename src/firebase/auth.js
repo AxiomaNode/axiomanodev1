@@ -1,14 +1,35 @@
-import { auth } from "./firebaseConfig";
+
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  updateProfile
 } from "firebase/auth";
+import { auth } from "./firebaseConfig";
 
-export const registerUser = (email, password) =>
-  createUserWithEmailAndPassword(auth, email, password);
+export const registerUser = async (email, password, displayName) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(userCredential.user, { displayName });
+    return userCredential.user;
+  } catch (error) {
+    throw new Error(error.code === "auth/email-already-in-use" ? "Email already in use" : error.message);
+  }
+};
 
-export const loginUser = (email, password) =>
-  signInWithEmailAndPassword(auth, email, password);
+export const loginUser = async (email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
+  } catch (error) {
+    throw new Error(error.code === "auth/invalid-credential" ? "Invalid credentials" : error.message);
+  }
+};
 
-export const logoutUser = () => signOut(auth);
+export const logoutUser = async () => {
+  try {
+    await signOut(auth);
+  } catch (error) {
+    console.error("Logout error:", error);
+  }
+};

@@ -1,17 +1,44 @@
-import { useAuth } from "../../context/authContext";
-import { Navigate } from "react-router-dom";
-import Loading from "../../pages/Loading";
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import Header from "./Header";
+import "../../styles/layout.css";
 
-export default function ProtectedRoute({ children }) {
+const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <Loading />;
+    return (
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--color-bg)"
+      }}>
+        <div style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "2rem",
+          color: "var(--color-accent)",
+          animation: "pulse 1.5s infinite"
+        }}>
+          Axioma
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
-  return children;
-}
+  return (
+    <div className="app-layout">
+      <Header />
+      <main className="app-content">
+        <Outlet />
+      </main>
+    </div>
+  );
+};
+
+export default ProtectedRoute;

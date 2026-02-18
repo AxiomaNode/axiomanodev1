@@ -1,0 +1,234 @@
+.practice-page {
+  animation: up .6s var(--out);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.practice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.practice-header h2 {
+  font-family: var(--serif);
+  font-size: 2.2rem;
+  font-style: italic;
+  letter-spacing: -.5px;
+}
+
+.practice-streak {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px 4px 8px;
+  background: rgba(232, 150, 93, .08);
+  border: 1px solid rgba(232, 150, 93, .12);
+  border-radius: 100px;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--orange);
+}
+
+.practice-streak-fire { font-size: .95rem; }
+
+.practice-topic-select p {
+  color: var(--white-dim);
+  font-size: .88rem;
+  margin-bottom: .85rem;
+}
+
+.practice-topic-list { display: flex; flex-wrap: wrap; gap: .45rem; }
+
+.practice-topic-btn {
+  padding: .55rem 1.15rem;
+  background: var(--bg-2);
+  border: 1px solid var(--white-ghost);
+  border-radius: var(--r-s);
+  font-size: .82rem;
+  font-weight: 500;
+  transition: .15s;
+}
+
+.practice-topic-btn:hover,
+.practice-topic-btn.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--gold-faint);
+}
+
+.practice-info {
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--white-dim);
+  margin-bottom: .85rem;
+  letter-spacing: .3px;
+}
+
+/* ── CARD ── */
+
+.practice-card {
+  background: var(--bg-2);
+  border: 1px solid var(--white-ghost);
+  border-radius: var(--r-l);
+  padding: 2rem 1.75rem;
+  animation: pop .25s var(--out);
+}
+
+.practice-question-text {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.65;
+  margin-bottom: 1.35rem;
+}
+
+/* ── OPTIONS ── */
+
+.practice-options { display: flex; flex-direction: column; gap: .4rem; }
+
+.practice-option {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .78rem .9rem;
+  background: var(--bg-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-s);
+  cursor: pointer;
+  transition: .15s;
+  font-size: .88rem;
+}
+
+.practice-option:hover:not(.disabled) {
+  background: var(--bg-4);
+  border-color: var(--white-faint);
+}
+
+.practice-option.selected {
+  border-color: var(--gold);
+  background: var(--gold-faint);
+}
+
+.practice-option.correct {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.practice-option.wrong {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.practice-option.disabled { cursor: default; }
+
+.practice-option-label {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--white-ghost);
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--white-dim);
+  flex-shrink: 0;
+  transition: .15s;
+}
+
+.practice-option.correct .practice-option-label {
+  background: var(--green);
+  color: var(--bg-0);
+}
+
+.practice-option.wrong .practice-option-label {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ── EXPLANATION ── */
+
+.practice-explanation {
+  margin-top: 1.15rem;
+  padding: .85rem 1rem;
+  background: var(--gold-faint);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 var(--r-s) var(--r-s) 0;
+  animation: up .25s var(--out);
+}
+
+.practice-explanation-label {
+  font-size: .6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold);
+  margin-bottom: .25rem;
+}
+
+.practice-explanation-text {
+  font-size: .86rem;
+  line-height: 1.7;
+  color: var(--white-soft);
+}
+
+/* ── NEXT ── */
+
+.practice-next-btn {
+  display: block;
+  width: 100%;
+  padding: .8rem;
+  margin-top: 1.15rem;
+  background: var(--gold);
+  color: var(--bg-0);
+  font-weight: 700;
+  font-size: .88rem;
+  border-radius: var(--r-s);
+  transition: .2s;
+}
+
+.practice-next-btn:hover { filter: brightness(1.1); }
+
+/* ── DONE ── */
+
+.practice-done {
+  text-align: center;
+  padding: 5rem 2rem;
+  animation: pop .5s var(--out);
+}
+
+.practice-done h2 {
+  font-family: var(--serif);
+  font-size: 2rem;
+  font-style: italic;
+  letter-spacing: -.5px;
+  margin-bottom: .3rem;
+}
+
+.practice-done p { color: var(--white-dim); font-size: .9rem; }
+
+.practice-done-stats {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin: 2rem 0;
+}
+
+.practice-done-stat { text-align: center; }
+
+.practice-done-stat-value {
+  font-family: var(--serif);
+  font-size: 2.5rem;
+  font-style: italic;
+  color: var(--gold);
+  line-height: 1.1;
+}
+
+.practice-done-stat-label {
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--white-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: .1rem;
+}
