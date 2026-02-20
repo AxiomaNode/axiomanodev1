@@ -2,174 +2,210 @@ export const questions = {
   quadratic: [
     {
       id: "A1",
-      text: "Kvadrat tenglamaning ildizi nima?",
+      text: "Kvadrat tenglama ildizlari nima deb ataladi?",
       options: [
-        { value: "Formula orqali topilgan javob", label: "A" },
-        { value: "Tenglamani to'g'ri qiladigan son", label: "B" },
-        { value: "Hisoblashdan keyingi son", label: "C" },
+        { value: "Tenglamani qanoatlantiruvchi har qanday son", label: "A" },
+        { value: "Tenglama nolga teng bo'ladigan x qiymatlari", label: "B" },
+        { value: "Diskriminantning musbat ildizi", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Tenglamani to'g'ri qiladigan son"
+      correct: "Tenglama nolga teng bo'ladigan x qiymatlari"
     },
     {
       id: "A2",
-      text: "x = 3 tenglamaning x² − 5x + 6 = 0 ildizi ekanligini qanday tekshirish mumkin?",
+      text: "x = 4 qiymati x² − 5x − 4 = 0 tenglamaning ildizi ekanligini qanday isbotlash mumkin?",
       options: [
-        { value: "Formulaga qo'yib ko'rish", label: "A" },
-        { value: "x ni tenglamaga qo'yib, 0 chiqishini tekshirish", label: "B" },
-        { value: "Yo'q", label: "C" },
+        { value: "Diskriminantni hisoblash orqali", label: "A" },
+        { value: "x = 4 ni tenglamaga qo'yib, natija 0 chiqishini tekshirish", label: "B" },
+        { value: "Vieta teoremasidan foydalanish", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "x ni tenglamaga qo'yib, 0 chiqishini tekshirish"
+      correct: "x = 4 ni tenglamaga qo'yib, natija 0 chiqishini tekshirish"
     },
     {
       id: "A3",
-      text: "Diskriminant (D) nima haqida ma'lumot beradi?",
+      text: "Diskriminant D < 0 bo'lsa, haqiqiy sonlar to'plamida nechta ildiz bo'ladi?",
       options: [
-        { value: "Ildizlarning qiymati", label: "A" },
-        { value: "Ildizlar soni va mavjudligi", label: "B" },
-        { value: "Formula ishlatish kerakligini", label: "C" },
+        { value: "Ikkitasi", label: "A" },
+        { value: "Bitta", label: "B" },
+        { value: "Hech qanday haqiqiy ildiz yo'q", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Ildizlar soni va mavjudligi"
+      correct: "Hech qanday haqiqiy ildiz yo'q"
     },
     {
       id: "B1",
-      text: "3x² + 6x = 0 tenglamani echishda qaysi usul eng qulay?",
+      text: "Quyidagi tenglamalardan qaysi biri umumiy ko'paytuvchi orqali eng oson yechiladi?",
       options: [
-        { value: "Diskriminant formulasi", label: "A" },
-        { value: "Umumiy ko'paytuvchini ajratish: 3x(x + 2) = 0", label: "B" },
-        { value: "Noto'g'ri formula ishlatish", label: "C" },
+        { value: "2x² + 5x + 3 = 0", label: "A" },
+        { value: "6x² − 18x = 0", label: "B" },
+        { value: "x² − 7x + 12 = 0", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Umumiy ko'paytuvchini ajratish: 3x(x + 2) = 0"
+      correct: "6x² − 18x = 0"
     },
     {
       id: "B2",
-      text: "x² − 4x + 4 = 0 tenglamada D = 0. Bu nima degani?",
+      text: "x² + 6x + 9 = 0 tenglamada diskriminant D = 0 bo'lishining geometrik ma'nosi nima?",
       options: [
-        { value: "Yechim yo'q", label: "A" },
-        { value: "Bitta takrorlanuvchi ildiz bor", label: "B" },
-        { value: "Noto'g'ri belgi", label: "C" },
+        { value: "Parabola Ox o'qiga tegmagan", label: "A" },
+        { value: "Parabola Ox o'qiga bitta nuqtada tegadi (cho'qqi Ox da)", label: "B" },
+        { value: "Parabola ikki nuqtada kesishadi", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Bitta takrorlanuvchi ildiz bor"
+      correct: "Parabola Ox o'qiga bitta nuqtada tegadi (cho'qqi Ox da)"
     },
     {
       id: "C1",
-      text: "2x² − 8 = 0 tenglamani echishda eng qulay usul qaysi?",
+      text: "Quyidagi tenglamalardan qaysi biri ko'paytuvchilarga ajratish usuli bilan yechilmaydi?",
       options: [
-        { value: "Diskriminant formulasi", label: "A" },
-        { value: "x² = 4 deb to'g'ridan-to'g'ri echish", label: "B" },
-        { value: "Grafik", label: "C" },
+        { value: "x² − 5x + 6 = 0", label: "A" },
+        { value: "x² + 4x + 5 = 0", label: "B" },
+        { value: "x² − 9 = 0", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "x² = 4 deb to'g'ridan-to'g'ri echish"
+      correct: "x² + 4x + 5 = 0"
     },
     {
       id: "C2",
-      text: "x² − 5x + 6 = 0 uchun qaysi usul qulay?",
+      text: "−x² + 6x − 8 = 0 tenglamani yechish uchun eng samarali usul qaysi?",
       options: [
-        { value: "Ko'paytuvchilarga ajratish: (x−2)(x−3) = 0", label: "A" },
-        { value: "Grafik", label: "B" },
-        { value: "Ko'paytuvchilarga ajratish", label: "C" },
+        { value: "Kvadrat ildiz chiqarish", label: "A" },
+        { value: "Tenglamani −1 ga ko'paytirib, keyin ko'paytuvchilarga ajratish", label: "B" },
+        { value: "Faqat diskriminant formulasi", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Ko'paytuvchilarga ajratish: (x−2)(x−3) = 0"
+      correct: "Tenglamani −1 ga ko'paytirib, keyin ko'paytuvchilarga ajratish"
+    },
+    {
+      id: "D1",  
+      text: "Agar ax² + bx + c = 0 tenglamaning ildizlari x₁ va x₂ bo'lsa, x₁ + x₂ = ?",
+      options: [
+        { value: "−b/a", label: "A" },
+        { value: "c/a", label: "B" },
+        { value: "b/a", label: "C" },
+        { value: "Bilmayman", label: "D" }
+      ],
+      correct: "−b/a"
     }
   ],
+
   systems: [
     {
       id: "S1",
-      text: "Tenglamalar sistemasini echish nima degani?",
+      text: "Ikki tenglamali sistemada yechimlar soni qanday holatlarda cheksiz ko'p bo'ladi?",
       options: [
-        { value: "Har bir tenglamani alohida echish", label: "A" },
-        { value: "Barcha tenglamalarni bir vaqtda qanoatlantiruvchi qiymatlarni topish", label: "B" },
-        { value: "Barcha tenglamalarni qo'shish", label: "C" },
+        { value: "Tenglamalar bir-biriga proporsional bo'lganda", label: "A" },
+        { value: "Tenglamalar bir-biriga parallel bo'lganda", label: "B" },
+        { value: "Determinant nolga teng bo'lganda", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Barcha tenglamalarni bir vaqtda qanoatlantiruvchi qiymatlarni topish"
+      correct: "Tenglamalar bir-biriga proporsional bo'lganda"
     },
     {
       id: "S2",
-      text: "Tenglamalar sistemasining yechimi bo'lmasligi mumkinmi?",
+      text: "x + y = 5 va 2x + 2y = 10 tenglamalar sistemasining yechimlari qanday?",
       options: [
-        { value: "Har doim yechimi bor", label: "A" },
-        { value: "Ha, agar tenglamalar ziddiyatli bo'lsa", label: "B" },
-        { value: "Faqat tenglamalar noto'g'ri bo'lsa", label: "C" },
+        { value: "Bitta yechim: (3, 2)", label: "A" },
+        { value: "Cheksiz ko'p yechim (butun chiziq)", label: "B" },
+        { value: "Yechim yo'q", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Ha, agar tenglamalar ziddiyatli bo'lsa"
+      correct: "Cheksiz ko'p yechim (butun chiziq)"
     },
     {
       id: "S3",
-      text: "O'rniga qo'yish usulida birinchi qadam nima?",
+      text: "Qo‘shish usulida (eliminatsiya) qaysi holatda ko'paytirish koeffitsienti tanlash kerak bo'ladi?",
       options: [
-        { value: "Ikkala tenglamani qo'shish", label: "A" },
-        { value: "Bitta tenglamadan o'zgaruvchini ifodalash", label: "B" },
-        { value: "Qaysi o'zgaruvchini ifodalashni bilmaslik", label: "C" },
+        { value: "O'zgaruvchilar koeffitsientlari allaqachon teng bo'lsa", label: "A" },
+        { value: "Bir o'zgaruvchining koeffitsientlari qarama-qarshi yoki teng bo'lmasa", label: "B" },
+        { value: "Faqat grafik usul ishlatilganda", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Bitta tenglamadan o'zgaruvchini ifodalash"
+      correct: "Bir o'zgaruvchining koeffitsientlari qarama-qarshi yoki teng bo'lmasa"
+    },
+    {
+      id: "S4",  
+      text: "x − 2y = 3 va 3x − 6y = 10 sistemasi nechta yechimga ega?",
+      options: [
+        { value: "Bitta yechim", label: "A" },
+        { value: "Cheksiz ko'p yechim", label: "B" },
+        { value: "Hech qanday yechim yo'q", label: "C" },
+        { value: "Bilmayman", label: "D" }
+      ],
+      correct: "Hech qanday yechim yo'q"
     }
   ],
+
   functions: [
     {
       id: "F1",
-      text: "Funksiya nima?",
+      text: "Quyidagilardan qaysi biri funksiya emas?",
       options: [
-        { value: "Formula", label: "A" },
-        { value: "Har bir kirishga bitta chiqish mos keladigan qoida", label: "B" },
-        { value: "Jadval", label: "C" },
+        { value: "y = x²", label: "A" },
+        { value: "y = ±√x", label: "B" },
+        { value: "y = 2x + 1", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "Har bir kirishga bitta chiqish mos keladigan qoida"
+      correct: "y = ±√x"
     },
     {
       id: "F2",
-      text: "f(3) = 7 nima degani?",
+      text: "Agar f(x) = x² − 4x + 3 bo'lsa, f(2) + f(−1) nechaga teng?",
       options: [
-        { value: "x = 7 bo'lganda javob 3", label: "A" },
-        { value: "x = 3 bo'lganda funksiyaning qiymati 7", label: "B" },
-        { value: "Grafik chizish kerak", label: "C" },
+        { value: "0", label: "A" },
+        { value: "−2", label: "B" },
+        { value: "6", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "x = 3 bo'lganda funksiyaning qiymati 7"
+      correct: "0"
     },
     {
       id: "F3",
-      text: "Grafikda nuqta (2, 5) nima bildiradi?",
+      text: "Funksiyaning grafikda vertikal chiziq testi nima uchun ishlatiladi?",
       options: [
-        { value: "x = 5, y = 2", label: "A" },
-        { value: "x = 2 bo'lganda y = 5", label: "B" },
-        { value: "Koordinatalarni noto'g'ri o'qish", label: "C" },
+        { value: "Funksiya o'suvchi yoki kamayuvchi ekanligini aniqlash uchun", label: "A" },
+        { value: "Har bir x ga faqat bitta y mos kelishini tekshirish uchun", label: "B" },
+        { value: "Parabolani chizish uchun", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "x = 2 bo'lganda y = 5"
+      correct: "Har bir x ga faqat bitta y mos kelishini tekshirish uchun"
     }
   ],
+
   inequalities: [
     {
       id: "I1",
-      text: "x > 3 tengsizlikning yechimi nima?",
+      text: "(x − 2)(x + 3) > 0 tengsizlikning yechimi qaysi intervalda?",
       options: [
-        { value: "Bitta son", label: "A" },
-        { value: "3 dan katta barcha sonlar", label: "B" },
-        { value: "Sonlar oralig'i", label: "C" },
+        { value: "x < −3 yoki x > 2", label: "A" },
+        { value: "−3 < x < 2", label: "B" },
+        { value: "x > −3", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "3 dan katta barcha sonlar"
+      correct: "x < −3 yoki x > 2"
     },
     {
       id: "I2",
-      text: "−2x > 6 tengsizlikni echganda nima sodir bo'ladi?",
+      text: "−3x + 12 ≤ 6 tengsizlikni yechganda belgi qanday o'zgaradi?",
       options: [
-        { value: "x > −3", label: "A" },
-        { value: "x < −3 (belgi o'zgaradi)", label: "B" },
-        { value: "Belgini o'zgartirmaslik", label: "C" },
+        { value: "Hech qachon o'zgarmaydi", label: "A" },
+        { value: "−3 ga bo'lganda (yoki ko'paytirganda) teskari bo'ladi", label: "B" },
+        { value: "Faqat musbat songa bo'lganda o'zgaradi", label: "C" },
         { value: "Bilmayman", label: "D" }
       ],
-      correct: "x < −3 (belgi o'zgaradi)"
+      correct: "−3 ga bo'lganda (yoki ko'paytirganda) teskari bo'ladi"
+    },
+    {
+      id: "I3", 
+      text: "x² − 9 ≤ 0 tengsizlikning yechimi qaysi?",
+      options: [
+        { value: "x ≤ −3 yoki x ≥ 3", label: "A" },
+        { value: "−3 ≤ x ≤ 3", label: "B" },
+        { value: "x < 0", label: "C" },
+        { value: "Bilmayman", label: "D" }
+      ],
+      correct: "−3 ≤ x ≤ 3"
     }
   ]
 };

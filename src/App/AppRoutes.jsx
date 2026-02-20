@@ -1,30 +1,44 @@
-import { Navigate, Route, Routes } from "react-router-dom"
-import AuthPage from "../pages/AuthPage"
-import ProtectedRoute from "../components/layout/ProtectedRoute"
-import HomePage from "../pages/HomePage"
-import DiagonsticPage from "../pages/DiagnosticsPage"
-import PracticePage from "../pages/PracticePage"
-import ProgressPage from "../pages/ProgressPage"
-import ResultsPage from "../pages/ResultsPage"
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-export default function AppRoutes() {
-  return (
-    <Routes>
+import AuthPage        from "../pages/AuthPage";
+import HomePage        from "../pages/HomePage";
+import DiagnosticsPage from "../pages/DiagnosticsPage";
+import PracticePage    from "../pages/PracticePage";
+import ProgressPage    from "../pages/ProgressPage";
+import ResultsPage     from "../pages/ResultsPage";
+import SupportPage from "../pages/SupportPage";
 
-      <Route path="/auth" element={<AuthPage />} />
+/* ── Redirect logged-in users away from /auth ── */
+const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <Navigate to="/home" replace /> : children;
+};
 
-      <Route element={<ProtectedRoute />}>
-        <Route path="/"               element={<HomePage />} />
-        <Route path="/home"           element={<Navigate to="/" replace />} />
-        <Route path="/diagnostics"    element={<DiagonsticPage />} />
-        <Route path="/practice"       element={<PracticePage />} />
-        <Route path="/progress"       element={<ProgressPage />} />
-        <Route path="/results"        element={<ResultsPage />} />
+/* ── Require auth for all app pages ── */
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? children : <Navigate to="/auth" replace />;
+};
 
-      </Route>
+const AppRouter = () => (
+  <Routes>
+    {/* Public */}
+    <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+    {/* Protected */}
+    <Route path="/home"        element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+    <Route path="/diagnostics" element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
+    <Route path="/practice"    element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
+    <Route path="/progress"    element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+    <Route path="/results"     element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
+    <Route path="/support"     element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
 
-    </Routes>
-  );
-}
+    {/* Fallback */}
+    <Route path="*" element={<Navigate to="/home" replace />} />
+  </Routes>
+);
+
+export default AppRouter;

@@ -1,30 +1,51 @@
+import {
+  ChartSpline,
+  BookOpen,
+  Calculator,
+  Scale,
+  Percent,
+  Divide,
+  Ruler,
+  Radical,
+  ArrowDown01,
+  Equal,
+} from "lucide-react";
+
 export const topics = [
   {
     id: "quadratic",
-    title: "Quadratic Equations",
-    icon: "📐",
-    description: "Roots, discriminant, and solving methods for quadratic equations.",
+    title: "Kvadrat tenglamalar",
+    icon: Radical,           
+    description: "Ildizlar, diskriminant va echish usullari.",
     difficulty: "medium"
   },
   {
     id: "systems",
-    title: "Systems of Equations",
-    icon: "🔢",
-    description: "Solving linear systems and understanding contradictions.",
+    title: "Tenlamalar sistemasi",
+    icon: ArrowDown01,
+    description: "Chiziqli sistemalarni echish va ziddiyatlar.",
     difficulty: "medium"
   },
   {
     id: "functions",
-    title: "Functions",
-    icon: "📊",
-    description: "Understanding functions, linear models, and graphs.",
+    title: "Funksiyalar",
+    icon: ChartSpline,              
+    description: "Funksiya tushunchasi, grafiklar va ta'rif sohasi.",
     difficulty: "easy"
   },
   {
     id: "inequalities",
-    title: "Inequalities",
-    icon: "⚖️",
-    description: "Solving and interpreting inequality solutions.",
+    title: "Tengsizliklar",
+    icon: Equal,
+    description: "Tengsizliklarni echish va talqin qilish.",
     difficulty: "medium"
-  }
+  },
+  {
+    id: "percentages",
+    title: "Foizlar",
+    icon: Percent,
+    description: "Foiz hisoblash, o'zgarish va amaliy masalalar.",
+    difficulty: "easy"
+  },
+
 ];

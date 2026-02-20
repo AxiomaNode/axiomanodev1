@@ -1,34 +1,157 @@
+/* ═══════════════════════════════════════════
+   AXIOMANO — Global CSS Variables
+   Light theme (default) + Dark theme overrides
+═══════════════════════════════════════════ */
+
+/* ── LIGHT THEME (default) ── */
 :root {
-  --bg-0: #101014;
-  --bg-1: #16161c;
-  --bg-2: #1c1c24;
-  --bg-3: #22222c;
-  --bg-4: #2a2a36;
+  /* Backgrounds */
+  --page-bg:          #edf2f8;
+  --card-bg:          #ffffff;
+  --card-bg-alt:      #f8fafc;
+  --header-bg:        #ffffff;
+  --sidebar-bg:       #ffffff;
+  --input-bg:         #f8fafc;
 
-  --white: #f4f0eb;
-  --white-soft: rgba(244, 240, 235, 0.7);
-  --white-dim: rgba(244, 240, 235, 0.45);
-  --white-faint: rgba(244, 240, 235, 0.12);
-  --white-ghost: rgba(244, 240, 235, 0.06);
+  /* Borders */
+  --border:           #dce5ef;
+  --border-strong:    #b8c9d9;
 
-  --gold: #4a5ae8;
-  --gold-soft: rgba(232, 196, 74, 0.15);
-  --gold-faint: rgba(232, 196, 74, 0.07);
+  /* Brand colors (stay same in both themes) */
+  --navy:             #1a2e44;
+  --navy-hover:       #243d58;
+  --teal:             #2a8fa0;
+  --teal-dark:        #1d6e7d;
+  --teal-light:       #e8f4f6;
 
-  --red: #e85d5d;
-  --red-soft: rgba(232, 93, 93, 0.12);
-  --green: #5de8a0;
-  --green-soft: rgba(93, 232, 160, 0.12);
-  --blue: #5d9be8;
-  --blue-soft: rgba(93, 155, 232, 0.12);
-  --orange: #e8965d;
+  /* Text */
+  --text-dark:        #111827;
+  --text-mid:         #4b5563;
+  --text-light:       #9ca3af;
 
-  --serif: 'Instrument Serif', Georgia, serif;
-  --sans: 'DM Sans', system-ui, sans-serif;
+  /* Shadows */
+  --shadow-sm:        0 1px 4px rgba(26, 46, 68, 0.08);
+  --shadow-md:        0 4px 20px rgba(26, 46, 68, 0.10);
+  --shadow-lg:        0 8px 40px rgba(26, 46, 68, 0.14);
 
-  --r-s: 8px;
-  --r-m: 14px;
-  --r-l: 22px;
+  /* States */
+  --error-bg:         #fef2f2;
+  --error-text:       #dc2626;
+  --error-border:     #fecaca;
 
-  --out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Hero gradient */
+  --hero-grad-start:  #daeaf5;
+  --hero-grad-mid:    #edf2f8;
+  --hero-grad-end:    #e3ecf5;
+  --hero-border:      #d0dce8;
+
+  /* Survey / insight block */
+  --insight-bg:       var(--navy);
+  --insight-text:     rgba(255,255,255,0.70);
+  --quote-bg:         #f8fafc;
+  --quote-border:     var(--border);
+
+  /* Misc */
+  --header-h:         64px;
+  --sidebar-w:        272px;
+
+  /* Auth specific */
+  --auth-bg:          #e8eff7;
+  --auth-left-bg:     #1a2e44;
+  --auth-left-accent: #3a9eac;
+
+  /* Logo circle */
+  --logo-circle-bg:   #1a2e44;
+  --logo-circle-color:#ffffff;
+}
+
+/* ── DARK THEME ── */
+[data-theme="dark"] {
+  /* Backgrounds */
+  --page-bg:          #0d1520;
+  --card-bg:          #131f2e;
+  --card-bg-alt:      #0f1927;
+  --header-bg:        #101c2a;
+  --sidebar-bg:       #101c2a;
+  --input-bg:         #0f1927;
+
+  /* Borders */
+  --border:           #1e2d3f;
+  --border-strong:    #2a3d54;
+
+  /* Text */
+  --text-dark:        #e2eaf4;
+  --text-mid:         #7fa0be;
+  --text-light:       #3d5570;
+
+  /* Shadows */
+  --shadow-sm:        0 1px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md:        0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg:        0 8px 40px rgba(0, 0, 0, 0.45);
+
+  /* Teal light (used for active states) */
+  --teal-light:       rgba(42, 143, 160, 0.15);
+
+  /* States */
+  --error-bg:         rgba(220, 38, 38, 0.1);
+  --error-text:       #f87171;
+  --error-border:     rgba(220, 38, 38, 0.3);
+
+  /* Hero gradient — dark version */
+  --hero-grad-start:  #0d1c2d;
+  --hero-grad-mid:    #0f1f30;
+  --hero-grad-end:    #111d2b;
+  --hero-border:      #1a2a3a;
+
+  /* Survey / insight */
+  --insight-bg:       #162031;
+  --insight-text:     rgba(226, 234, 244, 0.65);
+  --quote-bg:         #0f1927;
+  --quote-border:     #1e2d3f;
+
+  /* Auth specific (left panel stays dark navy, right adapts) */
+  --auth-bg:          #0d1520;
+
+  /* Logo circle — lighter in dark mode so it pops */
+  --logo-circle-bg:   #2a8fa0;
+  --logo-circle-color:#ffffff;
+}
+
+/* ── Global resets ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--text-dark);
+  transition: background 0.25s ease, color 0.25s ease;
+  line-height: 1.5;
+}
+
+/* Smooth transitions for theme switch on key elements */
+.header,
+.sidebar,
+.auth-page,
+.auth-panel--right,
+.auth-form,
+.home-hero,
+.home-pillar-card,
+.home-survey,
+.home-survey__insight,
+.home-survey__quote,
+.home-footer,
+.header__user-menu,
+.sidebar__footer-card {
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
