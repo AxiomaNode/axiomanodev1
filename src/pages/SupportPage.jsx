@@ -28,14 +28,8 @@ export default function SupportPage() {
       try {
         json = text ? JSON.parse(text) : null;
       } catch {
-        // пришло не JSON (редко, но бывает)
       }
 
-      // ВРЕМЕННО ДЛЯ ОТЛАДКИ: покажет, что реально ответил сервер
-      // Потом можешь удалить эту строку
-      alert(`Status: ${res.status}\n\nResponse:\n${text || "(empty)"}`);
-
-      // успех только если 200..299 и success:true
       if (!res.ok || json?.success !== true) {
         throw new Error(
           json?.details ||
