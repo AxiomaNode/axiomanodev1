@@ -1,7 +1,6 @@
 import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
-  // Разрешим только POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -12,11 +11,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing data" });
   }
 
-  try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      return res.status(500).json({ error: "Server env is not configured" });
-    }
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    return res.status(500).json({ error: "Server env is not configured" });
+  }
 
+  try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -25,12 +24,11 @@ export default async function handler(req, res) {
       },
     });
 
-    // Быстрая проверка логина/пароля
     await transporter.verify();
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,     // отправитель — твой Gmail
-      replyTo: email,                   // а отвечать можно пользователю
+      from: process.env.EMAIL_USER,
+      replyTo: email,
       to: process.env.EMAIL_TO || process.env.EMAIL_USER,
       subject: "Support request",
       text: `From: ${email}\n\nMessage:\n${message}`,

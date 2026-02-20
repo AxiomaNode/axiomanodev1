@@ -16,23 +16,32 @@ export default function SupportPage() {
       message: e.target.message.value,
     };
 
-    try {
-      const res = await fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+   try {
+  const res = await fetch("/api/support", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Request failed");
+  const text = await res.text(); 
+  let json = null;
 
-      setSent(true);
-      e.target.reset();
-    } catch (err) {
-      alert(err.message || "Error sending message");
-    } finally {
-      setLoading(false);
-    }
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+  }
+
+  if (!res.ok) {
+    throw new Error(json?.details || json?.error || `Request failed (${res.status})`);
+  }
+
+  setSent(true);
+  e.target.reset();
+} catch (err) {
+  alert(err.message || "Error sending message");
+} finally {
+  setLoading(false);
+}
   };
 
   return (
@@ -161,8 +170,6 @@ export default function SupportPage() {
           )}
         </div>
       </div>
-
-    
     </div>
    </div>
   );
