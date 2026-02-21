@@ -1,18 +1,25 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import "../styles/support.css";
 import Header from "../components/layout/Header";
 
 export default function SupportPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState({ type: "", text: "" });
+
+  // timestamp: когда страница/форма была открыта (для антиспама на сервере)
+  const ts = useMemo(() => Date.now(), []);
 
   const sendMessage = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setStatus({ type: "", text: "" });
 
     const data = {
       email: e.target.email.value,
       message: e.target.message.value,
+      website: e.target.website?.value || "", // honeypot
+      ts, // антиспам: слишком быстро = бот
     };
 
     try {
@@ -24,10 +31,10 @@ export default function SupportPage() {
 
       const text = await res.text();
       let json = null;
-
       try {
         json = text ? JSON.parse(text) : null;
       } catch {
+        // не JSON — бывает при прокси/ошибках
       }
 
       if (!res.ok || json?.success !== true) {
@@ -39,19 +46,22 @@ export default function SupportPage() {
       }
 
       setSent(true);
+      setStatus({ type: "success", text: "Message sent. We’ll reply soon." });
       e.target.reset();
     } catch (err) {
-      alert(err?.message || "Error sending message");
+      setStatus({
+        type: "error",
+        text: err?.message || "Error sending message",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-//   to make sure deployment link is correct
-
   return (
     <div className="container">
       <Header />
+
       <div className="support-page">
         <div className="support-page__inner">
           {/* ── Left col: info ── */}
@@ -59,8 +69,7 @@ export default function SupportPage() {
             <p className="support-page__eyebrow">Support</p>
 
             <h1 className="support-page__title">
-              How can we
-              <br />
+              How can we<br />
               <span className="support-page__title-accent">help you?</span>
             </h1>
 
@@ -116,13 +125,17 @@ export default function SupportPage() {
                 </div>
 
                 <h3 className="support-page__success-title">Message sent</h3>
+
                 <p className="support-page__success-sub">
                   We've received your request and will respond shortly.
                 </p>
 
                 <button
                   className="support-page__btn support-page__btn--ghost"
-                  onClick={() => setSent(false)}
+                  onClick={() => {
+                    setSent(false);
+                    setStatus({ type: "", text: "" });
+                  }}
                 >
                   Send another
                 </button>
@@ -136,6 +149,15 @@ export default function SupportPage() {
                     Online
                   </div>
                 </div>
+
+                {/* Honeypot field (bots fill it, humans never see it) */}
+                <input
+                  className="support-page__honeypot"
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
 
                 <div className="support-page__field">
                   <label
@@ -168,6 +190,7 @@ export default function SupportPage() {
                     placeholder="Describe the issue in detail..."
                     rows={6}
                     required
+                    minLength={10}
                   />
                 </div>
 
@@ -200,6 +223,22 @@ export default function SupportPage() {
                     </>
                   )}
                 </button>
+
+                {/* Status message */}
+                {status.text ? (
+                  <div
+                    className={[
+                      "support-page__status",
+                      status.type === "error"
+                        ? "support-page__status--error"
+                        : "support-page__status--success",
+                    ].join(" ")}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {status.text}
+                  </div>
+                ) : null}
 
                 <p className="support-page__footnote">
                   By submitting you agree to our{" "}
