@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { theory, theoryTopics } from "../data/theory";
+import { useAuth } from "../context/AuthContext";
+import { getTheoryProgress, saveTheoryProgress } from "../services/db";
 import "../styles/theory.css";
 import "../styles/layout.css";
 
-/* ── Icons ── */
 const ChevronRight = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+const ChevronLeft = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <polyline points="15 18 9 12 15 6" />
   </svg>
 );
 const CheckIcon = () => (
@@ -24,15 +30,15 @@ const XIcon = () => (
   </svg>
 );
 
-/* ══════════════════════════════════════════
-   CONTENT BLOCK RENDERERS
-══════════════════════════════════════════ */
+const resolve = (value, lang) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value[lang] ?? value["ru"] ?? Object.values(value)[0] ?? "";
+};
 
-const BlockText = ({ block }) => (
-  <p className="tb-text">{block.content}</p>
-);
+const BlockText = ({ block, t }) => <p className="tb-text">{t(block.content)}</p>;
 
-const BlockFact = ({ block }) => (
+const BlockFact = ({ block, t }) => (
   <div className="tb-fact">
     <div className="tb-fact__icon">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -42,66 +48,64 @@ const BlockFact = ({ block }) => (
       </svg>
     </div>
     <div>
-      <span className="tb-fact__label">{block.label || "Origin"}</span>
-      <p className="tb-fact__text">{block.content}</p>
+      <span className="tb-fact__label">{t(block.label) || "Origin"}</span>
+      <p className="tb-fact__text">{t(block.content)}</p>
     </div>
   </div>
 );
 
-const BlockDefinition = ({ block }) => (
+const BlockDefinition = ({ block, t }) => (
   <div className="tb-def">
-    <span className="tb-def__term">{block.term}</span>
-    <p className="tb-def__text">{block.content}</p>
+    <span className="tb-def__term">{t(block.term)}</span>
+    <p className="tb-def__text">{t(block.content)}</p>
   </div>
 );
 
-const BlockExample = ({ block }) => (
+const BlockExample = ({ block, t }) => (
   <div className="tb-example">
-    <p className="tb-example__title">{block.title}</p>
+    <p className="tb-example__title">{t(block.title)}</p>
     <ol className="tb-example__steps">
       {block.steps.map((step, i) => (
         <li key={i} className="tb-example__step">
           <span className="tb-example__num">{i + 1}</span>
-          <span>{step}</span>
+          <span>{t(step)}</span>
         </li>
       ))}
     </ol>
   </div>
 );
 
-const BlockMethod = ({ block }) => (
+const BlockMethod = ({ block, t }) => (
   <div className="tb-method">
     <div className="tb-method__head">
       <span className="tb-method__num">{block.number}</span>
-      <h4 className="tb-method__title">{block.title}</h4>
+      <h4 className="tb-method__title">{t(block.title)}</h4>
     </div>
     <div className="tb-method__body">
-      <p className="tb-method__when"><strong>When:</strong> {block.when}</p>
-      <p className="tb-method__example">{block.example}</p>
-      {block.note && <p className="tb-method__note">↳ {block.note}</p>}
+      <p className="tb-method__when"><strong>When:</strong> {t(block.when)}</p>
+      <p className="tb-method__example">{t(block.example)}</p>
+      {block.note && <p className="tb-method__note">↳ {t(block.note)}</p>}
     </div>
   </div>
 );
 
-const BlockDiscriminant = ({ block }) => (
+const BlockDiscriminant = ({ block, t }) => (
   <div className="tb-discriminant">
     <div className="tb-discriminant__head">
-      <h4 className="tb-discriminant__title">{block.title}</h4>
-      {block.story && <p className="tb-discriminant__story">{block.story}</p>}
+      <h4 className="tb-discriminant__title">{t(block.title)}</h4>
+      {block.story && <p className="tb-discriminant__story">{t(block.story)}</p>}
     </div>
     <div className="tb-discriminant__body">
-      {/* Formula on a dark board */}
       <div className="tb-formula-board">
         <div className="tb-formula-board__grid" aria-hidden="true" />
-        <p className="tb-formula-board__formula">{block.formula}</p>
+        <p className="tb-formula-board__formula">{t(block.formula)}</p>
       </div>
-      {/* Cases */}
       <div className="tb-discriminant-cases">
         {block.meaning.map((m) => (
           <div key={m.condition} className="tb-discriminant-case">
             <span className="tb-discriminant-case__cond">{m.condition}</span>
             <span className="tb-discriminant-case__icon">{m.icon}</span>
-            <span className="tb-discriminant-case__result">{m.result}</span>
+            <span className="tb-discriminant-case__result">{t(m.result)}</span>
           </div>
         ))}
       </div>
@@ -109,40 +113,34 @@ const BlockDiscriminant = ({ block }) => (
   </div>
 );
 
-const BlockInsight = ({ block }) => (
+const BlockInsight = ({ block, t }) => (
   <div className="tb-insight">
     <div className="tb-insight__label">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
       </svg>
       Key insight
     </div>
-    <h4 className="tb-insight__title">{block.title}</h4>
-    <p className="tb-insight__text">{block.content}</p>
-    {block.example && <p className="tb-insight__example">{block.example}</p>}
+    <h4 className="tb-insight__title">{t(block.title)}</h4>
+    <p className="tb-insight__text">{t(block.content)}</p>
+    {block.example && <p className="tb-insight__example">{t(block.example)}</p>}
   </div>
 );
 
-const ContentBlock = ({ block }) => {
+const ContentBlock = ({ block, t }) => {
   switch (block.type) {
-    case "text":          return <BlockText block={block} />;
-    case "fact":          return <BlockFact block={block} />;
-    case "definition":    return <BlockDefinition block={block} />;
-    case "example":       return <BlockExample block={block} />;
-    case "method":        return <BlockMethod block={block} />;
-    case "discriminant":  return <BlockDiscriminant block={block} />;
-    case "insight":       return <BlockInsight block={block} />;
-    default:              return null;
+    case "text": return <BlockText block={block} t={t} />;
+    case "fact": return <BlockFact block={block} t={t} />;
+    case "definition": return <BlockDefinition block={block} t={t} />;
+    case "example": return <BlockExample block={block} t={t} />;
+    case "method": return <BlockMethod block={block} t={t} />;
+    case "discriminant": return <BlockDiscriminant block={block} t={t} />;
+    case "insight": return <BlockInsight block={block} t={t} />;
+    default: return null;
   }
 };
 
-/* ══════════════════════════════════════════
-   PUZZLE ENGINE
-   - escalating difficulty
-   - mentor card on wrong answer
-   - no replay of same question set
-══════════════════════════════════════════ */
-const PuzzleEngine = ({ puzzles }) => {
+const PuzzleEngine = ({ puzzles, t }) => {
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -173,12 +171,14 @@ const PuzzleEngine = ({ puzzles }) => {
   };
 
   const handleRestart = () => {
-    setCurrent(0); setSelected(null); setConfirmed(false);
-    setShowMentor(false); setCompleted(false);
+    setCurrent(0);
+    setSelected(null);
+    setConfirmed(false);
+    setShowMentor(false);
+    setCompleted(false);
     setScore({ correct: 0, total: 0 });
   };
 
-  /* Level indicator dots */
   const levelDots = Array.from({ length: 6 }, (_, i) => i < (puzzle?.level || 1));
 
   if (completed) {
@@ -188,9 +188,7 @@ const PuzzleEngine = ({ puzzles }) => {
         <h3>Section complete</h3>
         <p>
           {score.correct} of {score.total} correct.
-          {score.correct === score.total
-            ? " Solid reasoning on this topic."
-            : " Review the mentor notes above, then retry."}
+          {score.correct === score.total ? " Solid reasoning on this topic." : " Review the mentor notes above, then retry."}
         </p>
         <div className="tp-complete__actions">
           <button className="tp-btn tp-btn--ghost" onClick={handleRestart}>Restart</button>
@@ -204,9 +202,8 @@ const PuzzleEngine = ({ puzzles }) => {
 
   return (
     <div className="tp-puzzle">
-      {/* Difficulty meta */}
       <div className="tp-puzzle__meta">
-        <span className="tp-puzzle__tag">{puzzle.label}</span>
+        <span className="tp-puzzle__tag">{t(puzzle.label)}</span>
         <div className="tp-puzzle__dots">
           {levelDots.map((filled, i) => (
             <span key={i} className={`tp-puzzle__dot ${filled ? "tp-puzzle__dot--on" : ""}`} />
@@ -214,10 +211,8 @@ const PuzzleEngine = ({ puzzles }) => {
         </div>
       </div>
 
-      {/* Question */}
-      <h3 className="tp-puzzle__question">{puzzle.text}</h3>
+      <h3 className="tp-puzzle__question">{t(puzzle.text)}</h3>
 
-      {/* Options */}
       <div className="tp-puzzle__options">
         {puzzle.options.map(opt => {
           let mod = "";
@@ -234,7 +229,7 @@ const PuzzleEngine = ({ puzzles }) => {
               disabled={confirmed}
             >
               <span className="tp-option__letter">{opt.label}</span>
-              <span className="tp-option__text">{opt.value}</span>
+              <span className="tp-option__text">{t(opt.value)}</span>
               {confirmed && opt.label === puzzle.correct && <CheckIcon />}
               {confirmed && opt.label === selected && selected !== puzzle.correct && <XIcon />}
             </button>
@@ -242,32 +237,29 @@ const PuzzleEngine = ({ puzzles }) => {
         })}
       </div>
 
-      {/* Feedback */}
       {confirmed && (
         <div className={`tp-feedback tp-feedback--${isCorrect ? "ok" : "err"}`}>
           <span className="tp-feedback__icon">{isCorrect ? <CheckIcon /> : <XIcon />}</span>
           <div>
             <p className="tp-feedback__verdict">{isCorrect ? "Correct." : "Not quite."}</p>
-            <p className="tp-feedback__exp">{puzzle.explanation}</p>
+            <p className="tp-feedback__exp">{t(puzzle.explanation)}</p>
           </div>
         </div>
       )}
 
-      {/* Mentor — only on wrong answer */}
       {showMentor && puzzle.mentor && (
         <div className="tp-mentor">
           <div className="tp-mentor__head">
             <div className="tp-mentor__avatar">🧑‍🏫</div>
             <div>
               <p className="tp-mentor__role">Mentor</p>
-              <p className="tp-mentor__subject">{puzzle.mentor.title}</p>
+              <p className="tp-mentor__subject">{t(puzzle.mentor.title)}</p>
             </div>
           </div>
-          <p className="tp-mentor__text">{puzzle.mentor.text}</p>
+          <p className="tp-mentor__text">{t(puzzle.mentor.text)}</p>
         </div>
       )}
 
-      {/* Actions */}
       <div className="tp-puzzle__actions">
         {!confirmed ? (
           <button className="tp-btn tp-btn--primary" onClick={handleConfirm} disabled={!selected}>
@@ -275,8 +267,7 @@ const PuzzleEngine = ({ puzzles }) => {
           </button>
         ) : (
           <button className="tp-btn tp-btn--primary" onClick={handleNext}>
-            {current + 1 >= puzzles.length ? "Finish" : "Next puzzle"}
-            <ChevronRight />
+            {current + 1 >= puzzles.length ? "Finish" : "Next puzzle"} <ChevronRight />
           </button>
         )}
       </div>
@@ -284,49 +275,175 @@ const PuzzleEngine = ({ puzzles }) => {
   );
 };
 
-/* ══════════════════════════════════════════
-   BOARD — renders topic content + puzzles
-══════════════════════════════════════════ */
-const TheoryBoard = ({ topicData }) => {
+const TheoryBoard = ({ uid, topicId, topicData, t }) => {
+  const totalSections = topicData?.sections?.length || 0;
+
+  const [loading, setLoading] = useState(true);
+  const [sec, setSec] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [checked, setChecked] = useState(false);
+  const [passed, setPassed] = useState(() => ({}));
+
+  const section = useMemo(() => topicData?.sections?.[sec], [topicData, sec]);
+  const hasCheck = !!section?.check;
+  const isCorrect = checked && selected === section?.check?.correctIndex;
+  const isLastSection = sec === totalSections - 1;
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      if (!uid || !topicId) return;
+      setLoading(true);
+      const data = await getTheoryProgress(uid, topicId);
+      if (!alive) return;
+      setSec(Math.min(Number(data?.secIndex ?? 0), Math.max(totalSections - 1, 0)));
+      setPassed(data?.passedSections || {});
+      setSelected(null);
+      setChecked(false);
+      setLoading(false);
+    };
+    load();
+    return () => { alive = false; };
+  }, [uid, topicId, totalSections]);
+
+  const persist = async (nextSec, nextPassed) => {
+    if (!uid || !topicId) return;
+    await saveTheoryProgress(uid, topicId, {
+      secIndex: nextSec,
+      passedSections: nextPassed,
+    });
+  };
+
   if (!topicData) {
     return (
       <div className="tb-coming-soon">
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        </svg>
         <h3>Coming soon</h3>
         <p>This topic is being prepared.</p>
       </div>
     );
   }
 
+  if (loading) {
+    return (
+      <div className="tb-coming-soon">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  const sectionKey = section?.id || String(sec);
+  const alreadyPassed = !!passed[sectionKey];
+  const canProceed = hasCheck ? (alreadyPassed || isCorrect) : true;
+  const canShowPuzzles = isLastSection && canProceed;
+
+  const goNext = async () => {
+    const next = Math.min(sec + 1, totalSections - 1);
+    setSec(next);
+    setSelected(null);
+    setChecked(false);
+    await persist(next, passed);
+  };
+
+  const goPrev = async () => {
+    const prev = Math.max(sec - 1, 0);
+    setSec(prev);
+    setSelected(null);
+    setChecked(false);
+    await persist(prev, passed);
+  };
+
+  const onCheck = async () => {
+    setChecked(true);
+    if (!hasCheck) return;
+    if (selected === section.check.correctIndex) {
+      const nextPassed = { ...passed, [sectionKey]: true };
+      setPassed(nextPassed);
+      await persist(sec, nextPassed);
+    }
+  };
+
   return (
     <div className="theory-board">
-
-      {/* Topic title strip */}
       <div className="tb-topic-strip">
-        <h2 className="tb-topic-strip__title">{topicData.title}</h2>
-        <p className="tb-topic-strip__sub">{topicData.subtitle}</p>
+        <h2 className="tb-topic-strip__title">{t(topicData.title)}</h2>
+        <p className="tb-topic-strip__sub">{t(topicData.subtitle)}</p>
       </div>
 
-      {/* Content sections */}
-      {topicData.sections.map((section, si) => (
-        <div key={section.id} className="tb-section">
-          <div className="tb-section__head">
-            <span className="tb-section__num">{si + 1}</span>
-            <h3 className="tb-section__title">{section.title}</h3>
-          </div>
-          <div className="tb-section__body">
-            {section.blocks.map((block, bi) => (
-              <ContentBlock key={bi} block={block} />
-            ))}
-          </div>
+      <div className="tb-section">
+        <div className="tb-section__head">
+          <span className="tb-section__num">{sec + 1}</span>
+          <h3 className="tb-section__title">{t(section.title)}</h3>
         </div>
-      ))}
 
-      {/* Puzzles */}
-      {topicData.puzzles?.length > 0 && (
+        <div className="tb-section__body">
+          {section.blocks.map((block, bi) => (
+            <ContentBlock key={bi} block={block} t={t} />
+          ))}
+        </div>
+
+        {hasCheck && (
+          <div className="tb-check">
+            <h4 className="tb-check__q">{t(section.check.question)}</h4>
+
+            <div className="tb-check__opts">
+              {section.check.options.map((opt, i) => (
+                <button
+                  key={i}
+                  className={`tb-check__opt ${selected === i ? "is-selected" : ""}`}
+                  onClick={() => !checked && !alreadyPassed && setSelected(i)}
+                  disabled={checked || alreadyPassed}
+                >
+                  {t(opt)}
+                </button>
+              ))}
+            </div>
+
+            <div className="tb-check__actions">
+              {alreadyPassed ? (
+                <div className="tp-feedback tp-feedback--ok">
+                  <span className="tp-feedback__icon"><CheckIcon /></span>
+                  <div>
+                    <p className="tp-feedback__verdict">Passed.</p>
+                    <p className="tp-feedback__exp">You already passed this check.</p>
+                  </div>
+                </div>
+              ) : !checked ? (
+                <button className="tp-btn tp-btn--primary" onClick={onCheck} disabled={selected === null}>
+                  Check
+                </button>
+              ) : (
+                <div className={`tp-feedback tp-feedback--${isCorrect ? "ok" : "err"}`}>
+                  <span className="tp-feedback__icon">{isCorrect ? <CheckIcon /> : <XIcon />}</span>
+                  <div>
+                    <p className="tp-feedback__verdict">{isCorrect ? "Correct." : "Not quite."}</p>
+                    <p className="tp-feedback__exp">
+                      {isCorrect ? "Great. You can continue." : "Re-read the section above and try again."}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button className="tp-btn tp-btn--ghost" onClick={goPrev} disabled={sec === 0}>
+            <ChevronLeft /> Prev
+          </button>
+
+          {!isLastSection ? (
+            <button className="tp-btn tp-btn--primary" onClick={goNext} disabled={!canProceed}>
+              Next section <ChevronRight />
+            </button>
+          ) : (
+            <button className="tp-btn tp-btn--primary" disabled={!canProceed}>
+              Puzzles unlocked <CheckIcon />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {canShowPuzzles && topicData.puzzles?.length > 0 && (
         <div className="tb-puzzles">
           <div className="tb-puzzles__head">
             <div className="tb-puzzles__head-left">
@@ -339,24 +456,23 @@ const TheoryBoard = ({ topicData }) => {
             </div>
             <span className="tb-puzzles__meta">{topicData.puzzles.length} puzzles · escalating difficulty</span>
           </div>
-          {/* Thin progress track */}
           <div className="tb-puzzles__track" />
-          <PuzzleEngine puzzles={topicData.puzzles} />
+          <PuzzleEngine puzzles={topicData.puzzles} t={t} />
         </div>
       )}
     </div>
   );
 };
 
-/* ══════════════════════════════════════════
-   MAIN PAGE
-══════════════════════════════════════════ */
 const TheoryPage = () => {
+  const { user, language } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTopic, setActiveTopic] = useState("quadratic");
 
+  const t = (value) => resolve(value, language);
+
   const topicData = theory[activeTopic] || null;
-  const activeMeta = theoryTopics.find(t => t.id === activeTopic);
+  const activeMeta = theoryTopics.find(tp => tp.id === activeTopic);
 
   return (
     <div className="page-shell">
@@ -365,8 +481,6 @@ const TheoryPage = () => {
 
       <main className="page-main">
         <div className="theory-page">
-
-          {/* Breadcrumb */}
           <div className="theory-breadcrumb">
             <Link to="/home" className="theory-breadcrumb__item">Home</Link>
             <ChevronRight />
@@ -374,12 +488,11 @@ const TheoryPage = () => {
             {activeMeta && (
               <>
                 <ChevronRight />
-                <span className="theory-breadcrumb__item theory-breadcrumb__item--active">{activeMeta.title}</span>
+                <span className="theory-breadcrumb__item theory-breadcrumb__item--active">{t(activeMeta.title)}</span>
               </>
             )}
           </div>
 
-          {/* Page header */}
           <div className="theory-header">
             <div className="theory-header__icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -395,10 +508,7 @@ const TheoryPage = () => {
             </div>
           </div>
 
-          {/* Layout: sidebar + board */}
           <div className="theory-layout">
-
-            {/* Topic sidebar */}
             <aside className="theory-sidebar">
               <span className="theory-sidebar__label">Topics</span>
               {theoryTopics.map(topic => (
@@ -408,20 +518,18 @@ const TheoryPage = () => {
                   onClick={() => setActiveTopic(topic.id)}
                 >
                   <div className="theory-topic-btn__info">
-                    <h4 className="theory-topic-btn__title">{topic.title}</h4>
-                    <p className="theory-topic-btn__sub">{topic.subtitle}</p>
+                    <h4 className="theory-topic-btn__title">{t(topic.title)}</h4>
+                    <p className="theory-topic-btn__sub">{t(topic.subtitle)}</p>
                   </div>
                   <ChevronRight />
                 </button>
               ))}
             </aside>
 
-            {/* Board */}
             <div className="theory-board-wrap">
-              <TheoryBoard topicData={topicData} />
+              <TheoryBoard uid={user?.uid} topicId={activeTopic} topicData={topicData} t={t} />
             </div>
           </div>
-
         </div>
       </main>
     </div>

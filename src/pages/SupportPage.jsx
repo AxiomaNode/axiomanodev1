@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import "../styles/support.css";
 import Header from "../components/layout/Header";
+import Sidebar from "../components/layout/Sidebar";
 
 export default function SupportPage() {
   const [loading, setLoading] = useState(false);

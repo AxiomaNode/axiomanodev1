@@ -12,9 +12,8 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!user) return <Navigate to="/auth" replace />;
+  if (!user.emailVerified) return <Navigate to="/verify-email" replace />;
 
   return children;
 };

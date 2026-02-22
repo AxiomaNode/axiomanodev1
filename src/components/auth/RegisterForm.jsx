@@ -40,11 +40,36 @@ const LockIcon = () => (
   </svg>
 );
 
+const GlobeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+  </svg>
+);
+
+const GradeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+    <path d="M6 12v5c3 3 9 3 12 0v-5" />
+  </svg>
+);
+
+const LANGUAGES = [
+  { value: "ru", label: "Русский" },
+  { value: "uz", label: "O'zbek" },
+  { value: "en", label: "English" },
+];
+
+const GRADES = Array.from({ length: 5 }, (_, i) => i + 7);
+
 const RegisterForm = ({ onSwitch }) => {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [language, setLanguage] = useState("ru");
+  const [grade, setGrade] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,10 +87,14 @@ const RegisterForm = ({ onSwitch }) => {
       setError("Password must be at least 6 characters");
       return;
     }
+    if (!grade) {
+      setError("Please select your grade");
+      return;
+    }
 
     setLoading(true);
     try {
-      await registerUser(email, password, displayName);
+      await registerUser(email, password, displayName, language, Number(grade));
       navigate("/home");
     } catch (err) {
       setError(err.message);
@@ -118,6 +147,43 @@ const RegisterForm = ({ onSwitch }) => {
               required
               autoComplete="email"
             />
+          </div>
+        </div>
+
+        <div className="auth-fields-row">
+          <div className="auth-field">
+            <label className="auth-field__label">Language</label>
+            <div className="auth-field__input-wrap">
+              <span className="auth-field__icon"><GlobeIcon /></span>
+              <select
+                className="auth-field__input auth-field__input--select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                required
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.value} value={l.value}>{l.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="auth-field">
+            <label className="auth-field__label">Grade</label>
+            <div className="auth-field__input-wrap">
+              <span className="auth-field__icon"><GradeIcon /></span>
+              <select
+                className="auth-field__input auth-field__input--select"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select grade</option>
+                {GRADES.map((g) => (
+                  <option key={g} value={g}>{g} grade</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 

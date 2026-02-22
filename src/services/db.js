@@ -1,5 +1,26 @@
 import { collection, addDoc, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+
+export const getTheoryProgress = async (uid, topicId) => {
+  const ref = doc(db, "users", uid, "theoryProgress", topicId);
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
+
+export const saveTheoryProgress = async (uid, topicId, payload) => {
+  const ref = doc(db, "users", uid, "theoryProgress", topicId);
+  await setDoc(
+    ref,
+    {
+      topicId,
+      ...payload,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
+
 
 export const savePractice = async (userId, data) => {
   await addDoc(collection(db, "users", userId, "practice_sessions"), {

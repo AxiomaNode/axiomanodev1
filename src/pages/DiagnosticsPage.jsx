@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { topics } from "../data/topics";
+import { saveDiagnostic, getDiagnostics } from "../services/db";
 import { gapsDatabase } from "../data/gaps";
-import { saveDiagnostic } from "../services/db";
+import { questions } from "../data/questions";
 import "../styles/diagnostics.css";
-import { questions }  from "../data/questions"
 import "../styles/layout.css";
 
 const ChevronRight = () => (
@@ -15,15 +15,14 @@ const ChevronRight = () => (
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
+const ChevronLeft = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
 const CheckIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-const XIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 const AlertIcon = () => (
@@ -35,6 +34,7 @@ const AlertIcon = () => (
 );
 
 const MAX_QUESTIONS = 24;
+const GAP_THRESHOLD = 2;
 
 const buildFullDiagnostic = () => {
   const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
@@ -57,19 +57,25 @@ const buildFullDiagnostic = () => {
   return pool.slice(0, MAX_QUESTIONS);
 };
 
-const GAP_THRESHOLD = 2; // gap only triggers if same reasoning mistake appears 2+ times
+// Unanswered questions = wrong (no answer = wrong answer)
+const detectAllGaps = (answers, allQuestions) => {
+  // Build complete answers map: unanswered → "__skipped__"
+  const fullAnswers = {};
+  allQuestions.forEach(q => {
+    fullAnswers[q.id] = answers[q.id] ?? "__skipped__";
+  });
 
-const detectAllGaps = (answers) => {
   const result = {};
   topics.forEach(topic => {
     const topicGaps = gapsDatabase[topic.id];
     if (!topicGaps) return;
     const found = [];
     topicGaps.forEach(gap => {
-      // Count how many distinct questions triggered this gap
       let wrongCount = 0;
       Object.entries(gap.signs).forEach(([qId, wrongAnswers]) => {
-        if (answers[qId] && wrongAnswers.includes(answers[qId])) wrongCount++;
+        const given = fullAnswers[qId];
+        // skipped or matched wrong answer = counts as wrong
+        if (given === "__skipped__" || wrongAnswers.includes(given)) wrongCount++;
       });
       if (wrongCount >= GAP_THRESHOLD) found.push(gap);
     });
@@ -77,6 +83,89 @@ const detectAllGaps = (answers) => {
   });
   return result;
 };
+
+// ── Confirm Modal ─────────────────────────────────────────────────────────────
+
+const ConfirmModal = ({ answeredCount, totalCount, onConfirm, onCancel }) => {
+  const unanswered = totalCount - answeredCount;
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter") onConfirm();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  return (
+    <div className="diag-modal-overlay" onClick={onCancel}>
+      <div className="diag-modal" onClick={e => e.stopPropagation()}>
+
+        {/* Top bar */}
+        <div className="diag-modal__header">
+          <div className="diag-modal__header-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <button className="diag-modal__close" onClick={onCancel} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="diag-modal__body">
+          <h3 className="diag-modal__title">Submit diagnostic?</h3>
+          <p className="diag-modal__desc">
+            You've answered <strong>{answeredCount}</strong> of <strong>{totalCount}</strong> questions.
+          </p>
+
+          {unanswered > 0 ? (
+            <div className="diag-modal__warn-block">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <p>
+                <strong>{unanswered} question{unanswered !== 1 ? "s" : ""} skipped</strong> — skipped questions count as wrong answers.
+              </p>
+            </div>
+          ) : (
+            <div className="diag-modal__ok-block">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <p>All questions answered. Ready to submit.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="diag-modal__divider" />
+
+        {/* Footer */}
+        <div className="diag-modal__footer">
+          <button className="diag-btn diag-btn--ghost" onClick={onCancel}>
+            Go back
+          </button>
+          <button className="diag-btn diag-btn--primary diag-btn--submit" onClick={onConfirm}>
+            Submit & see analysis
+            <ChevronRight />
+          </button>
+        </div>
+
+        <p className="diag-modal__hint">Press <kbd>Enter</kbd> to submit · <kbd>Esc</kbd> to go back</p>
+      </div>
+    </div>
+  );
+};
+
+// ── Intro ─────────────────────────────────────────────────────────────────────
 
 const IntroScreen = ({ onStart, questionCount }) => {
   const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
@@ -130,48 +219,84 @@ const IntroScreen = ({ onStart, questionCount }) => {
   );
 };
 
+// ── Question Step ─────────────────────────────────────────────────────────────
+
 const QuestionStep = ({ allQuestions, onFinish }) => {
   const [current, setCurrent] = useState(0);
-  const [selected, setSelected] = useState(null);
-  const [confirmed, setConfirmed] = useState(false);
   const [answers, setAnswers] = useState({});
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const q = allQuestions[current];
   const topicMeta = topics.find(t => t.id === q?.topicId);
-  const progress = (current / allQuestions.length) * 100;
+  const progress = ((current + 1) / allQuestions.length) * 100;
+  const selected = answers[q?.id] ?? null;
+  const isLast = current + 1 >= allQuestions.length;
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key !== "Enter") return;
-      if (!confirmed && selected) handleConfirm();
-      else if (confirmed) handleNext();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [confirmed, selected, current, answers]);
-
-  const handleConfirm = () => {
-    if (!selected) return;
-    setConfirmed(true);
-    setAnswers(prev => ({ ...prev, [q.id]: selected }));
+  const handleSelect = (value) => {
+    setAnswers(prev => ({ ...prev, [q.id]: value }));
   };
 
+  // Navigation is always free — no answer required to move
   const handleNext = () => {
-    const nextAnswers = { ...answers, [q.id]: selected };
-    if (current + 1 >= allQuestions.length) {
-      onFinish(nextAnswers);
+    if (isLast) {
+      setShowConfirm(true);
     } else {
       setCurrent(c => c + 1);
-      setSelected(null);
-      setConfirmed(false);
     }
   };
+
+  const handlePrev = () => {
+    if (current > 0) setCurrent(c => c - 1);
+  };
+
+  const handleSubmit = () => {
+    setShowConfirm(false);
+    onFinish(answers);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = (e) => {
+      if (showConfirm) return;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const options = q.options.map(o => o.value);
+        const currentIdx = options.indexOf(selected);
+        if (e.key === "ArrowDown") {
+          const next = currentIdx < options.length - 1 ? currentIdx + 1 : 0;
+          handleSelect(options[next]);
+        } else {
+          const prev = currentIdx > 0 ? currentIdx - 1 : options.length - 1;
+          handleSelect(options[prev]);
+        }
+      }
+
+      // Arrow left/right — free navigation, no answer required
+      if (e.key === "ArrowLeft" && current > 0) handlePrev();
+      if (e.key === "ArrowRight") handleNext();
+
+      // Enter — advance (free)
+      if (e.key === "Enter") handleNext();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selected, current, showConfirm, isLast, q]);
 
   const prevTopicId = current > 0 ? allQuestions[current - 1]?.topicId : null;
   const topicChanged = current > 0 && q?.topicId !== prevTopicId;
 
   return (
     <div className="diag-step">
+      {showConfirm && (
+        <ConfirmModal
+          answeredCount={Object.keys(answers).length}
+          totalCount={allQuestions.length}
+          onConfirm={handleSubmit}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+
       <div className="diag-progress-header">
         <div className="diag-progress-header__meta">
           {topicMeta && (
@@ -200,14 +325,12 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
 
         <div className="diag-options">
           {q.options.map(opt => {
-            // After confirming: only highlight the chosen answer as "selected", no correct/wrong
             const state = opt.value === selected ? "selected" : "";
             return (
               <button
                 key={opt.value}
                 className={`diag-option diag-option--${state || "default"}`}
-                onClick={() => !confirmed && setSelected(opt.value)}
-                disabled={confirmed}
+                onClick={() => handleSelect(opt.value)}
               >
                 <span className="diag-option__letter">{opt.label}</span>
                 <span className="diag-option__text">{opt.value}</span>
@@ -216,34 +339,64 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
           })}
         </div>
 
-        {confirmed && (
-          <div className="diag-feedback diag-feedback--neutral">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="20 6 9 17 4 12" />
+        {/* Skip note — shows when nothing selected */}
+        {!selected && (
+          <p className="diag-skip-note">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <p>Answer recorded.</p>
-          </div>
+            No answer selected — skipping counts as wrong
+          </p>
         )}
 
-        <div className="diag-question-card__actions">
-          {!confirmed ? (
-            <button className="diag-btn diag-btn--primary" onClick={handleConfirm} disabled={!selected}>
-              Confirm
-            </button>
-          ) : (
-            <button className="diag-btn diag-btn--primary" onClick={handleNext}>
-              {current + 1 >= allQuestions.length ? "See Analysis" : "Continue"}
-              <ChevronRight />
-            </button>
-          )}
+        <div className="diag-question-card__actions diag-question-card__actions--row">
+          <button
+            className="diag-btn diag-btn--ghost diag-btn--icon"
+            onClick={handlePrev}
+            disabled={current === 0}
+          >
+            <ChevronLeft /> Previous
+          </button>
+          {/* Next is always enabled — free navigation */}
+          <button
+            className="diag-btn diag-btn--primary"
+            onClick={handleNext}
+          >
+            {isLast ? "Finish" : "Next"} <ChevronRight />
+          </button>
+        </div>
+
+        {/* Segmented dot nav */}
+        <div className="diag-seg-nav">
+          <span className="diag-seg-nav__label">
+            {Object.keys(answers).length} / {allQuestions.length} answered
+          </span>
+          <div className="diag-seg-nav__track">
+            {allQuestions.map((_, i) => (
+              <button
+                key={i}
+                className={[
+                  "diag-seg",
+                  i === current ? "diag-seg--current" : "",
+                  answers[allQuestions[i].id] ? "diag-seg--answered" : "",
+                ].join(" ")}
+                onClick={() => setCurrent(i)}
+                title={`Question ${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
+// ── Results ───────────────────────────────────────────────────────────────────
+
 const ResultsStep = ({ answers, allQuestions, onRetry }) => {
-  const gapsByTopic = detectAllGaps(answers);
+  const gapsByTopic = detectAllGaps(answers, allQuestions);
   const totalGaps = Object.values(gapsByTopic).flat().length;
   const topicsWithGaps = Object.keys(gapsByTopic);
   const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
@@ -344,15 +497,39 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
   );
 };
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 const DiagnosticsPage = () => {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [step, setStep] = useState("intro");
   const [finalAnswers, setFinalAnswers] = useState({});
   const [allQuestions] = useState(() => buildFullDiagnostic());
+  const [alreadyDone, setAlreadyDone] = useState(false);
+  const [checkingLimit, setCheckingLimit] = useState(true);
+  const savingRef = useRef(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getDiagnostics(user.uid).then((data) => {
+      if (data.length > 0) {
+        const lastDate = new Date(data[0].date);
+        const today = new Date();
+        const sameDay =
+          lastDate.getFullYear() === today.getFullYear() &&
+          lastDate.getMonth() === today.getMonth() &&
+          lastDate.getDate() === today.getDate();
+        setAlreadyDone(sameDay);
+      }
+      setCheckingLimit(false);
+    });
+  }, [user]);
 
   const handleFinish = async (answers) => {
-    const gapsByTopic = detectAllGaps(answers);
+    if (savingRef.current) return;
+    savingRef.current = true;
+
+    const gapsByTopic = detectAllGaps(answers, allQuestions);
     const result = {
       type: "full",
       answers,
@@ -366,11 +543,10 @@ const DiagnosticsPage = () => {
       },
     };
 
-    // Save to Firestore
     await saveDiagnostic(user.uid, result);
-
     setFinalAnswers(answers);
     setStep("results");
+    savingRef.current = false;
   };
 
   return (
@@ -397,8 +573,40 @@ const DiagnosticsPage = () => {
             </div>
           </div>
 
-          {step === "intro" && <IntroScreen onStart={() => setStep("questions")} questionCount={allQuestions.length} />}
-          {step === "questions" && <QuestionStep allQuestions={allQuestions} onFinish={handleFinish} />}
+          {step === "intro" && (
+            checkingLimit ? (
+              <div className="diag-limit-msg">Checking...</div>
+            ) : alreadyDone ? (
+              <div className="diag-limit-block">
+                <div className="diag-limit-block__icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <h3 className="diag-limit-block__title">Diagnostic already completed today</h3>
+                <p className="diag-limit-block__desc">
+                  Come back tomorrow for a fresh diagnostic. In the meantime, practice your weak areas.
+                </p>
+                <div className="diag-limit-block__actions">
+                  <Link to="/practice" className="diag-btn diag-btn--primary">
+                    Go to Practice <ChevronRight />
+                  </Link>
+                  <Link to="/results" className="diag-btn diag-btn--ghost">
+                    View Results
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <IntroScreen onStart={() => setStep("questions")} questionCount={allQuestions.length} />
+            )
+          )}
+
+          {step === "questions" && (
+            <QuestionStep allQuestions={allQuestions} onFinish={handleFinish} />
+          )}
+
           {step === "results" && (
             <ResultsStep
               answers={finalAnswers}
