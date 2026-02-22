@@ -1,56 +1,31 @@
 // src/pages/PracticePage.jsx
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { topics } from "../data/topics";
 import { tasks } from "../data/tasks";
+import { savePractice, getDiagnostics } from "../services/db";
 import "../styles/practice.css";
 import "../styles/layout.css";
 
 const ChevronRight = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-  >
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
-
 const CheckIcon = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-  >
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
-
 const XIcon = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-  >
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 const AlertIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="10" />
@@ -58,16 +33,13 @@ const AlertIcon = () => (
     <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
+const FlameIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 0 1-7 7 7 7 0 0 1-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
+);
 
-const savePracticeSession = (topicId, subtopicKey, scoreData) => {
-  const session = { topicId, subtopicKey, date: new Date().toISOString(), ...scoreData };
-  const existing = JSON.parse(localStorage.getItem("axioma-practice") || "[]");
-  existing.unshift(session);
-  localStorage.setItem("axioma-practice", JSON.stringify(existing.slice(0, 100)));
-};
-
-const buildGapRecs = () => {
-  const diagnostics = JSON.parse(localStorage.getItem("axioma-diagnostics") || "[]");
+const buildGapRecs = (diagnostics) => {
   if (!diagnostics.length) return [];
   const latest = diagnostics[0];
   if (!latest.gaps?.length) return [];
@@ -134,7 +106,6 @@ const TopicSelect = ({ onStartTopic }) => {
         <h2 className="practice-step__title">Choose a topic</h2>
         <p className="practice-step__sub">Tap a topic to practise all exercises in that topic.</p>
       </div>
-
       <div className="practice-topic-grid">
         {availableTopics.map((topic) => {
           const count = buildTopicTaskList(topic.id).length;
@@ -159,11 +130,23 @@ const TopicSelect = ({ onStartTopic }) => {
   );
 };
 
-const PracticeSession = ({ topic, subtopicKey, taskList, onFinish }) => {
+const StreakBadge = ({ streak }) => {
+  if (streak < 2) return null;
+  return (
+    <div className="practice-streak-badge">
+      <FlameIcon />
+      <span>{streak} in a row</span>
+    </div>
+  );
+};
+
+const PracticeSession = ({ topic, subtopicKey, taskList, onFinish, userId }) => {
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [score, setScore] = useState({ correct: 0, wrong: 0 });
+  const [streak, setStreak] = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
 
   const task = taskList[current];
   const isCorrect = selected === task?.correct;
@@ -171,20 +154,36 @@ const PracticeSession = ({ topic, subtopicKey, taskList, onFinish }) => {
   const handleConfirm = () => {
     if (!selected) return;
     setConfirmed(true);
+    const correct = selected === task.correct;
     setScore((s) => ({
-      correct: s.correct + (selected === task.correct ? 1 : 0),
-      wrong: s.wrong + (selected !== task.correct ? 1 : 0),
+      correct: s.correct + (correct ? 1 : 0),
+      wrong: s.wrong + (correct ? 0 : 1),
     }));
+    if (correct) {
+      setStreak((s) => {
+        const next = s + 1;
+        setMaxStreak((m) => Math.max(m, next));
+        return next;
+      });
+    } else {
+      setStreak(0);
+    }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (current + 1 >= taskList.length) {
       const final = {
-        correct: score.correct + (isCorrect ? 1 : 0),
-        wrong: score.wrong + (!isCorrect ? 1 : 0),
+        correct: score.correct,
+        wrong: score.wrong,
         total: taskList.length,
+        maxStreak,
       };
-      savePracticeSession(topic.id, subtopicKey || "all", final);
+      // Save to Firestore
+      await savePractice(userId, {
+        topicId: topic.id,
+        subtopicKey: subtopicKey || "all",
+        ...final,
+      });
       onFinish(final);
     } else {
       setCurrent((c) => c + 1);
@@ -205,9 +204,12 @@ const PracticeSession = ({ topic, subtopicKey, taskList, onFinish }) => {
           </span>
           <span className="practice-session-head__sub">{formatKey(subtopicKey)}</span>
         </div>
-        <span className="practice-session-head__counter">
-          {current + 1} / {taskList.length}
-        </span>
+        <div className="practice-session-head__right">
+          <StreakBadge streak={streak} />
+          <span className="practice-session-head__counter">
+            {current + 1} / {taskList.length}
+          </span>
+        </div>
       </div>
 
       <div className="practice-progress">
@@ -227,7 +229,6 @@ const PracticeSession = ({ topic, subtopicKey, taskList, onFinish }) => {
               if (opt.label === task.correct) state = "correct";
               else if (opt.label === selected && selected !== task.correct) state = "wrong";
             } else if (opt.label === selected) state = "selected";
-
             return (
               <button
                 key={opt.label}
@@ -238,14 +239,10 @@ const PracticeSession = ({ topic, subtopicKey, taskList, onFinish }) => {
                 <span className="practice-option__letter">{opt.label}</span>
                 <span className="practice-option__text">{opt.value}</span>
                 {confirmed && opt.label === task.correct && (
-                  <span className="practice-option__icon practice-option__icon--ok">
-                    <CheckIcon />
-                  </span>
+                  <span className="practice-option__icon practice-option__icon--ok"><CheckIcon /></span>
                 )}
                 {confirmed && opt.label === selected && selected !== task.correct && (
-                  <span className="practice-option__icon practice-option__icon--err">
-                    <XIcon />
-                  </span>
+                  <span className="practice-option__icon practice-option__icon--err"><XIcon /></span>
                 )}
               </button>
             );
@@ -278,10 +275,15 @@ const PracticeSession = ({ topic, subtopicKey, taskList, onFinish }) => {
 
       <div className="practice-running-score">
         <span className="practice-running-score__correct">
-          <CheckIcon /> {score.correct + (confirmed && isCorrect ? 1 : 0)} correct
+          <CheckIcon /> {score.correct} correct
         </span>
+        {maxStreak >= 3 && (
+          <span className="practice-running-score__streak">
+            <FlameIcon /> Best streak: {maxStreak}
+          </span>
+        )}
         <span className="practice-running-score__wrong">
-          <XIcon /> {score.wrong + (confirmed && !isCorrect ? 1 : 0)} wrong
+          <XIcon /> {score.wrong} wrong
         </span>
       </div>
     </div>
@@ -289,7 +291,7 @@ const PracticeSession = ({ topic, subtopicKey, taskList, onFinish }) => {
 };
 
 const SessionSummary = ({ topic, subtopicKey, score, onRetry, onNewTopic }) => {
-  const pct = Math.round((score.correct / score.total) * 100);
+  const pct = Math.floor((score.correct / score.total) * 100);
   const color = pct >= 70 ? "#27ae60" : pct >= 40 ? "#d35400" : "#c0392b";
   const circ = 2 * Math.PI * 42;
 
@@ -301,25 +303,16 @@ const SessionSummary = ({ topic, subtopicKey, score, onRetry, onNewTopic }) => {
             <svg viewBox="0 0 100 100" className="practice-ring-svg">
               <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" strokeWidth="8" />
               <circle
-                cx="50"
-                cy="50"
-                r="42"
-                fill="none"
-                stroke={color}
-                strokeWidth="8"
+                cx="50" cy="50" r="42" fill="none" stroke={color} strokeWidth="8"
                 strokeDasharray={`${(pct / 100) * circ} ${circ}`}
-                strokeLinecap="round"
-                transform="rotate(-90 50 50)"
+                strokeLinecap="round" transform="rotate(-90 50 50)"
               />
             </svg>
             <div className="practice-ring-label">
               <strong style={{ color }}>{pct}%</strong>
-              <span>
-                {score.correct}/{score.total}
-              </span>
+              <span>{score.correct}/{score.total}</span>
             </div>
           </div>
-
           <div className="practice-summary__info">
             <p className="practice-summary__eyebrow">
               {topic.icon && <topic.icon size={18} />} {topic.title}
@@ -343,14 +336,17 @@ const SessionSummary = ({ topic, subtopicKey, score, onRetry, onNewTopic }) => {
                 <strong>{score.total}</strong>
                 <span>Total</span>
               </div>
+              {score.maxStreak >= 2 && (
+                <div className="practice-summary__stat">
+                  <strong style={{ color: "#d35400" }}>{score.maxStreak}</strong>
+                  <span>Best streak</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
         <div className="practice-summary__actions">
-          <button className="practice-btn practice-btn--ghost" onClick={onRetry}>
-            Retry
-          </button>
+          <button className="practice-btn practice-btn--ghost" onClick={onRetry}>Retry</button>
           <Link to="/diagnostics" className="practice-btn practice-btn--primary">
             Run Diagnostic <ChevronRight />
           </Link>
@@ -364,6 +360,7 @@ const SessionSummary = ({ topic, subtopicKey, score, onRetry, onNewTopic }) => {
 };
 
 const PracticePage = () => {
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [step, setStep] = useState("select");
   const [topic, setTopic] = useState(null);
@@ -373,8 +370,9 @@ const PracticePage = () => {
   const [gapRecs, setGapRecs] = useState([]);
 
   useEffect(() => {
-    setGapRecs(buildGapRecs());
-  }, []);
+    if (!user) return;
+    getDiagnostics(user.uid).then((data) => setGapRecs(buildGapRecs(data)));
+  }, [user]);
 
   const handleStartTopic = (t) => {
     setTopic(t);
@@ -414,13 +412,10 @@ const PracticePage = () => {
     <div className="page-shell">
       <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <main className="page-main">
         <div className="practice-page">
           <div className="practice-breadcrumb">
-            <Link to="/home" className="practice-breadcrumb__item">
-              Home
-            </Link>
+            <Link to="/home" className="practice-breadcrumb__item">Home</Link>
             <ChevronRight />
             <span className="practice-breadcrumb__item practice-breadcrumb__item--active">Practice</span>
             {topic && (
@@ -454,6 +449,7 @@ const PracticePage = () => {
               subtopicKey={subtopicKey}
               taskList={taskList}
               onFinish={handleFinish}
+              userId={user?.uid}
             />
           )}
 

@@ -7,16 +7,15 @@ import DiagnosticsPage from "../pages/DiagnosticsPage";
 import PracticePage    from "../pages/PracticePage";
 import ProgressPage    from "../pages/ProgressPage";
 import ResultsPage     from "../pages/ResultsPage";
-import SupportPage from "../pages/SupportPage";
+import SupportPage     from "../pages/SupportPage";
+import TheoryPage      from "../pages/TheoryPage";
 
-/* ── Redirect logged-in users away from /auth ── */
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
   return user ? <Navigate to="/home" replace /> : children;
 };
 
-/* ── Require auth for all app pages ── */
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -25,18 +24,16 @@ const ProtectedRoute = ({ children }) => {
 
 const AppRouter = () => (
   <Routes>
-    {/* Public */}
     <Route path="/auth" element={<PublicRoute><AuthPage /></PublicRoute>} />
 
-    {/* Protected */}
     <Route path="/home"        element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
     <Route path="/diagnostics" element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
     <Route path="/practice"    element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
     <Route path="/progress"    element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
     <Route path="/results"     element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"     element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+    <Route path="/theory"      element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
 
-    {/* Fallback */}
     <Route path="*" element={<Navigate to="/home" replace />} />
   </Routes>
 );

@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { topics } from "../data/topics";
-import { questions } from "../data/questions";
 import { gapsDatabase } from "../data/gaps";
+import { saveDiagnostic } from "../services/db";
 import "../styles/diagnostics.css";
+import { questions }  from "../data/questions"
 import "../styles/layout.css";
 
-/* ── Icons ── */
 const ChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="9 18 15 12 9 6" />
@@ -23,125 +23,132 @@ const CheckIcon = () => (
 const XIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="6" />
+    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 const AlertIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="10" />
     <line x1="12" y1="8" x2="12" y2="12" />
     <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
 
-/* ── Detect gaps from user's answers ── */
-const detectGaps = (topicId, userAnswers) => {
-  const topicGaps = gapsDatabase[topicId];
-  if (!topicGaps) return [];
+const MAX_QUESTIONS = 24;
 
-  const foundGaps = [];
-
-  topicGaps.forEach(gap => {
-    let triggered = false;
-    Object.entries(gap.signs).forEach(([questionId, wrongAnswers]) => {
-      const userAnswer = userAnswers[questionId];
-      if (userAnswer && wrongAnswers.includes(userAnswer)) {
-        triggered = true;
-      }
+const buildFullDiagnostic = () => {
+  const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
+  if (!activeTopics.length) return [];
+  const perTopic = Math.max(1, Math.floor(MAX_QUESTIONS / activeTopics.length));
+  const pool = [];
+  activeTopics.forEach(topic => {
+    (questions[topic.id] || []).slice(0, perTopic).forEach(q => {
+      pool.push({ ...q, topicId: topic.id });
     });
-    if (triggered) foundGaps.push(gap);
   });
-
-  return foundGaps;
+  if (pool.length < MAX_QUESTIONS) {
+    activeTopics.forEach(topic => {
+      const already = pool.filter(q => q.topicId === topic.id).length;
+      (questions[topic.id] || []).slice(already).forEach(q => {
+        if (pool.length < MAX_QUESTIONS) pool.push({ ...q, topicId: topic.id });
+      });
+    });
+  }
+  return pool.slice(0, MAX_QUESTIONS);
 };
 
-/* ── Difficulty badge ── */
-const DiffBadge = ({ difficulty }) => {
-  const map = {
-    easy:   { label: "Easy",   color: "#27ae60", bg: "rgba(39,174,96,0.1)" },
-    medium: { label: "Medium", color: "#d35400", bg: "rgba(211,84,0,0.1)" },
-    hard:   { label: "Hard",   color: "#c0392b", bg: "rgba(192,57,43,0.1)" },
-  };
-  const s = map[difficulty] || map.medium;
+const GAP_THRESHOLD = 2; // gap only triggers if same reasoning mistake appears 2+ times
+
+const detectAllGaps = (answers) => {
+  const result = {};
+  topics.forEach(topic => {
+    const topicGaps = gapsDatabase[topic.id];
+    if (!topicGaps) return;
+    const found = [];
+    topicGaps.forEach(gap => {
+      // Count how many distinct questions triggered this gap
+      let wrongCount = 0;
+      Object.entries(gap.signs).forEach(([qId, wrongAnswers]) => {
+        if (answers[qId] && wrongAnswers.includes(answers[qId])) wrongCount++;
+      });
+      if (wrongCount >= GAP_THRESHOLD) found.push(gap);
+    });
+    if (found.length) result[topic.id] = found;
+  });
+  return result;
+};
+
+const IntroScreen = ({ onStart, questionCount }) => {
+  const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
   return (
-    <span className="diag-diff-badge" style={{ color: s.color, background: s.bg }}>
-      {s.label}
-    </span>
+    <div className="diag-intro">
+      <div className="diag-intro__icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      </div>
+      <div className="diag-intro__content">
+        <p className="diag-intro__eyebrow">Full Reasoning Diagnostic</p>
+        <h2 className="diag-intro__title">One diagnostic. All topics.</h2>
+        <p className="diag-intro__desc">
+          This covers every topic at once. We are looking at <em>how</em> you think,
+          not whether your final answer is right. When you finish, you will see
+          exactly which reasoning blocks broke down — not a score.
+        </p>
+        <div className="diag-intro__stats">
+          <div className="diag-intro__stat">
+            <strong>{questionCount}</strong>
+            <span>Questions</span>
+          </div>
+          <div className="diag-intro__stat-divider" />
+          <div className="diag-intro__stat">
+            <strong>{activeTopics.length}</strong>
+            <span>Topics</span>
+          </div>
+          <div className="diag-intro__stat-divider" />
+          <div className="diag-intro__stat">
+            <strong>~12 min</strong>
+            <span>Estimated</span>
+          </div>
+        </div>
+        <button className="diag-btn diag-btn--primary diag-btn--lg" onClick={onStart}>
+          Start Diagnostic <ChevronRight />
+        </button>
+      </div>
+      <div className="diag-intro__topics">
+        {activeTopics.map(topic => (
+          <span key={topic.id} className="diag-intro__topic-chip">
+            <topic.icon size={13} strokeWidth={2.5} />
+            {topic.title}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 };
 
-/* ══════════════════════════════════════════
-   STEP 1 — Topic selection
-══════════════════════════════════════════ */
-const TopicSelect = ({ onSelect }) => (
-  <div className="diag-step">
-    <div className="diag-step__head">
-      <p className="diag-step__eyebrow">Step 1 of 3</p>
-      <h2 className="diag-step__title">Choose a topic to diagnose</h2>
-      <p className="diag-step__sub">
-        Axioma will ask you a set of targeted questions to identify exactly where your reasoning breaks.
-      </p>
-    </div>
-
-    <div className="diag-topic-grid">
-      {topics.map(topic => {
-        const topicQuestions = questions[topic.id];
-        const count = topicQuestions ? topicQuestions.length : 0;
-        const hasData = count > 0;
-
-        return (
-          <button
-            key={topic.id}
-            className={`diag-topic-card ${!hasData ? "diag-topic-card--disabled" : ""}`}
-            onClick={() => hasData && onSelect(topic)}
-            disabled={!hasData}
-          >
-            <div className="diag-topic-card__top">
-              <div className="diag-topic-card__icon">
-                <topic.icon />           {/* ← FIXED: render as component */}
-              </div>
-              <DiffBadge difficulty={topic.difficulty} />
-            </div>
-            <h3 className="diag-topic-card__title">{topic.title}</h3>
-            <p className="diag-topic-card__desc">{topic.description}</p>
-            <div className="diag-topic-card__footer">
-              <span>{hasData ? `${count} questions` : "Coming soon"}</span>
-              {hasData && <ChevronRight />}
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  </div>
-);
-
-/* ══════════════════════════════════════════
-   STEP 2 — Questions
-══════════════════════════════════════════ */
-const QuestionStep = ({ topic, onFinish }) => {
-  const topicQuestions = questions[topic.id] || [];
-
-  // Guard against empty topic
-  if (!topicQuestions.length) {
-    return (
-      <div className="diag-step">
-        <div className="diag-empty">
-          <AlertIcon />
-          <h3>No questions available</h3>
-          <p>This topic doesn't have any questions yet. Please choose another one.</p>
-        </div>
-      </div>
-    );
-  }
-
+const QuestionStep = ({ allQuestions, onFinish }) => {
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [answers, setAnswers] = useState({});
 
-  const q = topicQuestions[current];
-  const progress = ((current + 1) / topicQuestions.length) * 100; // ← FIXED: better UX
-  const isCorrect = selected === q?.correct;
+  const q = allQuestions[current];
+  const topicMeta = topics.find(t => t.id === q?.topicId);
+  const progress = (current / allQuestions.length) * 100;
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== "Enter") return;
+      if (!confirmed && selected) handleConfirm();
+      else if (confirmed) handleNext();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmed, selected, current, answers]);
 
   const handleConfirm = () => {
     if (!selected) return;
@@ -150,13 +157,8 @@ const QuestionStep = ({ topic, onFinish }) => {
   };
 
   const handleNext = () => {
-    // Always save the current selection if it exists (fixes last-question loss)
-    let nextAnswers = { ...answers };
-    if (selected !== null) {
-      nextAnswers[q.id] = selected;
-    }
-
-    if (current + 1 >= topicQuestions.length) {
+    const nextAnswers = { ...answers, [q.id]: selected };
+    if (current + 1 >= allQuestions.length) {
       onFinish(nextAnswers);
     } else {
       setCurrent(c => c + 1);
@@ -165,30 +167,41 @@ const QuestionStep = ({ topic, onFinish }) => {
     }
   };
 
+  const prevTopicId = current > 0 ? allQuestions[current - 1]?.topicId : null;
+  const topicChanged = current > 0 && q?.topicId !== prevTopicId;
+
   return (
     <div className="diag-step">
-      {/* Progress */}
-      <div className="diag-progress">
+      <div className="diag-progress-header">
+        <div className="diag-progress-header__meta">
+          {topicMeta && (
+            <span className="diag-progress-header__topic">
+              <topicMeta.icon size={13} strokeWidth={2.5} />
+              {topicMeta.title}
+            </span>
+          )}
+          <span className="diag-progress-header__count">{current + 1} / {allQuestions.length}</span>
+        </div>
         <div className="diag-progress__track">
           <div className="diag-progress__fill" style={{ width: `${progress}%` }} />
         </div>
-        <span className="diag-progress__label">{current + 1} / {topicQuestions.length}</span>
       </div>
 
+      {topicChanged && (
+        <div className="diag-topic-transition">
+          {topicMeta && <topicMeta.icon size={14} strokeWidth={2} />}
+          Now: {topicMeta?.title}
+        </div>
+      )}
+
       <div className="diag-question-card">
-        <p className="diag-question-card__meta">{topic.title} — Question {current + 1}</p>
+        <p className="diag-question-card__meta">Question {current + 1}</p>
         <h3 className="diag-question-card__text">{q.text}</h3>
 
         <div className="diag-options">
           {q.options.map(opt => {
-            let state = "";
-            if (confirmed) {
-              if (opt.value === q.correct) state = "correct";
-              else if (opt.value === selected && selected !== q.correct) state = "wrong";
-            } else if (opt.value === selected) {
-              state = "selected";
-            }
-
+            // After confirming: only highlight the chosen answer as "selected", no correct/wrong
+            const state = opt.value === selected ? "selected" : "";
             return (
               <button
                 key={opt.value}
@@ -198,37 +211,28 @@ const QuestionStep = ({ topic, onFinish }) => {
               >
                 <span className="diag-option__letter">{opt.label}</span>
                 <span className="diag-option__text">{opt.value}</span>
-                {confirmed && opt.value === q.correct && (
-                  <span className="diag-option__icon diag-option__icon--correct"><CheckIcon /></span>
-                )}
-                {confirmed && opt.value === selected && selected !== q.correct && (
-                  <span className="diag-option__icon diag-option__icon--wrong"><XIcon /></span>
-                )}
               </button>
             );
           })}
         </div>
 
-        {/* Feedback after confirm */}
         {confirmed && (
-          <div className={`diag-feedback diag-feedback--${isCorrect ? "correct" : "wrong"}`}>
-            {isCorrect ? <CheckIcon /> : <XIcon />}
-            <p>{isCorrect ? "Correct!" : `Correct answer: ${q.correct}`}</p>
+          <div className="diag-feedback diag-feedback--neutral">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <p>Answer recorded.</p>
           </div>
         )}
 
         <div className="diag-question-card__actions">
           {!confirmed ? (
-            <button
-              className="diag-btn diag-btn--primary"
-              onClick={handleConfirm}
-              disabled={!selected}
-            >
-              Confirm Answer
+            <button className="diag-btn diag-btn--primary" onClick={handleConfirm} disabled={!selected}>
+              Confirm
             </button>
           ) : (
             <button className="diag-btn diag-btn--primary" onClick={handleNext}>
-              {current + 1 >= topicQuestions.length ? "See Results" : "Next Question"}
+              {current + 1 >= allQuestions.length ? "See Analysis" : "Continue"}
               <ChevronRight />
             </button>
           )}
@@ -238,207 +242,148 @@ const QuestionStep = ({ topic, onFinish }) => {
   );
 };
 
-/* ══════════════════════════════════════════
-   STEP 3 — Results
-══════════════════════════════════════════ */
-const ResultsStep = ({ topic, answers, onRetry, onDone }) => {
-  const topicQuestions = questions[topic.id] || [];
-  const correctCount = topicQuestions.filter(q => answers[q.id] === q.correct).length;
-  const total = topicQuestions.length;
-  const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
-  const gaps = detectGaps(topic.id, answers);
-
-  const scoreColor = pct >= 70 ? "#27ae60" : pct >= 40 ? "#d35400" : "#c0392b";
+const ResultsStep = ({ answers, allQuestions, onRetry }) => {
+  const gapsByTopic = detectAllGaps(answers);
+  const totalGaps = Object.values(gapsByTopic).flat().length;
+  const topicsWithGaps = Object.keys(gapsByTopic);
+  const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
+  const topicsClean = activeTopics.filter(t => !gapsByTopic[t.id]);
 
   return (
     <div className="diag-step">
       <div className="diag-results">
-        {/* Score header */}
-        <div className="diag-results__score-card">
-          <div className="diag-results__score-ring" style={{ "--score-color": scoreColor }}>
-            <svg viewBox="0 0 100 100" className="diag-ring-svg">
-              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" strokeWidth="8" />
-              <circle
-                cx="50" cy="50" r="42" fill="none"
-                stroke={scoreColor} strokeWidth="8"
-                strokeDasharray={`${pct * 2.64} 264`}
-                strokeLinecap="round"
-                transform="rotate(-90 50 50)"
-              />
-            </svg>
-            <div className="diag-ring-label">
-              <strong style={{ color: scoreColor }}>{pct}%</strong>
-              <span>{correctCount}/{total}</span>
-            </div>
+        <div className={`diag-results__summary diag-results__summary--${totalGaps === 0 ? "clean" : "gaps"}`}>
+          <div className="diag-results__summary-icon">
+            {totalGaps === 0 ? <CheckIcon /> : <AlertIcon />}
           </div>
-
-          <div className="diag-results__score-info">
-            <p className="diag-results__score-eyebrow">{topic.title}</p>
-            <h3 className="diag-results__score-title">
-              {pct >= 70 ? "Strong performance" : pct >= 40 ? "Partial understanding" : "Significant gaps found"}
-            </h3>
-            <p className="diag-results__score-sub">
-              You answered {correctCount} out of {total} questions correctly.
-              {gaps.length > 0
-                ? ` ${gaps.length} reasoning gap${gaps.length > 1 ? "s" : ""} identified.`
-                : " No major gaps detected in this topic."
-              }
+          <div className="diag-results__summary-text">
+            <h2 className="diag-results__summary-title">
+              {totalGaps === 0
+                ? "No reasoning gaps found"
+                : `${totalGaps} reasoning gap${totalGaps !== 1 ? "s" : ""} identified`}
+            </h2>
+            <p className="diag-results__summary-sub">
+              {totalGaps === 0
+                ? "Your reasoning held up across all topics."
+                : "These are the specific reasoning blocks that broke down. Not wrong answers — thinking gaps."}
             </p>
           </div>
         </div>
 
-        {/* Gaps */}
-        {gaps.length > 0 ? (
-          <div className="diag-gaps">
-            <h4 className="diag-gaps__title">
-              <AlertIcon />
-              Identified reasoning gaps
-            </h4>
-            <div className="diag-gaps__list">
-              {gaps.map(gap => (
-                <div key={gap.id} className="diag-gap-card">
-                  <div className="diag-gap-card__head">
-                    <span className="diag-gap-card__label">Gap identified</span>
-                    <h5 className="diag-gap-card__title">{gap.title}</h5>
-                  </div>
-                  <p className="diag-gap-card__desc">{gap.description}</p>
-                  <div className="diag-gap-card__rec">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                    </svg>
-                    <p>{gap.recommendation}</p>
-                  </div>
-                </div>
+        {topicsClean.length > 0 && (
+          <div className="diag-results__clean">
+            <p className="diag-results__clean-label"><CheckIcon /> Solid reasoning in:</p>
+            <div className="diag-results__clean-topics">
+              {topicsClean.map(t => (
+                <span key={t.id} className="diag-results__clean-chip">
+                  <t.icon size={13} strokeWidth={2.5} />
+                  {t.title}
+                </span>
               ))}
             </div>
           </div>
-        ) : (
-          <div className="diag-no-gaps">
-            <CheckIcon />
-            <p>No significant gaps detected. Try a harder topic or run the diagnostic again.</p>
-          </div>
         )}
 
-        {/* Answer review */}
-        <div className="diag-review">
-          <h4 className="diag-review__title">Answer Review</h4>
-          <div className="diag-review__list">
-            {topicQuestions.map((q, i) => {
-              const userAns = answers[q.id];
-              const correct = userAns === q.correct;
+        {topicsWithGaps.length > 0 && (
+          <div className="diag-gaps">
+            <h4 className="diag-gaps__title"><AlertIcon /> Where your reasoning broke</h4>
+            {topicsWithGaps.map(topicId => {
+              const topic = topics.find(t => t.id === topicId);
+              const topicGaps = gapsByTopic[topicId];
               return (
-                <div key={q.id} className={`diag-review__row ${correct ? "diag-review__row--correct" : "diag-review__row--wrong"}`}>
-                  <span className="diag-review__num">{i + 1}</span>
-                  <div className="diag-review__content">
-                    <p className="diag-review__question">{q.text}</p>
-                    {!correct && (
-                      <p className="diag-review__answer">
-                        <span>Your answer: <em>{userAns || "—"}</em></span>
-                        <span>Correct: <strong>{q.correct}</strong></span>
-                      </p>
-                    )}
+                <div key={topicId} className="diag-gaps__topic-group">
+                  <div className="diag-gaps__topic-head">
+                    {topic?.icon && <topic.icon size={15} strokeWidth={2.5} />}
+                    <h4 className="diag-gaps__topic-title">{topic?.title || topicId}</h4>
+                    <span className="diag-gaps__topic-count">{topicGaps.length} gap{topicGaps.length > 1 ? "s" : ""}</span>
                   </div>
-                  <span className={`diag-review__icon ${correct ? "diag-review__icon--ok" : "diag-review__icon--err"}`}>
-                    {correct ? <CheckIcon /> : <XIcon />}
-                  </span>
+                  <div className="diag-gaps__list">
+                    {topicGaps.map(gap => (
+                      <div key={gap.id} className="diag-gap-card">
+                        <div className="diag-gap-card__head">
+                          <span className="diag-gap-card__label">Reasoning gap</span>
+                          <h5 className="diag-gap-card__title">{gap.title}</h5>
+                        </div>
+                        <p className="diag-gap-card__desc">{gap.description}</p>
+                        <div className="diag-gap-card__rec">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                          </svg>
+                          <p>{gap.recommendation}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        )}
 
-        {/* Actions */}
-        <div className="diag-results__actions">
-          <button className="diag-btn diag-btn--ghost" onClick={onRetry}>
-            Retry this topic
-          </button>
-          <Link to="/practice" className="diag-btn diag-btn--primary">
-            Go to Practice
-            <ChevronRight />
-          </Link>
-          <button className="diag-btn diag-btn--ghost" onClick={onDone}>
-            Back to Topics
-          </button>
+        <div className="diag-results__cta-block">
+          {totalGaps > 0 && (
+            <div className="diag-results__cta-hint">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <p>Practice now shows targeted exercises for every gap above. Theory explains the reasoning from scratch.</p>
+            </div>
+          )}
+          <div className="diag-results__actions">
+            <button className="diag-btn diag-btn--ghost" onClick={onRetry}>Run again</button>
+            {totalGaps > 0 && (
+              <Link to="/theory" className="diag-btn diag-btn--primary">Study the gaps <ChevronRight /></Link>
+            )}
+            <Link to="/practice" className="diag-btn diag-btn--ghost">Targeted practice</Link>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-/* ══════════════════════════════════════════
-   MAIN PAGE
-══════════════════════════════════════════ */
 const DiagnosticsPage = () => {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [step, setStep] = useState("select"); // select | questions | results
-  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [step, setStep] = useState("intro");
   const [finalAnswers, setFinalAnswers] = useState({});
+  const [allQuestions] = useState(() => buildFullDiagnostic());
 
-  const handleTopicSelect = (topic) => {
-    setSelectedTopic(topic);
-    setStep("questions");
-  };
-
-  const handleFinish = (answers) => {
-    setFinalAnswers(answers);
-
-    // Save to localStorage
+  const handleFinish = async (answers) => {
+    const gapsByTopic = detectAllGaps(answers);
     const result = {
-      topicId: selectedTopic.id,
-      topicTitle: selectedTopic.title,
-      date: new Date().toISOString(),
+      type: "full",
       answers,
-      gaps: detectGaps(selectedTopic.id, answers),
+      gapsByTopic,
+      gaps: Object.values(gapsByTopic).flat(),
+      topicId: "full",
+      topicTitle: "Full Diagnostic",
       score: {
-        correct: Object.entries(answers).filter(([qId, ans]) => {
-          const q = (questions[selectedTopic.id] || []).find(q => q.id === qId);
-          return q && q.correct === ans;
-        }).length,
-        total: (questions[selectedTopic.id] || []).length,
-      }
+        correct: allQuestions.filter(q => answers[q.id] === q.correct).length,
+        total: allQuestions.length,
+      },
     };
 
-    const existing = JSON.parse(localStorage.getItem("axioma-diagnostics") || "[]");
-    existing.unshift(result);
-    localStorage.setItem("axioma-diagnostics", JSON.stringify(existing.slice(0, 50)));
+    // Save to Firestore
+    await saveDiagnostic(user.uid, result);
 
+    setFinalAnswers(answers);
     setStep("results");
-  };
-
-  const handleRetry = () => {
-    setFinalAnswers({});
-    setStep("questions");
-  };
-
-  const handleDone = () => {
-    setSelectedTopic(null);
-    setFinalAnswers({});
-    setStep("select");
   };
 
   return (
     <div className="page-shell">
       <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(v => !v)} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <main className="page-main">
         <div className="diag-page">
-
-          {/* Breadcrumb */}
           <div className="diag-breadcrumb">
             <Link to="/home" className="diag-breadcrumb__item">Home</Link>
             <ChevronRight />
             <span className="diag-breadcrumb__item diag-breadcrumb__item--active">Diagnostics</span>
-            {selectedTopic && (
-              <>
-                <ChevronRight />
-                <span className="diag-breadcrumb__item diag-breadcrumb__item--active">{selectedTopic.title}</span>
-              </>
-            )}
           </div>
-
-          {/* Page header */}
           <div className="diag-header">
             <div className="diag-header__icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -448,24 +393,17 @@ const DiagnosticsPage = () => {
             </div>
             <div>
               <h1 className="diag-header__title">Diagnostics</h1>
-              <p className="diag-header__sub">Identify your reasoning gaps across mathematical thinking blocks.</p>
+              <p className="diag-header__sub">Find exactly where your reasoning breaks across all topics.</p>
             </div>
           </div>
 
-          {/* Steps */}
-          {step === "select" && <TopicSelect onSelect={handleTopicSelect} />}
-          {step === "questions" && selectedTopic && (
-            <QuestionStep
-              topic={selectedTopic}
-              onFinish={handleFinish}
-            />
-          )}
-          {step === "results" && selectedTopic && (
+          {step === "intro" && <IntroScreen onStart={() => setStep("questions")} questionCount={allQuestions.length} />}
+          {step === "questions" && <QuestionStep allQuestions={allQuestions} onFinish={handleFinish} />}
+          {step === "results" && (
             <ResultsStep
-              topic={selectedTopic}
               answers={finalAnswers}
-              onRetry={handleRetry}
-              onDone={handleDone}
+              allQuestions={allQuestions}
+              onRetry={() => { setFinalAnswers({}); setStep("intro"); }}
             />
           )}
         </div>

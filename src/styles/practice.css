@@ -240,6 +240,7 @@
   color: var(--text-light);
 }
 
+/* ── Session head ───────────────────────────────────────── */
 .practice-session-head {
   display: flex;
   align-items: center;
@@ -265,11 +266,38 @@
   color: var(--text-mid);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+/* Right side of session head — streak badge + counter */
+.practice-session-head__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .practice-session-head__counter {
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-mid);
   font-family: "Georgia", serif;
+}
+
+/* ── Streak badge ───────────────────────────────────────── */
+.practice-streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(211, 84, 0, 0.1);
+  border: 1px solid rgba(211, 84, 0, 0.25);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #d35400;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  animation: streak-pop 0.25s ease;
+}
+@keyframes streak-pop {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1);    opacity: 1; }
 }
 
 .practice-progress__track {
@@ -440,10 +468,12 @@
   gap: 12px;
 }
 
+/* ── Running score ──────────────────────────────────────── */
 .practice-running-score {
   display: flex;
   gap: 20px;
   justify-content: center;
+  align-items: center;
   padding: 12px;
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -466,6 +496,18 @@
   font-weight: 600;
   color: #c0392b;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.practice-running-score__streak {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #d35400;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  padding: 3px 10px;
+  background: rgba(211, 84, 0, 0.08);
+  border-radius: 12px;
 }
 
 .practice-btn {
@@ -621,4 +663,59 @@
   .practice-topic-card__desc {
     max-width: 360px;
   }
+}
+
+/* ═══════════════════════════════════════════
+   SUPPORT-STYLE BACKGROUND (grid + glow)
+═══════════════════════════════════════════ */
+.practice-page {
+  position: relative;
+}
+
+.page-main {
+  position: relative;
+}
+
+/* Grid overlay on page-main — subtle teal lines */
+.page-main::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(42,143,160,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42,143,160,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 40%, black 20%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow top-right accent */
+.page-main::after {
+  content: '';
+  position: fixed;
+  top: -80px;
+  right: -80px;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(ellipse, rgba(42,143,160,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Push content above the pseudo elements */
+.practice-page,
+.progress-page,
+.diag-page,
+.results-page {
+  position: relative;
+  z-index: 1;
+}
+
+/* Cards pick up subtle blur + stronger border */
+.practice-task-card,
+.practice-summary__card,
+.practice-topic-card,
+.practice-session-head {
+  backdrop-filter: blur(6px);
 }

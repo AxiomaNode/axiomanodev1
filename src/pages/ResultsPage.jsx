@@ -1,9 +1,11 @@
+// src/pages/ResultsPage.jsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { topics } from "../data/topics";
+import { getDiagnostics } from "../services/db";
 import "../styles/results.css";
 import "../styles/layout.css";
 
@@ -45,15 +47,8 @@ const ScoreRing = ({ pct, color }) => {
     <svg viewBox="0 0 130 130" className="results-ring-svg">
       <circle cx="65" cy="65" r="52" fill="none" stroke="var(--border)" strokeWidth="9" />
       <circle
-        cx="65"
-        cy="65"
-        r="52"
-        fill="none"
-        stroke={color}
-        strokeWidth="9"
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-        transform="rotate(-90 65 65)"
+        cx="65" cy="65" r="52" fill="none" stroke={color} strokeWidth="9"
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform="rotate(-90 65 65)"
       />
     </svg>
   );
@@ -64,11 +59,15 @@ const ResultsPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("axioma-diagnostics") || "[]");
-    setSessions(data);
-  }, []);
+    if (!user) return;
+    getDiagnostics(user.uid).then((data) => {
+      setSessions(data);
+      setLoading(false);
+    });
+  }, [user]);
 
   const session = sessions[selectedIdx] || null;
   const pct = session ? Math.round((session.score.correct / session.score.total) * 100) : 0;
@@ -83,13 +82,9 @@ const ResultsPage = () => {
       <main className="page-main">
         <div className="results-page">
           <div className="results-breadcrumb">
-            <Link to="/home" className="results-breadcrumb__item">
-              Home
-            </Link>
+            <Link to="/home" className="results-breadcrumb__item">Home</Link>
             <ChevronRight />
-            <Link to="/progress" className="results-breadcrumb__item">
-              Progress
-            </Link>
+            <Link to="/progress" className="results-breadcrumb__item">Progress</Link>
             <ChevronRight />
             <span className="results-breadcrumb__item results-breadcrumb__item--active">Results</span>
           </div>
@@ -109,7 +104,11 @@ const ResultsPage = () => {
             </div>
           </div>
 
-          {sessions.length === 0 ? (
+          {loading ? (
+            <div className="results-empty">
+              <p style={{ color: "var(--text-light)", fontFamily: "-apple-system, sans-serif" }}>Loading results...</p>
+            </div>
+          ) : sessions.length === 0 ? (
             <div className="results-empty">
               <div className="results-empty__icon">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3">
@@ -171,19 +170,16 @@ const ResultsPage = () => {
                       <ScoreRing pct={pct} color={color} />
                       <div className="results-ring-center">
                         <strong style={{ color }}>{pct}%</strong>
-                        <span>
-                          {session.score.correct}/{session.score.total}
-                        </span>
+                        <span>{session.score.correct}/{session.score.total}</span>
                       </div>
                     </div>
 
                     <div className="results-overview-info">
                       <p className="results-overview-date">{formatDate(session.date)}</p>
+                      {/* FIX: was h2 nested inside h2 */}
                       <h2 className="results-overview-title">
-                        <h2 className="results-overview-title">
-                          {topic?.icon ? <topic.icon size={18} strokeWidth={2.5} /> : ""} {session.topicTitle}
-                        </h2>
-                        <span>{session.topicTitle}</span>
+                        {topic?.icon ? <topic.icon size={18} strokeWidth={2.5} /> : ""}
+                        {session.topicTitle}
                       </h2>
                       <p className="results-overview-verdict" style={{ color }}>
                         {pct >= 70 ? "Strong performance" : pct >= 40 ? "Partial understanding" : "Significant gaps identified"}
@@ -255,12 +251,20 @@ const ResultsPage = () => {
                       Answer breakdown
                     </h3>
                     <div className="results-answers">
-                      {Object.entries(session.answers).map(([qId, userAns]) => {
-                        const correct = session.gaps
-                          ? !session.gaps.some(
-                              (g) => g?.signs && Object.prototype.hasOwnProperty.call(g.signs, qId) && (g.signs[qId] || []).includes(userAns)
-                            )
-                          : true;
+                      {Object.entries(session.answers || {}).filter(([qId, userAns]) => {
+                       return session.gaps?.some(
+                         (g) => g?.signs && Object.prototype.hasOwnProperty.call(g.signs, qId) && (g.signs[qId] || []).includes(userAns)
+                        );
+                      }).map(([qId, userAns]) => {
+                        // FIX: check if answer triggered any gap sign — that means it was a wrong/gap answer
+                        const triggeredGap = session.gaps?.some(
+                          (g) =>
+                            g?.signs &&
+                            Object.prototype.hasOwnProperty.call(g.signs, qId) &&
+                            (g.signs[qId] || []).includes(userAns)
+                        );
+                        // "correct" here means: didn't trigger a gap
+                        const correct = !triggeredGap;
 
                         return (
                           <div
