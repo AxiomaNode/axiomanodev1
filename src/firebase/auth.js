@@ -5,16 +5,40 @@ import {
   updateProfile,
   sendEmailVerification,
 } from "firebase/auth";
-import { auth } from "./firebaseConfig";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { auth, db } from "./firebaseConfig";
 
-export const registerUser = async (email, password, displayName) => {
+export const registerUser = async (email, password, displayName, language, grade) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName });
+
+    // Save additional profile data to Firestore
+    await setDoc(doc(db, "users", userCredential.user.uid), {
+      displayName,
+      email,
+      language: language || "ru",
+      grade: grade || null
+    });
+
     await sendEmailVerification(userCredential.user);
     return userCredential.user;
   } catch (error) {
     throw new Error(error.code === "auth/email-already-in-use" ? "Email already in use" : error.message);
+  }
+};
+
+export const getUserProfile = async (uid) => {
+  try {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return null;
   }
 };
 
