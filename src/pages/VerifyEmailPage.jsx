@@ -59,18 +59,10 @@ const VerifyEmailPage = () => {
           </div>
 
           <div className="verify-panel__center">
-            <div className="verify-panel__envelope">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <polyline points="22,6 12,13 2,6" />
-              </svg>
-            </div>
-
-            <div className="verify-panel__math-lines">
-              <span>x² + bx + c = 0</span>
-              <span>f(x) → ℝ</span>
-              <span>D = b² − 4ac</span>
-              <span>∀x ∈ ℝ</span>
+            <div className="verify-panel__hero-text">
+              <span className="verify-panel__hero-line">Secure.</span>
+              <span className="verify-panel__hero-line">Private.</span>
+              <span className="verify-panel__hero-line">Yours.</span>
             </div>
           </div>
 
@@ -91,7 +83,7 @@ const VerifyEmailPage = () => {
               <strong>{auth.currentUser?.email}</strong>.
               Open it to activate your account.
             </p>
-            
+
             <div className="verify-card__spam-hint">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -153,11 +145,11 @@ const VerifyEmailPage = () => {
               {checking
                 ? <span className="auth-btn__spinner" />
                 : <>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    I've verified my email
-                  </>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  I've verified my email
+                </>
               }
             </button>
 
