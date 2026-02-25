@@ -11,6 +11,8 @@ import ResultsPage     from "../pages/ResultsPage";
 import SupportPage     from "../pages/SupportPage";
 import TheoryPage      from "../pages/TheoryPage";
 import EmailActionPage from "../pages/EmailActionPage";
+import AboutPage from "../pages/AboutPage";
+
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -30,7 +32,6 @@ const AppRouter = () => (
   <Routes>
     <Route path="/auth"         element={<PublicRoute><AuthPage /></PublicRoute>} />
     <Route path="/verify-email" element={<VerifyEmailPage />} />
-
     <Route path="/home"        element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
     <Route path="/diagnostics" element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
     <Route path="/practice"    element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
@@ -38,6 +39,7 @@ const AppRouter = () => (
     <Route path="/results"     element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"     element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
     <Route path="/theory"      element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
+    <Route path="/about"      element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
     <Route path="/auth/action" element={<EmailActionPage />} />
 
     <Route path="*" element={<Navigate to="/home" replace />} />

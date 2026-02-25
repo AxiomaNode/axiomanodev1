@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { theory, theoryTopics } from "../data/theory";
 import { useAuth } from "../context/AuthContext";
-import { getTheoryProgress, saveTheoryProgress } from "../services/db";
+import { getTheoryProgress, saveTheoryProgress, assignHomework } from "../services/db";
+import { getUserProfile } from "../firebase/auth";
+import { tasks as taskBank } from "../data/tasks";
 
 import "../styles/theory.css";
 import "../styles/layout.css";
@@ -39,50 +41,410 @@ const InfoIcon = () => (
   </svg>
 );
 
-/* ── Network BG (same vibe as Home) ─────── */
-const NetworkBg = () => (
-  <svg className="th-hero__network" viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    {[
-      [70, 60],[210, 35],[380, 80],[560, 45],[740, 95],[850, 55],
-      [130, 170],[310, 145],[490, 195],[670, 155],[820, 195],
-      [55, 285],[205, 265],[380, 305],[540, 275],[720, 295],[880, 265],
-      [120, 385],[300, 365],[480, 395],[650, 375],[810, 405],
-    ].map(([x,y],i) => (
-      <circle key={i} cx={x} cy={y} r={i%3===0?4:3} fill="rgba(42,143,160,0.22)" />
-    ))}
-    {[
-      [70,60,210,35],[210,35,380,80],[380,80,560,45],[560,45,740,95],[740,95,850,55],
-      [70,60,130,170],[210,35,310,145],[380,80,490,195],[560,45,670,155],[740,95,820,195],
-      [130,170,310,145],[310,145,490,195],[490,195,670,155],[670,155,820,195],
-      [130,170,55,285],[310,145,205,265],[490,195,380,305],[670,155,540,275],[820,195,720,295],
-      [55,285,205,265],[205,265,380,305],[380,305,540,275],[540,275,720,295],[720,295,880,265],
-      [55,285,120,385],[205,265,300,365],[380,305,480,395],[540,275,650,375],[720,295,810,405],
-      [120,385,300,365],[300,365,480,395],[480,395,650,375],[650,375,810,405],
-    ].map(([x1,y1,x2,y2],i) => (
-      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(42,143,160,0.11)" strokeWidth="1" />
-    ))}
-    <text x="58"  y="220" fill="rgba(42,143,160,0.10)" fontSize="52" fontFamily="Georgia, serif">∑</text>
-    <text x="700" y="340" fill="rgba(42,143,160,0.08)" fontSize="38" fontFamily="Georgia, serif">∫</text>
-    <text x="430" y="398" fill="rgba(42,143,160,0.08)" fontSize="34" fontFamily="Georgia, serif">Δ</text>
-    <text x="805" y="130" fill="rgba(42,143,160,0.08)" fontSize="28" fontFamily="Georgia, serif">π</text>
-    <text x="260" y="405" fill="rgba(42,143,160,0.08)" fontSize="26" fontFamily="Georgia, serif">f(x)</text>
-    <text x="610" y="415" fill="rgba(42,143,160,0.07)" fontSize="24" fontFamily="Georgia, serif">√n</text>
-  </svg>
-);
-
 /* ── Helpers ───────────────────────────── */
 const norm = (s) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-const equalAnswer = (a, b) => {
-  const A = norm(a);
-  const B = norm(b);
-  if (A === B) return true;
-  const na = Number(A);
-  const nb = Number(B);
-  if (Number.isFinite(na) && Number.isFinite(nb)) return na === nb;
-  return false;
+
+/* =========================================================
+   DIGITAL CHALKBOARD (simple, no libs)
+   - draws "chalk strokes" gradually
+   - supports few predefined scenes for now
+========================================================= */
+
+const Chalkboard = ({ scene, revealKey }) => {
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+
+  const DPR = typeof window !== "undefined" ? Math.min(2, window.devicePixelRatio || 1) : 1;
+
+  const drawAxes = (ctx, w, h) => {
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = "rgba(245,245,245,0.75)";
+    ctx.beginPath();
+    // x axis
+    ctx.moveTo(40, h - 40);
+    ctx.lineTo(w - 24, h - 40);
+    // y axis
+    ctx.moveTo(40, h - 40);
+    ctx.lineTo(40, 24);
+    ctx.stroke();
+
+    // ticks
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 8; i++) {
+      const x = 40 + i * ((w - 80) / 7);
+      ctx.beginPath();
+      ctx.moveTo(x, h - 40);
+      ctx.lineTo(x, h - 34);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) {
+      const y = (h - 40) - i * ((h - 80) / 5);
+      ctx.beginPath();
+      ctx.moveTo(40, y);
+      ctx.lineTo(34, y);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  };
+
+  const chalkStroke = (ctx) => {
+    // tiny noisy line style
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = "rgba(255,255,255,0.18)";
+  };
+
+  const pathParabola = (w, h, a = 0.06, shiftX = 0, shiftY = 0) => {
+    // map math coords to canvas
+    const ox = 40;
+    const oy = h - 40;
+    const sx = (w - 80) / 14; // -7..7
+    const sy = (h - 80) / 10; // -2..8
+
+    const pts = [];
+    for (let i = -70; i <= 70; i++) {
+      const x = i / 10; // -7..7
+      const y = a * (x - shiftX) * (x - shiftX) + shiftY;
+      const cx = ox + (x + 7) * sx;
+      const cy = oy - (y + 2) * sy;
+      pts.push([cx, cy]);
+    }
+    return pts;
+  };
+
+  const drawPoint = (ctx, x, y, label) => {
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (label) {
+      ctx.font = "700 12px ui-monospace, SFMono-Regular, Menlo, monospace";
+      ctx.fillStyle = "rgba(245,245,245,0.78)";
+      ctx.fillText(label, x + 8, y - 8);
+    }
+    ctx.restore();
+  };
+
+  const renderScene = (ctx, w, h, t) => {
+    // t: 0..1 progress
+    ctx.clearRect(0, 0, w, h);
+
+    // board faint grid
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    const step = 28;
+    for (let x = 0; x < w; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    for (let y = 0; y < h; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    if (!scene) return;
+
+    // Common: axes
+    if (scene.type === "axes" || scene.type?.startsWith("parabola")) {
+      drawAxes(ctx, w, h);
+    }
+
+    if (scene.type === "axes") {
+      ctx.save();
+      chalkStroke(ctx);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "rgba(245,245,245,0.82)";
+      ctx.font = "800 13px ui-monospace, SFMono-Regular, Menlo, monospace";
+      ctx.fillText("x-axis", w - 70, h - 18);
+      ctx.fillText("y-axis", 10, 30);
+      ctx.restore();
+      return;
+    }
+
+    if (scene.type === "parabola_D_cases") {
+      // three mini-parabolas: D>0, D=0, D<0
+      const cols = 3;
+      const pad = 14;
+      const boxW = (w - pad * 2 - 18) / cols;
+      const boxH = h - 18 - pad * 2;
+      const top = pad;
+
+      for (let i = 0; i < 3; i++) {
+        const left = pad + i * (boxW + 9);
+
+        // box
+        ctx.save();
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(left, top, boxW, boxH);
+        ctx.restore();
+
+        // mini axes
+        const ox = left + 18;
+        const oy = top + boxH - 22;
+        ctx.save();
+        ctx.strokeStyle = "rgba(245,245,245,0.55)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(ox, oy);
+        ctx.lineTo(left + boxW - 12, oy);
+        ctx.moveTo(ox, oy);
+        ctx.lineTo(ox, top + 12);
+        ctx.stroke();
+        ctx.restore();
+
+        // parabola + intercepts
+        const localW = boxW - 30;
+        const localH = boxH - 34;
+
+        const map = (x, y) => {
+          // x: -5..5, y: -1..6
+          const sx = localW / 10;
+          const sy = localH / 7;
+          const cx = ox + (x + 5) * sx;
+          const cy = oy - (y + 1) * sy;
+          return [cx, cy];
+        };
+
+        // shift cases
+        const shifts = [
+          { shiftY: -1.2, label: "D > 0", hint: "2 roots" },
+          { shiftY: 0.0, label: "D = 0", hint: "1 root" },
+          { shiftY: 1.2, label: "D < 0", hint: "no real roots" },
+        ];
+
+        const s = shifts[i];
+        const pts = [];
+        for (let k = -60; k <= 60; k++) {
+          const x = k / 6; // -10..10 approx
+          const xx = Math.max(-5, Math.min(5, x));
+          const y = 0.22 * xx * xx + s.shiftY;
+          pts.push(map(xx, y));
+        }
+
+        ctx.save();
+        chalkStroke(ctx);
+        ctx.strokeStyle = "rgba(245,245,245,0.82)";
+        ctx.lineWidth = 2.2;
+
+        const maxSeg = Math.floor(pts.length * t);
+        ctx.beginPath();
+        for (let p = 0; p < maxSeg; p++) {
+          const [x, y] = pts[p];
+          if (p === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        // draw intercept points progressively a bit later
+        if (t > 0.6) {
+          const tt = (t - 0.6) / 0.4;
+
+          // compute approximate intercepts by checking sign change around y=0 line (y=0 corresponds to map y=0)
+          const roots = [];
+          for (let k = -50; k < 50; k++) {
+            const x1 = k / 10;
+            const x2 = (k + 1) / 10;
+            const y1 = 0.22 * x1 * x1 + s.shiftY;
+            const y2 = 0.22 * x2 * x2 + s.shiftY;
+            // y=0 crossing
+            if ((y1 <= 0 && y2 >= 0) || (y1 >= 0 && y2 <= 0)) {
+              // linear approx
+              const x = x1 + (0 - y1) * (x2 - x1) / (y2 - y1 || 1e-9);
+              roots.push(x);
+            }
+          }
+
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, tt);
+          chalkStroke(ctx);
+
+          if (s.label === "D > 0") {
+            // two roots, roughly ±something
+            const r = Math.sqrt(Math.max(0.001, -s.shiftY / 0.22));
+            const [p1x, p1y] = map(-r, 0);
+            const [p2x, p2y] = map(r, 0);
+            drawPoint(ctx, p1x, p1y, "root");
+            drawPoint(ctx, p2x, p2y, "root");
+          }
+          if (s.label === "D = 0") {
+            const [px, py] = map(0, 0);
+            drawPoint(ctx, px, py, "touch");
+          }
+          // D < 0 => none
+
+          // labels
+          ctx.fillStyle = "rgba(245,245,245,0.82)";
+          ctx.font = "900 12px ui-monospace, SFMono-Regular, Menlo, monospace";
+          ctx.fillText(s.label, left + 14, top + 18);
+          ctx.globalAlpha = 0.75;
+          ctx.font = "700 12px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+          ctx.fillText(s.hint, left + 14, top + 36);
+          ctx.restore();
+        }
+      }
+      return;
+    }
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const parent = canvas.parentElement;
+    const w = Math.max(320, parent?.clientWidth || 640);
+    const h = 220;
+
+    canvas.width = Math.floor(w * DPR);
+    canvas.height = Math.floor(h * DPR);
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(DPR, DPR);
+
+    let start = null;
+    const duration = 780;
+
+    const tick = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min(1, (ts - start) / duration);
+      renderScene(ctx, w, h, p);
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene?.type, revealKey]);
+
+  if (!scene) return null;
+
+  return (
+    <div className="th-boardviz">
+      <div className="th-boardviz__cap">
+        <span className="th-chalkdot" />
+        <span>{scene.title || "Board"}</span>
+      </div>
+      <canvas ref={canvasRef} className="th-boardviz__canvas" />
+      {scene.caption ? <p className="th-boardviz__captext">{scene.caption}</p> : null}
+    </div>
+  );
 };
 
-/* ── Cards ─────────────────────────────── */
+/* ── Mini Check ────────────────────────── */
+const MiniCheck = ({ check, isPassed, onPass }) => {
+  const [selected, setSelected] = useState(null);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    setSelected(null);
+    setChecked(false);
+  }, [check]);
+
+  if (!check) return null;
+
+  if (isPassed) {
+    return (
+      <div className="th-check th-check--passed">
+        <div className="th-check__icon">
+          <CheckIcon />
+        </div>
+        <div>
+          <div className="th-check__title">Check passed</div>
+          <div className="th-check__sub">You can continue.</div>
+        </div>
+      </div>
+    );
+  }
+
+  const options = Array.isArray(check.options) ? check.options : [];
+  const actualCorrectIndex =
+    check.correctIndex !== undefined
+      ? Number(check.correctIndex)
+      : options.findIndex((o) => typeof o === "object" && o?.isCorrect);
+  const correctIndex = actualCorrectIndex >= 0 ? actualCorrectIndex : 0;
+
+  const optText = (opt) => (typeof opt === "string" ? opt : opt?.label ?? "");
+  const optExplain = (opt) => (typeof opt === "object" ? opt?.explanation : "");
+
+  const handleCheck = () => {
+    setChecked(true);
+    if (selected === correctIndex) setTimeout(onPass, 160);
+  };
+
+  const isCorrect = checked && selected === correctIndex;
+
+  return (
+    <div className="th-check th-check--chalk">
+      <div className="th-check__cap">Mini check</div>
+      <p className="th-check__q">{check.question}</p>
+
+      <div className="th-check__opts">
+        {options.map((opt, i) => {
+          const sel = selected === i;
+          const cls = checked
+            ? i === correctIndex
+              ? "th-opt th-opt--correct"
+              : sel
+                ? "th-opt th-opt--wrong"
+                : "th-opt"
+            : sel
+              ? "th-opt th-opt--selected"
+              : "th-opt";
+
+          return (
+            <button key={i} className={cls} onClick={() => !checked && setSelected(i)} disabled={checked}>
+              <span className="th-radio">{sel ? <span /> : null}</span>
+              {optText(opt)}
+            </button>
+          );
+        })}
+      </div>
+
+      {checked && !isCorrect && selected !== null && (
+        <div className="th-check__error">
+          <p className="th-p">{optExplain(options[selected]) || "Not quite. Re-read and try again."}</p>
+          <button
+            className="th-linkbtn"
+            onClick={() => {
+              setChecked(false);
+              setSelected(null);
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!checked && (
+        <button className="th-btn th-btn--primary" onClick={handleCheck} disabled={selected === null}>
+          Submit
+        </button>
+      )}
+    </div>
+  );
+};
+
+/* ── Render cards (chalk vibe) ─────────── */
 const CardText = ({ content }) => <p className="th-text">{content}</p>;
 
 const CardFact = ({ label, content }) => (
@@ -139,25 +501,13 @@ const CardMethod = ({ title, example, note, whenLabel, whenValue }) => (
   </div>
 );
 
-const CardDiscriminant = ({ data }) => (
-  <div className="th-card th-card--disc">
-    <div className="th-disc__top">
-      <div className="th-disc__formula">{data.formula}</div>
-      {data.story && <p className="th-p">{data.story}</p>}
-    </div>
-    <div className="th-disc__cases">
-      {(data.meaning || []).map((m) => (
-        <div key={m.condition} className="th-disc__case">
-          <div className="th-disc__cond">{m.condition}</div>
-          <div className="th-disc__icon">{m.icon}</div>
-          <p className="th-p">{m.result}</p>
-        </div>
-      ))}
-    </div>
+const CardBoard = ({ scene, revealKey }) => (
+  <div className="th-card th-card--board">
+    <Chalkboard scene={scene} revealKey={revealKey} />
   </div>
 );
 
-const renderCard = (c, i) => {
+const renderCard = (c, i, revealKey) => {
   if (!c) return null;
   if (c.type === "text") return <CardText key={i} content={c.content} />;
   if (c.type === "fact") return <CardFact key={i} label={c.label} content={c.content} />;
@@ -175,230 +525,8 @@ const renderCard = (c, i) => {
         whenValue={c.when}
       />
     );
-  if (c.type === "discriminant") return <CardDiscriminant key={i} data={c} />;
+  if (c.type === "board") return <CardBoard key={i} scene={c.scene} revealKey={revealKey} />;
   return null;
-};
-
-/* ── Mini Check ────────────────────────── */
-const MiniCheck = ({ check, isPassed, onPass }) => {
-  const [selected, setSelected] = useState(null);
-  const [checked, setChecked] = useState(false);
-
-  useEffect(() => {
-    setSelected(null);
-    setChecked(false);
-  }, [check]);
-
-  if (!check) return null;
-
-  if (isPassed) {
-    return (
-      <div className="th-check th-check--passed">
-        <div className="th-check__icon">
-          <CheckIcon />
-        </div>
-        <div>
-          <div className="th-check__title">Check passed</div>
-          <div className="th-check__sub">You can continue.</div>
-        </div>
-      </div>
-    );
-  }
-
-  const options = Array.isArray(check.options) ? check.options : [];
-  const actualCorrectIndex =
-    check.correctIndex !== undefined ? Number(check.correctIndex) : options.findIndex((o) => typeof o === "object" && o?.isCorrect);
-  const correctIndex = actualCorrectIndex >= 0 ? actualCorrectIndex : 0;
-
-  const optText = (opt) => (typeof opt === "string" ? opt : opt?.label ?? "");
-  const optExplain = (opt) => (typeof opt === "object" ? opt?.explanation : "");
-
-  const handleCheck = () => {
-    setChecked(true);
-    if (selected === correctIndex) setTimeout(onPass, 160);
-  };
-
-  const isCorrect = checked && selected === correctIndex;
-
-  return (
-    <div className="th-check">
-      <div className="th-check__cap">Check your understanding</div>
-      <p className="th-check__q">{check.question}</p>
-
-      <div className="th-check__opts">
-        {options.map((opt, i) => {
-          const sel = selected === i;
-          const cls = checked
-            ? i === correctIndex
-              ? "th-opt th-opt--correct"
-              : sel
-                ? "th-opt th-opt--wrong"
-                : "th-opt"
-            : sel
-              ? "th-opt th-opt--selected"
-              : "th-opt";
-
-          return (
-            <button key={i} className={cls} onClick={() => !checked && setSelected(i)} disabled={checked}>
-              <span className="th-radio">{sel ? <span /> : null}</span>
-              {optText(opt)}
-            </button>
-          );
-        })}
-      </div>
-
-      {checked && !isCorrect && selected !== null && (
-        <div className="th-check__error">
-          <p className="th-p">{optExplain(options[selected]) || "Not quite. Review and try again."}</p>
-          <button
-            className="th-linkbtn"
-            onClick={() => {
-              setChecked(false);
-              setSelected(null);
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {!checked && (
-        <button className="th-btn th-btn--primary" onClick={handleCheck} disabled={selected === null}>
-          Submit
-        </button>
-      )}
-    </div>
-  );
-};
-
-/* ── Practice Ladder ───────────────────── */
-const PracticeLadder = ({ puzzles }) => {
-  const [curr, setCurr] = useState(0);
-  const [val, setVal] = useState("");
-  const [selectedOpt, setSelectedOpt] = useState(null);
-  const [status, setStatus] = useState("idle");
-  const [score, setScore] = useState(0);
-
-  const puzzle = puzzles?.[curr];
-
-  const next = () => {
-    setCurr((c) => c + 1);
-    setVal("");
-    setSelectedOpt(null);
-    setStatus("idle");
-  };
-
-  if (curr >= (puzzles?.length || 0)) {
-    return (
-      <div className="th-done">
-        <div className="th-done__icon">
-          <CheckIcon />
-        </div>
-        <h2 className="th-done__h2">Topic complete</h2>
-        <p className="th-p">You scored {score} out of {puzzles.length}.</p>
-        <Link to="/home" className="th-btn th-btn--ghost" style={{ marginTop: 16 }}>
-          Return Home
-        </Link>
-      </div>
-    );
-  }
-
-  if (!puzzle) return null;
-
-  const submit = () => {
-    if (status !== "idle") return;
-
-    const ok =
-      puzzle.type === "mcq"
-        ? selectedOpt != null && selectedOpt === puzzle.correct
-        : val && equalAnswer(val, puzzle.correct);
-
-    if (ok) {
-      setStatus("success");
-      setScore((s) => s + 1);
-    } else {
-      setStatus("error");
-    }
-  };
-
-  const chosenExplain =
-    puzzle.type === "mcq" && selectedOpt != null
-      ? puzzle.options?.find((o) => o.label === selectedOpt)?.explanation
-      : null;
-
-  return (
-    <div className="th-practice">
-      <div className="th-badge">{puzzle.label}</div>
-      <h3 className="th-practice__q">{puzzle.text}</h3>
-
-      <div className="th-practice__interactive">
-        {puzzle.type === "mcq" ? (
-          <div className="th-mcq">
-            {(puzzle.options || []).map((o) => {
-              const isChosen = selectedOpt === o.label;
-              const smod =
-                status !== "idle"
-                  ? o.label === puzzle.correct
-                    ? "correct"
-                    : isChosen
-                      ? "error"
-                      : ""
-                  : isChosen
-                    ? "selected"
-                    : "";
-
-              return (
-                <button
-                  key={o.label}
-                  className={`th-mcq__btn ${smod ? `th-mcq__btn--${smod}` : ""}`}
-                  onClick={() => status === "idle" && setSelectedOpt(o.label)}
-                  disabled={status !== "idle"}
-                >
-                  <span className="th-mcq__letter">{o.label}</span>
-                  <span className="th-mcq__text">{o.value}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="th-sa">
-            <input
-              type="text"
-              className="th-input"
-              placeholder="Type answer here..."
-              value={val}
-              onChange={(e) => setVal(e.target.value)}
-              disabled={status !== "idle"}
-            />
-          </div>
-        )}
-      </div>
-
-      {status === "idle" ? (
-        <button className="th-btn th-btn--primary" onClick={submit} disabled={puzzle.type === "mcq" ? !selectedOpt : !val}>
-          Check Answer
-        </button>
-      ) : (
-        <div className={`th-feedback th-feedback--${status}`}>
-          <div className="th-feedback__res">
-            <strong>{status === "success" ? "Correct!" : "Incorrect."}</strong>
-            <p className="th-p">{status === "success" ? puzzle.explanation : chosenExplain || puzzle.explanation || ""}</p>
-          </div>
-
-          {status === "error" && puzzle.mentor && (
-            <div className="th-mentor">
-              <div className="th-mentor__head">Mentor tip: {puzzle.mentor.title}</div>
-              <p className="th-p">{puzzle.mentor.text}</p>
-            </div>
-          )}
-
-          <button className="th-btn th-btn--ghost" onClick={next} style={{ marginTop: 14 }}>
-            {curr + 1 === puzzles.length ? "Finish" : "Next"} <ChevronRight />
-          </button>
-        </div>
-      )}
-    </div>
-  );
 };
 
 /* ════════════════════════════════════════
@@ -406,15 +534,41 @@ const PracticeLadder = ({ puzzles }) => {
 ════════════════════════════════════════ */
 const TheoryPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [topicId, setTopicId] = useState(theoryTopics?.[0]?.id || "quadratic");
+
   const [secIdx, setSecIdx] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
   const [passedChecks, setPassedChecks] = useState({});
   const [loading, setLoading] = useState(true);
 
+  const [userGrade, setUserGrade] = useState(null);
+
   const boardRef = useRef(null);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    getUserProfile(user.uid).then((p) => setUserGrade(p?.grade ?? null));
+  }, [user?.uid]);
+
+  const filteredTopics = useMemo(() => {
+    const g = Number(userGrade);
+    if (!Number.isFinite(g)) return theoryTopics;
+    return theoryTopics.filter((t) => {
+      const minG = t.minGrade ?? 0;
+      const maxG = t.maxGrade ?? 99;
+      return g >= minG && g <= maxG;
+    });
+  }, [userGrade]);
+
+  // if grade filter hides current topic, switch to first allowed
+  useEffect(() => {
+    if (!filteredTopics?.length) return;
+    const ok = filteredTopics.some((t) => t.id === topicId);
+    if (!ok) setTopicId(filteredTopics[0].id);
+  }, [filteredTopics]); // eslint-disable-line
 
   const tData = theory[topicId] || null;
   const sectionsCount = tData?.sections?.length || 0;
@@ -461,13 +615,6 @@ const TheoryPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topicId, user?.uid]);
 
-  useEffect(() => {
-    if (!tData) return;
-    const maxSec = Math.max(sectionsCount, 0);
-    if (secIdx < 0) setSecIdx(0);
-    if (secIdx > maxSec) setSecIdx(maxSec);
-  }, [sectionsCount]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const isPracticeMode = secIdx >= sectionsCount;
   const currSection = !isPracticeMode ? tData?.sections?.[secIdx] : null;
   const stepsCount = currSection?.steps?.length || 0;
@@ -478,6 +625,7 @@ const TheoryPage = () => {
   }, [topicId, secIdx, stepsCount, isPracticeMode]);
 
   const currStep = !isPracticeMode ? currSection?.steps?.[stepIdx] : null;
+  const revealKey = `${topicId}:${secIdx}:${stepIdx}`;
 
   const scrollTop = () => {
     const el = boardRef.current;
@@ -536,6 +684,29 @@ const TheoryPage = () => {
     await saveProgress(secIdx, stepIdx, neo);
   };
 
+  const handleAssignHomework = async () => {
+    if (!user?.uid) {
+      // allow viewing theory without account, but homework needs auth
+      navigate("/auth");
+      return;
+    }
+    const bank = taskBank?.[topicId]?.homework || [];
+    if (!bank.length) return;
+
+    await assignHomework(
+      user.uid,
+      topicId,
+      {
+        topicTitle: tData?.title || topicId,
+        grade: userGrade,
+        tasks: bank,
+      },
+      false
+    );
+
+    navigate("/tasks", { state: { topicId } });
+  };
+
   if (!tData) {
     return (
       <div className="page-shell">
@@ -560,28 +731,24 @@ const TheoryPage = () => {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="page-main th-wrap">
-
         {/* Hero header */}
-        <section className="th-hero">
-          <NetworkBg />
+        <section className="th-hero th-hero--chalk">
           <div className="th-hero__content">
             <div className="th-hero__left">
               <div className="th-tag">
                 <InfoIcon />
-                Theory Track
+                Theory Board
               </div>
 
-              <h1 className="th-title">
-                {tData.title}
-              </h1>
+              <h1 className="th-title">{tData.title}</h1>
 
               <p className="th-sub">
-                Learn the concept, verify understanding, then unlock practice. Progress is saved automatically.
+                We move step-by-step like a real teacher on a board: explanation → example → mini check. Unlock homework at the end.
               </p>
 
               <div className="th-stats">
                 <div className="th-stat">
-                  <strong>{theoryTopics.length}</strong>
+                  <strong>{filteredTopics.length}</strong>
                   <span>Topics</span>
                 </div>
                 <div className="th-stat__div" />
@@ -591,14 +758,14 @@ const TheoryPage = () => {
                 </div>
                 <div className="th-stat__div" />
                 <div className="th-stat">
-                  <strong>{tData.puzzles?.length || 0}</strong>
-                  <span>Practice items</span>
+                  <strong>{tData.homeworkCount || (taskBank?.[topicId]?.homework?.length || 0)}</strong>
+                  <span>Homework tasks</span>
                 </div>
               </div>
             </div>
 
             <div className="th-hero__right">
-              <div className="th-hero__card">
+              <div className="th-hero__card th-hero__card--chalk">
                 <p className="th-hero__cardcap">Current progress</p>
                 <div className="th-hero__progress">
                   <div className="th-hero__pill">
@@ -608,13 +775,15 @@ const TheoryPage = () => {
                   {!isPracticeMode && (
                     <div className="th-hero__pill">
                       <span>Step</span>
-                      <strong>{stepIdx + 1}/{Math.max(stepsCount, 1)}</strong>
+                      <strong>
+                        {stepIdx + 1}/{Math.max(stepsCount, 1)}
+                      </strong>
                     </div>
                   )}
-                  {isPracticeMode && (
+                  {userGrade && (
                     <div className="th-hero__pill">
-                      <span>Mode</span>
-                      <strong>Practice</strong>
+                      <span>Grade</span>
+                      <strong>{userGrade}</strong>
                     </div>
                   )}
                 </div>
@@ -636,7 +805,7 @@ const TheoryPage = () => {
             </div>
 
             <div className="th-side__list">
-              {theoryTopics.map((tp) => (
+              {filteredTopics.map((tp) => (
                 <button
                   key={tp.id}
                   className={`th-topic ${tp.id === topicId ? "is-active" : ""}`}
@@ -650,10 +819,19 @@ const TheoryPage = () => {
                 </button>
               ))}
             </div>
+
+            <div className="th-side__footer">
+              <Link to="/tasks" className="th-side__link">
+                Go to Tasks <ChevronRight />
+              </Link>
+              <Link to="/practice" className="th-side__link">
+                Practice mode <ChevronRight />
+              </Link>
+            </div>
           </aside>
 
-          {/* Right board (BIGGER) */}
-          <section className="th-board" ref={boardRef}>
+          {/* Right board */}
+          <section className="th-board th-board--chalk" ref={boardRef}>
             <div className="th-board__top">
               {!isPracticeMode ? (
                 <>
@@ -673,54 +851,88 @@ const TheoryPage = () => {
                 <div className="th-crumbs">
                   <span className="th-crumbs__topic">{tData.title}</span>
                   <span className="th-crumbs__sep">/</span>
-                  <span className="th-crumbs__sec">Practice</span>
+                  <span className="th-crumbs__sec">Homework</span>
                 </div>
               )}
             </div>
 
-            <div className="th-board__inner">
+            <div className="th-board__inner th-board__inner--chalk">
               {loading ? (
                 <div className="th-skeleton">Loading…</div>
               ) : !isPracticeMode ? (
                 <div className="th-flow">
                   <div className="th-cards">
-                    {(currStep?.cards || []).map((c, i) => renderCard(c, i))}
+                    {(currStep?.cards || []).map((c, i) => renderCard(c, i, revealKey))}
                   </div>
-                  {hasCheck && (
-                    <MiniCheck
-                      check={currStep.check}
-                      isPassed={isPassed}
-                      onPass={handlePassCheck}
-                    />
-                  )}
+
+                  {hasCheck && <MiniCheck check={currStep.check} isPassed={isPassed} onPass={handlePassCheck} />}
                 </div>
               ) : (
-                <PracticeLadder puzzles={tData.puzzles || []} />
+                <div className="th-homework-unlock">
+                  <div className="th-homework-unlock__head">
+                    <div className="th-homework-unlock__icon">
+                      <LockIcon />
+                    </div>
+                    <div>
+                      <h2 className="th-homework-unlock__title">Homework unlocked</h2>
+                      <p className="th-p">
+                        Homework is stored in Firestore. You must answer all tasks to complete the topic and earn percent.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="th-homework-unlock__actions">
+                    <button className="th-btn th-btn--primary" onClick={handleAssignHomework}>
+                      Assign Homework & Go <ChevronRight />
+                    </button>
+                    <Link to="/tasks" className="th-btn th-btn--ghost">
+                      Open Tasks <ChevronRight />
+                    </Link>
+                    <button className="th-btn th-btn--ghost" onClick={handlePrevStep}>
+                      Back to theory <ChevronLeft />
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
             {/* Bottom nav */}
-            {!isPracticeMode && !loading && (
+            {!loading && (
               <div className="th-nav">
                 <button className="th-navbtn" onClick={handlePrevStep} disabled={secIdx === 0 && stepIdx === 0}>
                   <span className="th-navbtn__ic"><ChevronLeft /></span>
                   <span>Prev</span>
                 </button>
 
-                <div className="th-navmid">
-                  <span className="th-navpill">
-                    <strong>{stepIdx + 1}</strong>
-                    <span>/</span>
-                    <strong>{Math.max(stepsCount, 1)}</strong>
-                  </span>
-                </div>
+                {!isPracticeMode ? (
+                  <div className="th-navmid">
+                    <span className="th-navpill">
+                      <strong>{stepIdx + 1}</strong>
+                      <span>/</span>
+                      <strong>{Math.max(stepsCount, 1)}</strong>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="th-navmid">
+                    <span className="th-navpill">
+                      <strong>Homework</strong>
+                    </span>
+                  </div>
+                )}
 
-                <button className="th-navbtn th-navbtn--primary" onClick={handleNextStep} disabled={!canGoNext}>
-                  <span>{isLastStep && isLastSection ? "Unlock Practice" : "Next"}</span>
-                  <span className="th-navbtn__ic">
-                    {isLastStep && isLastSection ? <LockIcon /> : <ChevronRight />}
-                  </span>
-                </button>
+                {!isPracticeMode ? (
+                  <button className="th-navbtn th-navbtn--primary" onClick={handleNextStep} disabled={!canGoNext}>
+                    <span>{isLastStep && isLastSection ? "Unlock Homework" : "Next"}</span>
+                    <span className="th-navbtn__ic">
+                      {isLastStep && isLastSection ? <LockIcon /> : <ChevronRight />}
+                    </span>
+                  </button>
+                ) : (
+                  <button className="th-navbtn th-navbtn--primary" onClick={handleAssignHomework}>
+                    <span>Assign & Go</span>
+                    <span className="th-navbtn__ic"><ChevronRight /></span>
+                  </button>
+                )}
               </div>
             )}
           </section>

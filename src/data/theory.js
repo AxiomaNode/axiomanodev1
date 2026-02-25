@@ -2,189 +2,362 @@ export const theoryTopics = [
   {
     id: "quadratic",
     title: "Quadratic Equations",
-    subtitle: "Core idea, methods, and geometry",
+    subtitle: "Roots, graph meaning, discriminant, and smart methods",
+    minGrade: 7,
+    maxGrade: 10,
   },
   {
-    id: "fractions",
-    title: "Fractions",
-    subtitle: "Understand them without confusion",
+    id: "functions_intro",
+    title: "Functions (Intro)",
+    subtitle: "Input → rule → output + graphs (core skill)",
+    minGrade: 7,
+    maxGrade: 10,
   },
   {
-    id: "geometry_basics",
-    title: "Geometry: Basics",
-    subtitle: "Angles, triangles, and area",
+    id: "systems_linear",
+    title: "Systems of Equations",
+    subtitle: "Intersection thinking + elimination",
+    minGrade: 7,
+    maxGrade: 10,
   },
 ];
 
 export const theory = {
   quadratic: {
     title: "Quadratic Equations",
-    subtitle: "From roots to visualization",
+    subtitle: "From meaning to methods (board-style)",
+    homeworkCount: 15,
     sections: [
       {
-        id: "intro",
-        title: "What a root is and why “= 0” matters",
+        id: "what_is_root",
+        title: "Meaning first: what is a root and why “= 0” is powerful",
         steps: [
           {
             cards: [
               {
                 type: "insight",
-                title: "What an equation really is",
+                title: "Think like a teacher, not like a formula machine",
                 content:
-                  "An equation is like a balance scale: left equals right. When we see “= 0”, we’re looking for the value of x that makes the entire expression become zero.",
+                  "A root is not ‘a step in a recipe’. A root is a number where the expression becomes zero. If you understand that sentence deeply, most ‘quadratic fear’ disappears.",
               },
               {
                 type: "definition",
-                term: "Root of an equation",
+                term: "Root (solution)",
                 content:
-                  "A value of x that makes the equation true. If you substitute the root, you get 0 = 0.",
+                  "A value of x that makes the equation true. For an equation written as something = 0, a root is where that ‘something’ becomes exactly 0.",
               },
-            ],
-          },
-          {
-            cards: [
               {
                 type: "example",
-                title: "Quick example",
+                title: "Warm-up (board-style check)",
                 steps: [
                   "Equation: x − 5 = 0",
-                  "What number must x be so that subtracting 5 gives 0?",
-                  "x = 5. That is the root.",
+                  "Ask: which x makes the left side equal 0?",
+                  "If x = 5 → 5 − 5 = 0 ✅",
+                  "So x = 5 is a root.",
                 ],
-              },
-              {
-                type: "fact",
-                label: "Important",
-                content:
-                  "In quadratic equations, x is multiplied by itself (x²). That often creates two equally valid solutions — two roots.",
               },
             ],
             check: {
-              question: "What does it mean to “find a root”?",
+              question:
+                "You see x − 9 = 0. A student says: “The root is −9 because I see a 9.” What is the correct response?",
               options: [
                 {
-                  label: "Simplify the expression",
+                  label: "They are correct: the root is −9",
                   explanation:
-                    "Simplifying can help, but it doesn’t produce the value of x by itself.",
+                    "If x = −9, then x − 9 = −18, not 0. The root is the number that makes the expression become 0.",
                 },
                 {
-                  label: "Find x such that the expression equals 0",
+                  label: "The root is 9, because 9 − 9 = 0",
                   isCorrect: true,
                   explanation:
-                    "Correct — a root is a value that makes the expression equal zero.",
+                    "Exactly. For x − a = 0 the root is x = a.",
                 },
                 {
-                  label: "Draw the graph",
+                  label: "You cannot know without drawing a graph",
                   explanation:
-                    "A graph can show roots visually (x-intercepts), but the root is still a number.",
+                    "A graph can show the root, but you can still solve x − 9 = 0 directly.",
+                },
+              ],
+            },
+          },
+
+          {
+            cards: [
+              {
+                type: "fact",
+                label: "Key habit",
+                content:
+                  "Every time you claim a root, test it: substitute and see if the left side becomes 0. No test → no confidence.",
+              },
+              {
+                type: "example",
+                title: "A quadratic has (usually) two roots — why?",
+                steps: [
+                  "If x² = 9, then both 3² = 9 and (−3)² = 9",
+                  "So x can be 3 OR −3",
+                  "This is why quadratics often have two valid solutions.",
+                ],
+              },
+              {
+                type: "definition",
+                term: "Quadratic equation",
+                content:
+                  "An equation where the highest power of x is 2. Standard form: ax² + bx + c = 0 with a ≠ 0.",
+              },
+            ],
+            check: {
+              question:
+                "Which equation is NOT quadratic (in x)?",
+              options: [
+                { label: "x² − 3x + 2 = 0", explanation: "This is quadratic." },
+                { label: "2x² + 7 = 0", explanation: "This is quadratic." },
+                {
+                  label: "x³ − x = 0",
+                  isCorrect: true,
+                  explanation:
+                    "Degree 3 makes it cubic, not quadratic.",
                 },
               ],
             },
           },
         ],
       },
+
       {
-        id: "methods",
-        title: "Methods: when to use what",
+        id: "methods_smart",
+        title: "Methods: choosing the right tool (fast, not blind)",
         steps: [
           {
             cards: [
               {
-                type: "method",
-                number: "1",
-                title: "Factor out a common term",
-                when: "When there is no constant term (c = 0)",
-                example: "x² − 3x = 0  →  x(x − 3) = 0",
-                note:
-                  "A product is zero if at least one factor is zero. Roots: x = 0 or x = 3.",
+                type: "insight",
+                title: "Most mistakes are ‘wrong method choice’",
+                content:
+                  "If you always use the discriminant, you will be slow and more error-prone. A strong student chooses the simplest method that fits the shape of the equation.",
               },
-            ],
-          },
-          {
-            cards: [
               {
                 type: "method",
-                number: "2",
-                title: "Difference of squares",
-                when: "When there is no middle term (b = 0) and it’s a minus",
+                title: "Method 1 — Common factor",
+                when: "When c = 0 (no constant term)",
+                example: "x² − 5x = 0  →  x(x − 5) = 0",
+                note:
+                  "Product is zero → at least one factor is zero. Roots: x = 0 or x = 5.",
+              },
+              {
+                type: "method",
+                title: "Method 2 — Difference of squares",
+                when: "When b = 0 and it’s a minus",
                 example: "x² − 16 = 0  →  (x − 4)(x + 4) = 0",
-                note: "Roots: x = 4 and x = −4.",
-              },
-            ],
-          },
-          {
-            cards: [
-              {
-                type: "method",
-                number: "3",
-                title: "General formula (via D)",
-                when: "When all three parts exist: ax² + bx + c = 0",
-                example: "D = b² − 4ac",
                 note:
-                  "Universal method — always works, but involves computation.",
+                  "Roots: x = 4 and x = −4.",
               },
             ],
             check: {
-              question: "Which method is fastest for x² − 9x = 0?",
+              question:
+                "Pick the fastest method for x² − 11x = 0 (and why).",
               options: [
                 {
-                  label: "Discriminant",
+                  label: "Discriminant, because it always works",
                   explanation:
-                    "It works, but it’s extra work. You can solve in one clean factoring step.",
+                    "It works, but it’s not the fastest. This equation has c=0, so factoring is immediate.",
+                },
+                {
+                  label: "Common factor, because both terms share x",
+                  isCorrect: true,
+                  explanation:
+                    "Exactly. x(x−11)=0 gives roots in one step.",
                 },
                 {
                   label: "Difference of squares",
                   explanation:
-                    "There is a middle term (−9x), so it’s not a pure difference of squares form.",
+                    "There is a middle term (−11x), so it’s not a pure x² − k form.",
+                },
+              ],
+            },
+          },
+
+          {
+            cards: [
+              {
+                type: "method",
+                title: "Method 3 — Factoring by numbers (sum/product thinking)",
+                when: "When a=1 and you can find two numbers quickly",
+                example: "x² − 7x + 10 = 0 → (x − 2)(x − 5) = 0",
+                note:
+                  "Find numbers that multiply to +10 and add to −7: −2 and −5.",
+              },
+              {
+                type: "example",
+                title: "Board reasoning (not memorization)",
+                steps: [
+                  "We need (x + m)(x + n) = x² + (m+n)x + mn",
+                  "So m + n = −7 and mn = 10",
+                  "Numbers: −2 and −5 fit both conditions",
+                  "Roots: x = 2 and x = 5",
+                ],
+              },
+            ],
+            check: {
+              question:
+                "A student factors x² − 7x + 10 as (x − 10)(x + 1). What is the best critique?",
+              options: [
+                {
+                  label: "It’s correct because −10 + 1 = −7",
+                  explanation:
+                    "Sum matches, but product is −10, not +10. Factoring must match both sum and product.",
                 },
                 {
-                  label: "Factor out x",
+                  label: "It’s wrong because the product of constants is −10, not 10",
                   isCorrect: true,
                   explanation:
-                    "Exactly. No constant term: x(x − 9) = 0.",
+                    "Exactly. Both conditions must match.",
+                },
+                {
+                  label: "It’s wrong because quadratics cannot be factored",
+                  explanation:
+                    "Many quadratics can be factored.",
                 },
               ],
             },
           },
         ],
       },
+
       {
-        id: "discriminant",
-        title: "Discriminant and geometry",
+        id: "discriminant_graph",
+        title: "Discriminant as a picture (the real meaning)",
         steps: [
           {
             cards: [
               {
-                type: "discriminant",
-                title: "Graph meaning",
-                story:
-                  "A quadratic equation draws a parabola. Setting it equal to 0 means: “Where does the parabola intersect the ground (the x-axis)?”",
-                formula: "D = b² − 4ac",
-                meaning: [
-                  { condition: "D > 0", icon: "⋂", result: "2 intersections (2 roots)" },
-                  { condition: "D = 0", icon: "◡", result: "Touches once (1 root)" },
-                  { condition: "D < 0", icon: "☁️", result: "No intersection (no real roots)" },
-                ],
+                type: "insight",
+                title: "D is not ‘just a formula’",
+                content:
+                  "The discriminant answers a geometric question: does the parabola meet the x-axis? Twice, once, or never?",
+              },
+              {
+                type: "board",
+                scene: {
+                  type: "parabola_D_cases",
+                  title: "On the board: D and x-intercepts",
+                  caption:
+                    "Same parabola shape, different vertical positions → 2 roots, 1 root, or no real roots.",
+                },
+              },
+              {
+                type: "fact",
+                label: "Formula",
+                content:
+                  "For ax² + bx + c = 0:  D = b² − 4ac. Then: D>0 → 2 roots, D=0 → 1 root, D<0 → no real roots.",
               },
             ],
             check: {
-              question: "What does D < 0 mean on the graph?",
+              question:
+                "A quadratic has D < 0. Which statement must be true?",
               options: [
                 {
-                  label: "The parabola crosses the x-axis twice",
+                  label: "It has exactly one real root",
                   explanation:
-                    "Two crossings correspond to D > 0.",
+                    "Exactly one real root corresponds to D = 0.",
                 },
                 {
-                  label: "The parabola does not reach the x-axis",
+                  label: "Its parabola never crosses the x-axis",
                   isCorrect: true,
                   explanation:
                     "Correct. No real roots means no x-intercepts.",
                 },
                 {
-                  label: "The parabola opens downward",
+                  label: "It opens downward",
                   explanation:
-                    "Opening direction depends on the sign of a, not D.",
+                    "Opening depends on a, not on D.",
+                },
+              ],
+            },
+          },
+
+          {
+            cards: [
+              {
+                type: "example",
+                title: "Compute D carefully (common trap: signs)",
+                steps: [
+                  "x² − 6x + 13 = 0",
+                  "a=1, b=−6, c=13",
+                  "D = (−6)² − 4·1·13 = 36 − 52 = −16",
+                  "D < 0 → no real roots",
+                ],
+              },
+              {
+                type: "fact",
+                label: "Teacher tip",
+                content:
+                  "If you mess up the sign of b, everything collapses. Always write a, b, c explicitly before computing D.",
+              },
+            ],
+            check: {
+              question:
+                "You computed D for x² − 6x + 13 and got +16. Which mistake is most likely?",
+              options: [
+                {
+                  label: "You used D = b² + 4ac instead of b² − 4ac",
+                  isCorrect: true,
+                  explanation:
+                    "That’s the classic mistake. The formula is b² − 4ac.",
+                },
+                {
+                  label: "You forgot that (−6)² is negative",
+                  explanation:
+                    "(−6)² is positive 36, not negative.",
+                },
+                {
+                  label: "You cannot compute D without a graph",
+                  explanation:
+                    "You can compute D directly from a,b,c.",
+                },
+              ],
+            },
+          },
+        ],
+      },
+
+      {
+        id: "finish_homework",
+        title: "Finish: what you can do now",
+        steps: [
+          {
+            cards: [
+              {
+                type: "insight",
+                title: "What mastery looks like",
+                content:
+                  "You can (1) explain what roots mean, (2) choose a method quickly, and (3) predict the number of real roots using D before you solve.",
+              },
+              {
+                type: "fact",
+                label: "Next step",
+                content:
+                  "Now do homework. It’s not random: tasks are stored in Firestore, and you must complete all to finish this topic.",
+              },
+            ],
+            check: {
+              question:
+                "Which is the BEST first move when you meet a new quadratic problem?",
+              options: [
+                {
+                  label: "Immediately apply the quadratic formula",
+                  explanation:
+                    "Not best. First decide if a faster method exists.",
+                },
+                {
+                  label: "Look at the form and choose the simplest suitable method",
+                  isCorrect: true,
+                  explanation:
+                    "Exactly. Strategy before calculation.",
+                },
+                {
+                  label: "Ignore the signs and just compute quickly",
+                  explanation:
+                    "Ignoring signs is the fastest way to get wrong answers.",
                 },
               ],
             },
@@ -192,120 +365,45 @@ export const theory = {
         ],
       },
     ],
-    puzzles: [
+  },
+
+  functions_intro: {
+    title: "Functions (Intro)",
+    subtitle: "Input → rule → output + basic graph meaning",
+    homeworkCount: 0,
+    sections: [
       {
-        id: "p1",
-        label: "Practice 1/8",
-        level: 1,
-        text: "Which number makes (x − 7) = 0?",
-        type: "mcq",
-        options: [
-          { label: "A", value: "-7", explanation: "-7 − 7 = −14, not zero." },
-          { label: "B", value: "7", explanation: "7 − 7 = 0. Correct." },
-          { label: "C", value: "0", explanation: "0 − 7 = −7, not zero." },
+        id: "placeholder",
+        title: "Coming next",
+        steps: [
+          {
+            cards: [
+              { type: "insight", title: "This topic is next", content: "I’ll build it the same board-style way: graphs, domain, and reasoning checks." },
+              { type: "board", scene: { type: "axes", title: "Board: coordinate axes", caption: "We will draw and read graphs here." } },
+            ],
+          },
         ],
-        correct: "B",
-        explanation: "Substitute 7: 7 − 7 = 0.",
-        mentor: { title: "Opposite sign", text: "Inside (x − a), the root is x = a." },
-      },
-      {
-        id: "p2",
-        label: "Practice 2/8",
-        level: 2,
-        text: "Solve: x² − 25 = 0",
-        type: "mcq",
-        options: [
-          { label: "A", value: "Only 5", explanation: "5 works, but you forgot −5." },
-          { label: "B", value: "5 and −5", explanation: "Both squares equal 25. Full answer." },
-          { label: "C", value: "25", explanation: "25² = 625, not 25." },
-        ],
-        correct: "B",
-        explanation: "x² = 25 has two roots: 5 and −5.",
-        mentor: { title: "Two roots", text: "If x² = k (k > 0), then x = ±√k." },
-      },
-      {
-        id: "p3",
-        label: "Practice 3/8",
-        level: 3,
-        text: "Factor out a common term: x² + 4x = 0",
-        type: "mcq",
-        options: [
-          { label: "A", value: "x(x + 4) = 0", explanation: "Correct: take x out." },
-          { label: "B", value: "4x(x + 1) = 0", explanation: "That expands to 4x² + 4x." },
-          { label: "C", value: "x(4x) = 0", explanation: "That is 4x², not x² + 4x." },
-        ],
-        correct: "A",
-        explanation: "Both terms contain x, so x(x + 4) = 0.",
-        mentor: { title: "Now it’s clear", text: "You can see roots immediately: x = 0 and x = −4." },
-      },
-      {
-        id: "p4",
-        label: "Practice 4/8",
-        level: 3,
-        text: "Compute the discriminant for x² − 5x + 6 = 0",
-        type: "short_answer",
-        correct: "1",
-        explanation: "D = (−5)² − 4·1·6 = 25 − 24 = 1.",
-        mentor: { title: "Sign check", text: "(−5)² becomes +25." },
-      },
-      {
-        id: "p5",
-        label: "Practice 5/8",
-        level: 4,
-        text: "A parabola touches the x-axis at exactly one point. What is D?",
-        type: "mcq",
-        options: [
-          { label: "A", value: "D > 0", explanation: "D > 0 means two intersections." },
-          { label: "B", value: "D < 0", explanation: "D < 0 means no intersection." },
-          { label: "C", value: "D = 0", explanation: "Correct: exactly one touch point." },
-        ],
-        correct: "C",
-        explanation: "One touch point means one root, so D = 0.",
-        mentor: { title: "Picture ↔ formula", text: "One root happens when the vertex lies on the x-axis." },
-      },
-      {
-        id: "p6",
-        label: "Practice 6/8",
-        level: 4,
-        text: "Solve via discriminant: x² − 5x + 6 = 0. What are the roots?",
-        type: "mcq",
-        options: [
-          { label: "A", value: "x = 2; x = 3", explanation: "Correct: (5 ± 1)/2 gives 2 and 3." },
-          { label: "B", value: "x = −2; x = −3", explanation: "Remember: x = (−b ± √D)/(2a)." },
-          { label: "C", value: "x = 1; x = 6", explanation: "Those do not satisfy the equation." },
-        ],
-        correct: "A",
-        explanation: "D = 1 → x = (5 ± 1)/2 → 3 and 2.",
-        mentor: { title: "Verify", text: "Plug in 2 and 3 — both give 0." },
-      },
-      {
-        id: "p7",
-        label: "Practice 7/8",
-        level: 5,
-        text: "Which equation has no real roots?",
-        type: "mcq",
-        options: [
-          { label: "A", value: "x² − 9 = 0", explanation: "Roots exist: ±3." },
-          { label: "B", value: "x² + 9 = 0", explanation: "Correct: x² cannot equal −9 over real numbers." },
-          { label: "C", value: "x² − 3x = 0", explanation: "Roots exist: x=0 and x=3." },
-        ],
-        correct: "B",
-        explanation: "x² = −9 is impossible for real x.",
-        mentor: { title: "Common sense", text: "Sometimes you don’t need D — just logic." },
-      },
-      {
-        id: "p8",
-        label: "Practice 8/8",
-        level: 6,
-        text: "Sum of roots of x² − 7x + 10 = 0 (write a number)",
-        type: "short_answer",
-        correct: "7",
-        explanation: "Roots are 2 and 5, sum is 7. (Vieta: sum = −b/a = 7).",
-        mentor: { title: "Vieta shortcut", text: "For x² + bx + c = 0, sum of roots = −b." },
       },
     ],
   },
 
-  fractions: { title: "Fractions", subtitle: "Understand them without confusion", sections: [], puzzles: [] },
-  geometry_basics: { title: "Geometry: Basics", subtitle: "Angles, triangles, and area", sections: [], puzzles: [] },
+  systems_linear: {
+    title: "Systems of Equations",
+    subtitle: "Intersection thinking + elimination",
+    homeworkCount: 0,
+    sections: [
+      {
+        id: "placeholder",
+        title: "Coming next",
+        steps: [
+          {
+            cards: [
+              { type: "insight", title: "This topic is next", content: "We’ll show why systems = intersection of lines, then elimination and substitution with mini checks." },
+              { type: "board", scene: { type: "axes", title: "Board: intersection idea", caption: "A system is where two graphs meet." } },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 };
