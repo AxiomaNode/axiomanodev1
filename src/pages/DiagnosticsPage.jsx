@@ -4,11 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { topics } from "../data/topics";
-import { saveDiagnostic, getDiagnostics } from "../services/db";
+import { saveDiagnostic } from "../services/db";
 import { gapsDatabase } from "../data/gaps";
 import { questions } from "../data/questions";
 import "../styles/diagnostics.css";
 import "../styles/layout.css";
+import { awardPoints } from "../core/scoringEngine";
 
 const ChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -33,8 +34,7 @@ const AlertIcon = () => (
   </svg>
 );
 
-const MAX_QUESTIONS = 24;
-const GAP_THRESHOLD = 2;
+const GAP_WRONG_THRESHOLD = 2;
 
 const buildFullDiagnostic = (selectedTopicIds = null) => {
   const activeTopics = topics.filter(t => {
@@ -43,22 +43,13 @@ const buildFullDiagnostic = (selectedTopicIds = null) => {
     return hasQ && isSel;
   });
   if (!activeTopics.length) return [];
-  const perTopic = Math.max(1, Math.floor(MAX_QUESTIONS / activeTopics.length));
   const pool = [];
   activeTopics.forEach(topic => {
-    (questions[topic.id] || []).slice(0, perTopic).forEach(q => {
+    (questions[topic.id] || []).forEach(q => {
       pool.push({ ...q, topicId: topic.id });
     });
   });
-  if (pool.length < MAX_QUESTIONS) {
-    activeTopics.forEach(topic => {
-      const already = pool.filter(q => q.topicId === topic.id).length;
-      (questions[topic.id] || []).slice(already).forEach(q => {
-        if (pool.length < MAX_QUESTIONS) pool.push({ ...q, topicId: topic.id });
-      });
-    });
-  }
-  return pool.slice(0, MAX_QUESTIONS);
+  return pool;
 };
 
 const detectAllGaps = (answers, allQuestions) => {
@@ -66,21 +57,35 @@ const detectAllGaps = (answers, allQuestions) => {
   allQuestions.forEach(q => {
     fullAnswers[q.id] = answers[q.id] ?? "__skipped__";
   });
+
   const result = {};
+
   topics.forEach(topic => {
     const topicGaps = gapsDatabase[topic.id];
     if (!topicGaps) return;
+
     const found = [];
     topicGaps.forEach(gap => {
       let wrongCount = 0;
+      let signalCount = 0;
+
       Object.entries(gap.signs).forEach(([qId, wrongAnswers]) => {
+        if (fullAnswers[qId] === undefined) return;
+        signalCount++;
         const given = fullAnswers[qId];
-        if (given === "__skipped__" || wrongAnswers.includes(given)) wrongCount++;
+        if (given === "__skipped__" || wrongAnswers.includes(given)) {
+          wrongCount++;
+        }
       });
-      if (wrongCount >= GAP_THRESHOLD) found.push(gap);
+
+      if (signalCount >= 2 && wrongCount >= GAP_WRONG_THRESHOLD) {
+        found.push({ ...gap, wrongCount, signalCount });
+      }
     });
+
     if (found.length) result[topic.id] = found;
   });
+
   return result;
 };
 
@@ -186,12 +191,12 @@ const IntroScreen = ({ onConfigure }) => {
         </div>
         <div className="diag-intro__stat-divider" />
         <div className="diag-intro__stat">
-          <strong>{totalQ}+</strong>
+          <strong>{totalQ}</strong>
           <span>Questions</span>
         </div>
         <div className="diag-intro__stat-divider" />
         <div className="diag-intro__stat">
-          <strong>~12 min</strong>
+          <strong>~20 min</strong>
           <span>Estimated</span>
         </div>
       </div>
@@ -206,7 +211,8 @@ const IntroScreen = ({ onConfigure }) => {
         <div className="diag-intro__terminal-body">
           <p><span className="diag-intro__cmd-prompt">$</span> init_diagnostic --mode=reasoning</p>
           <p><span className="diag-intro__cmd-prompt">→</span> {activeTopics.length} topic modules loaded</p>
-          <p><span className="diag-intro__cmd-prompt">→</span> Gap threshold: {GAP_THRESHOLD} signals required</p>
+          <p><span className="diag-intro__cmd-prompt">→</span> Gap detection: 4 signal questions per gap</p>
+          <p><span className="diag-intro__cmd-prompt">→</span> Threshold: gap flagged if 2+ signals wrong</p>
           <p><span className="diag-intro__cmd-prompt">→</span> Ready. Select topics to configure.</p>
         </div>
       </div>
@@ -251,9 +257,8 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
     if (first) setSelected(new Set([first.id]));
   };
 
-  const estimatedQ = Math.min(MAX_QUESTIONS,
-    [...selected].reduce((s, id) => s + (questions[id]?.length || 0), 0)
-  );
+  const estimatedQ = [...selected].reduce((s, id) => s + (questions[id]?.length || 0), 0);
+  const estimatedMin = Math.round(estimatedQ * 0.5);
 
   const diffColor = { easy: "easy", medium: "med", hard: "hard" };
 
@@ -266,7 +271,7 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
         </div>
         <h2 className="diag-topic-select__title">Select topics</h2>
         <p className="diag-topic-select__desc">
-          Choose which reasoning areas to probe. Questions are pulled proportionally across selected topics.
+          Choose which reasoning areas to probe. All questions for selected topics will be shown — this ensures reliable gap detection.
         </p>
       </div>
 
@@ -280,7 +285,9 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
             <strong>{selected.size}</strong> / {availableTopics.length} topics selected
           </span>
           <span className="diag-topic-select__info-divider">·</span>
-          <span className="diag-topic-select__info-q">~<strong>{estimatedQ}</strong> questions</span>
+          <span className="diag-topic-select__info-q"><strong>{estimatedQ}</strong> questions</span>
+          <span className="diag-topic-select__info-divider">·</span>
+          <span className="diag-topic-select__info-q">~<strong>{estimatedMin}</strong> min</span>
         </div>
       </div>
 
@@ -288,6 +295,7 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
         {availableTopics.map(topic => {
           const isSelected = selected.has(topic.id);
           const qCount = questions[topic.id]?.length || 0;
+          const gapCount = gapsDatabase[topic.id]?.length || 0;
           const diff = topic.difficulty || "medium";
           return (
             <button
@@ -304,7 +312,7 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
               <h4 className="diag-topic-card__title">{topic.title}</h4>
               <p className="diag-topic-card__desc">{topic.description}</p>
               <div className="diag-topic-card__footer">
-                <span className="diag-topic-card__q-count">{qCount}q</span>
+                <span className="diag-topic-card__q-count">{qCount}q · {gapCount} gaps</span>
                 <span className={`diag-topic-card__diff diag-topic-card__diff--${diffColor[diff] || "med"}`}>
                   {diff}
                 </span>
@@ -505,7 +513,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
             <p className="diag-results__summary-sub">
               {totalGaps === 0
                 ? "Your reasoning held up across all selected topics."
-                : "Specific reasoning blocks that broke down — not wrong answers, thinking gaps."}
+                : "Specific reasoning patterns that broke down — not wrong answers, thinking gaps."}
             </p>
             <div className="diag-results__accuracy">
               <span className="diag-results__accuracy-label">Accuracy</span>
@@ -550,6 +558,9 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                           <h5 className="diag-gap-card__title">{gap.title}</h5>
                         </div>
                         <p className="diag-gap-card__desc">{gap.description}</p>
+                        <div className="diag-gap-card__signal">
+                          <span>{gap.wrongCount} / {gap.signalCount} signal questions missed</span>
+                        </div>
                         <div className="diag-gap-card__rec">
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -595,28 +606,10 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
 const DiagnosticsPage = () => {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [step, setStep] = useState("intro"); // intro | topic-select | questions | results
+  const [step, setStep] = useState("intro");
   const [finalAnswers, setFinalAnswers] = useState({});
   const [allQuestions, setAllQuestions] = useState([]);
-  const [alreadyDone, setAlreadyDone] = useState(false);
-  const [checkingLimit, setCheckingLimit] = useState(true);
   const savingRef = useRef(false);
-
-  useEffect(() => {
-    if (!user) return;
-    getDiagnostics(user.uid).then((data) => {
-      if (data.length > 0) {
-        const lastDate = new Date(data[0].date);
-        const today = new Date();
-        const sameDay =
-          lastDate.getFullYear() === today.getFullYear() &&
-          lastDate.getMonth() === today.getMonth() &&
-          lastDate.getDate() === today.getDate();
-        setAlreadyDone(sameDay);
-      }
-      setCheckingLimit(false);
-    });
-  }, [user]);
 
   const handleTopicStart = (selectedTopicIds) => {
     const qs = buildFullDiagnostic(selectedTopicIds);
@@ -644,6 +637,10 @@ const DiagnosticsPage = () => {
     setFinalAnswers(answers);
     setStep("results");
     savingRef.current = false;
+    await awardPoints(user.uid, "diagnostic_complete", {
+      correct: result.score.correct,
+      total: result.score.total,
+    });
   };
 
   return (
@@ -672,31 +669,7 @@ const DiagnosticsPage = () => {
           </div>
 
           {step === "intro" && (
-            checkingLimit ? (
-              <div className="diag-limit-msg">Checking...</div>
-            ) : alreadyDone ? (
-              <div className="diag-limit-block">
-                <div className="diag-limit-block__icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                </div>
-                <h3 className="diag-limit-block__title">Diagnostic already completed today</h3>
-                <p className="diag-limit-block__desc">
-                  Come back tomorrow for a fresh diagnostic. In the meantime, practice your weak areas.
-                </p>
-                <div className="diag-limit-block__actions">
-                  <Link to="/practice" className="diag-btn diag-btn--primary">
-                    Go to Practice <ChevronRight />
-                  </Link>
-                  <Link to="/results" className="diag-btn diag-btn--ghost">View Results</Link>
-                </div>
-              </div>
-            ) : (
-              <IntroScreen onConfigure={() => setStep("topic-select")} />
-            )
+            <IntroScreen onConfigure={() => setStep("topic-select")} />
           )}
 
           {step === "topic-select" && (

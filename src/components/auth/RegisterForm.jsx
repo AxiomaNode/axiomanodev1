@@ -3,7 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { registerUser } from "../../firebase/auth";
 
 const EyeIcon = ({ open }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     {open ? (
       <>
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -20,38 +29,67 @@ const EyeIcon = ({ open }) => (
 );
 
 const UserIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
     <circle cx="12" cy="7" r="4" />
   </svg>
 );
 
 const MailIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
     <polyline points="22,6 12,13 2,6" />
   </svg>
 );
 
 const LockIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
 
 const GlobeIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <circle cx="12" cy="12" r="10" />
     <line x1="2" y1="12" x2="22" y2="12" />
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
-);
-
-const GradeIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-    <path d="M6 12v5c3 3 9 3 12 0v-5" />
   </svg>
 );
 
@@ -61,15 +99,12 @@ const LANGUAGES = [
   { value: "en", label: "English" },
 ];
 
-const GRADES = Array.from({ length: 5 }, (_, i) => i + 7);
-
 const RegisterForm = ({ onSwitch }) => {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [language, setLanguage] = useState("ru");
-  const [grade, setGrade] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -87,14 +122,11 @@ const RegisterForm = ({ onSwitch }) => {
       setError("Password must be at least 6 characters");
       return;
     }
-    if (!grade) {
-      setError("Please select your grade");
-      return;
-    }
 
     setLoading(true);
     try {
-      await registerUser(email, password, displayName, language, Number(grade));
+      // grade removed
+      await registerUser(email, password, displayName, language);
       navigate("/home");
     } catch (err) {
       setError(err.message);
@@ -107,7 +139,14 @@ const RegisterForm = ({ onSwitch }) => {
     <div className="auth-form">
       <div className="auth-form__header">
         <div className="auth-form__icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          >
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
             <path d="M2 17l10 5 10-5" />
             <path d="M2 12l10 5 10-5" />
@@ -121,7 +160,9 @@ const RegisterForm = ({ onSwitch }) => {
         <div className="auth-field">
           <label className="auth-field__label">Full Name</label>
           <div className="auth-field__input-wrap">
-            <span className="auth-field__icon"><UserIcon /></span>
+            <span className="auth-field__icon">
+              <UserIcon />
+            </span>
             <input
               type="text"
               className="auth-field__input"
@@ -137,7 +178,9 @@ const RegisterForm = ({ onSwitch }) => {
         <div className="auth-field">
           <label className="auth-field__label">Email</label>
           <div className="auth-field__input-wrap">
-            <span className="auth-field__icon"><MailIcon /></span>
+            <span className="auth-field__icon">
+              <MailIcon />
+            </span>
             <input
               type="email"
               className="auth-field__input"
@@ -150,11 +193,13 @@ const RegisterForm = ({ onSwitch }) => {
           </div>
         </div>
 
-        <div className="auth-fields-row">
-          <div className="auth-field">
+        <div className="auth-fields-row auth-fields-row--single">
+          <div className="auth-field auth-field__language">
             <label className="auth-field__label">Language</label>
             <div className="auth-field__input-wrap">
-              <span className="auth-field__icon"><GlobeIcon /></span>
+              <span className="auth-field__icon">
+                <GlobeIcon />
+              </span>
               <select
                 className="auth-field__input auth-field__input--select"
                 value={language}
@@ -162,25 +207,9 @@ const RegisterForm = ({ onSwitch }) => {
                 required
               >
                 {LANGUAGES.map((l) => (
-                  <option key={l.value} value={l.value}>{l.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="auth-field">
-            <label className="auth-field__label">Grade</label>
-            <div className="auth-field__input-wrap">
-              <span className="auth-field__icon"><GradeIcon /></span>
-              <select
-                className="auth-field__input auth-field__input--select"
-                value={grade}
-                onChange={(e) => setGrade(e.target.value)}
-                required
-              >
-                <option value="" disabled>Select grade</option>
-                {GRADES.map((g) => (
-                  <option key={g} value={g}>{g} grade</option>
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -191,7 +220,9 @@ const RegisterForm = ({ onSwitch }) => {
           <div className="auth-field">
             <label className="auth-field__label">Password</label>
             <div className="auth-field__input-wrap">
-              <span className="auth-field__icon"><LockIcon /></span>
+              <span className="auth-field__icon">
+                <LockIcon />
+              </span>
               <input
                 type={showPassword ? "text" : "password"}
                 className="auth-field__input auth-field__input--password"
@@ -215,7 +246,9 @@ const RegisterForm = ({ onSwitch }) => {
           <div className="auth-field">
             <label className="auth-field__label">Confirm Password</label>
             <div className="auth-field__input-wrap">
-              <span className="auth-field__icon"><LockIcon /></span>
+              <span className="auth-field__icon">
+                <LockIcon />
+              </span>
               <input
                 type={showPassword ? "text" : "password"}
                 className="auth-field__input auth-field__input--password"
@@ -231,7 +264,14 @@ const RegisterForm = ({ onSwitch }) => {
 
         {error && (
           <div className="auth-error">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />

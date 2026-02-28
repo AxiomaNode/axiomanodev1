@@ -1,213 +1,187 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { topics } from "../data/topics";
 import { tasks as taskBank } from "../data/tasks";
-import { getUserProfile } from "../firebase/auth";
-import { assignHomework, getHomeworkDoc, getTopicProgress } from "../services/db";
+import { savePractice } from "../services/db";
+import { awardPoints } from "../core/scoringEngine";
 import "../styles/practice.css";
 import "../styles/layout.css";
 
-const ChevronRight = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
-
-const AlertIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-);
-
-const TopicSelect = ({ availableTopics, onPick }) => {
-  return (
-    <div className="practice-step">
-      <div className="practice-step__head">
-        <p className="practice-step__eyebrow">Homework</p>
-        <h2 className="practice-step__title">Choose a topic</h2>
-        <p className="practice-step__sub">
-          Each topic has an assigned homework set in Firestore. Complete all tasks to finish the topic.
-        </p>
-      </div>
-
-      <div className="practice-topic-grid">
-        {availableTopics.map((topic) => (
-          <button key={topic.id} className="practice-topic-card" onClick={() => onPick(topic)}>
-            <div className="practice-topic-card__left">
-              <span className="practice-topic-card__icon">{topic.icon ? <topic.icon size={22} /> : "?"}</span>
-              <div className="practice-topic-card__text">
-                <h3 className="practice-topic-card__title">{topic.title}</h3>
-                <p className="practice-topic-card__desc">{topic.description}</p>
-              </div>
-            </div>
-            <div className="practice-topic-card__right">
-              <span className="practice-topic-card__count">Assign</span>
-              <ChevronRight />
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+const pickBank = (topicId) => {
+  const t = taskBank?.[topicId];
+  return t?.practice?.length ? t.practice : (t?.homework?.length ? t.homework : []);
 };
 
-const TopicCard = ({ topic, grade, onAssign, state }) => {
-  const hasBank = !!taskBank?.[topic.id]?.homework?.length;
+const FEEDBACK_DELAY = 1200;
 
-  return (
-    <div className="practice-task-card" style={{ padding: 22 }}>
-      <p className="practice-task-card__num">Topic</p>
-      <h3 className="practice-task-card__text" style={{ marginTop: 2 }}>
-        {topic.title}
-      </h3>
-
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <span className="practice-gap-tag" style={{ cursor: "default" }}>
-          <AlertIcon /> Grade: {grade ?? "unknown"}
-        </span>
-
-        <span className="practice-gap-tag" style={{ cursor: "default" }}>
-          <AlertIcon /> Bank: {hasBank ? `${taskBank[topic.id].homework.length} tasks` : "missing"}
-        </span>
-
-        {state?.progress?.status && (
-          <span className="practice-gap-tag" style={{ cursor: "default" }}>
-            <AlertIcon /> Status: {state.progress.status}
-          </span>
-        )}
-
-        {state?.homework?.status && (
-          <span className="practice-gap-tag" style={{ cursor: "default" }}>
-            <AlertIcon /> Homework: {state.homework.status}
-          </span>
-        )}
-
-        {typeof state?.homework?.score?.percent === "number" && (
-          <span className="practice-gap-tag" style={{ cursor: "default" }}>
-            <AlertIcon /> Score: {state.homework.score.percent}%
-          </span>
-        )}
-      </div>
-
-      <div className="practice-task-card__actions">
-        <button
-          className="practice-btn practice-btn--primary"
-          onClick={() => onAssign(false)}
-          disabled={!hasBank || state.loading}
-        >
-          {state.homework ? "Open homework" : "Assign homework"} <ChevronRight />
-        </button>
-
-        <button
-          className="practice-btn practice-btn--ghost"
-          onClick={() => onAssign(true)}
-          disabled={!hasBank || state.loading}
-          title="Recreate homework set"
-        >
-          Reassign
-        </button>
-
-        <Link to="/theory" className="practice-btn practice-btn--ghost">
-          Back to theory
-        </Link>
-
-        <Link to="/tasks" className="practice-btn practice-btn--ghost">
-          Go to Tasks
-        </Link>
-      </div>
-
-      {!hasBank && (
-        <div className="practice-feedback practice-feedback--wrong" style={{ marginTop: 14 }}>
-          <div className="practice-feedback__icon"><AlertIcon /></div>
-          <div>
-            <p className="practice-feedback__verdict">Missing task bank</p>
-            <p className="practice-feedback__explanation">
-              This topic has no homework tasks in src/data/tasks.js yet.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+const formatTime = (secs) => {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return m > 0 ? `${m}m ${s.toString().padStart(2, "0")}s` : `${s}s`;
 };
 
 const PracticePage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [grade, setGrade] = useState(null);
-  const [step, setStep] = useState("select"); // select | topic
-  const [picked, setPicked] = useState(null);
+  /* ── Session state ─────────────────────────────────── */
+  const [topicId, setTopicId]     = useState(null);
+  const [idx, setIdx]             = useState(0);
+  const [answers, setAnswers]     = useState({}); // taskId → chosen label
+  const [done, setDone]           = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [saved, setSaved]         = useState(false);
 
-  const [state, setState] = useState({
-    loading: false,
-    homework: null,
-    progress: null,
-  });
+  /* ── Feedback ──────────────────────────────────────── */
+  // null | { correct: bool, points: number, chosenLabel: string }
+  const [feedback, setFeedback]   = useState(null);
+
+  /* ── Streak ────────────────────────────────────────── */
+  const [streak, setStreak]           = useState(0);
+  const [bestStreak, setBestStreak]   = useState(0);
+
+  /* ── Points ────────────────────────────────────────── */
+  const [sessionPoints, setSessionPoints] = useState(0);
+
+  /* ── Timer ─────────────────────────────────────────── */
+  const [elapsed, setElapsed]     = useState(0);   // seconds
+  const timerRef                  = useRef(null);
+  const feedbackTimer             = useRef(null);
+  const awarded                   = useRef({});
+
+  /* ── Data ──────────────────────────────────────────── */
+  const availableTopics = useMemo(
+    () => topics.filter((t) => pickBank(t.id).length > 0),
+    []
+  );
+  const bank    = useMemo(() => (topicId ? pickBank(topicId) : []), [topicId]);
+  const current = bank[idx];
+
+  /* ── Timer control ─────────────────────────────────── */
+  const startTimer = () => {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+  };
+  const stopTimer = () => clearInterval(timerRef.current);
 
   useEffect(() => {
-    if (!user?.uid) return;
-    getUserProfile(user.uid).then((p) => setGrade(p?.grade ?? null));
-  }, [user?.uid]);
-
-  const availableTopics = useMemo(() => {
-    // show only topics that have a homework bank
-    return topics.filter((t) => taskBank?.[t.id]?.homework?.length);
+    return () => {
+      clearInterval(timerRef.current);
+      clearTimeout(feedbackTimer.current);
+    };
   }, []);
 
-  const loadTopicState = async (topicId) => {
-    if (!user?.uid) return;
-    setState((s) => ({ ...s, loading: true }));
+  /* ── Select answer ─────────────────────────────────── */
+  const selectAnswer = async (task, chosenLabel) => {
+    if (feedback !== null || answers[task.id] != null) return;
+
+    const isCorrect = chosenLabel === task.correct;
+
+    setAnswers((prev) => ({ ...prev, [task.id]: chosenLabel }));
+
+    const newStreak = isCorrect ? streak + 1 : 0;
+    setStreak(newStreak);
+    if (isCorrect) setBestStreak((b) => Math.max(b, newStreak));
+
+    let pts = 0;
+    if (!awarded.current[task.id] && user?.uid) {
+      awarded.current[task.id] = true;
+      pts = await awardPoints(user.uid, "question_answered", {
+        correct: isCorrect,
+        streak: newStreak,
+      }) ?? (isCorrect ? 10 : 0);
+      if (pts > 0) setSessionPoints((p) => p + pts);
+    }
+
+    setFeedback({ correct: isCorrect, points: pts, chosenLabel });
+
+    feedbackTimer.current = setTimeout(() => {
+      setFeedback(null);
+      if (idx + 1 >= bank.length) {
+        stopTimer();
+        setDone(true);
+      } else {
+        setIdx((v) => v + 1);
+      }
+    }, FEEDBACK_DELAY);
+  };
+
+  /* ── Topic selection ───────────────────────────────── */
+  const selectTopic = (id) => {
+    clearTimeout(feedbackTimer.current);
+    stopTimer();
+    setTopicId(id);
+    setIdx(0);
+    setAnswers({});
+    setDone(false);
+    setFeedback(null);
+    setStreak(0);
+    setBestStreak(0);
+    setSessionPoints(0);
+    setElapsed(0);
+    setSaved(false);
+    awarded.current = {};
+    // Start timer after a tick so state is settled
+    setTimeout(startTimer, 50);
+  };
+
+  /* ── Finish / save ─────────────────────────────────── */
+  const finish = async () => {
+    if (!user?.uid || !topicId || !bank.length || saving || saved) return;
+    const correct = bank.filter((t) => answers[t.id] === t.correct).length;
+    const wrong   = bank.filter((t) => answers[t.id] != null && answers[t.id] !== t.correct).length;
+    const total   = bank.length;
+    const percent = total ? Math.round((correct / total) * 100) : 0;
+
+    setSaving(true);
     try {
-      const [hw, prog] = await Promise.all([
-        getHomeworkDoc(user.uid, topicId),
-        getTopicProgress(user.uid, topicId),
-      ]);
-      setState({ loading: false, homework: hw, progress: prog });
+      await savePractice(user.uid, {
+        topicId,
+        topicTitle: topics.find((t) => t.id === topicId)?.title ?? topicId,
+        correct,
+        wrong,
+        total,
+        percent,
+        answers,
+        timeSecs: elapsed,
+        bestStreak,
+        pointsEarned: sessionPoints,
+      });
+      await awardPoints(user.uid, "practice_complete", { percent });
+      setSaved(true);
     } finally {
-      setState((s) => ({ ...s, loading: false }));
+      setSaving(false);
     }
   };
 
-  const pickTopic = async (t) => {
-    setPicked(t);
-    setStep("topic");
-    await loadTopicState(t.id);
+  /* ── Retry ─────────────────────────────────────────── */
+  const retry = () => {
+    clearTimeout(feedbackTimer.current);
+    stopTimer();
+    setIdx(0);
+    setAnswers({});
+    setDone(false);
+    setFeedback(null);
+    setStreak(0);
+    setBestStreak(0);
+    setSessionPoints(0);
+    setElapsed(0);
+    setSaved(false);
+    awarded.current = {};
+    setTimeout(startTimer, 50);
   };
 
-  const handleAssign = async (force) => {
-    if (!user?.uid || !picked) return;
-    const bank = taskBank?.[picked.id]?.homework || [];
-    if (!bank.length) return;
-
-    setState((s) => ({ ...s, loading: true }));
-    try {
-      const hw = await assignHomework(
-        user.uid,
-        picked.id,
-        {
-          topicTitle: picked.title,
-          grade,
-          tasks: bank,
-        },
-        force
-      );
-
-      setState((s) => ({ ...s, homework: hw, loading: false }));
-
-      // Go to tasks page (assumed route)
-      navigate("/tasks", { state: { topicId: picked.id } });
-    } finally {
-      setState((s) => ({ ...s, loading: false }));
-    }
-  };
+  /* ── Derived ───────────────────────────────────────── */
+  const activeTopic   = topics.find((t) => t.id === topicId);
+  const progress      = bank.length
+    ? Math.round((Object.keys(answers).length / bank.length) * 100)
+    : 0;
+  const correctCount  = bank.filter((t) => answers[t.id] === t.correct).length;
+  const wrongCount    = bank.filter((t) => answers[t.id] != null && answers[t.id] !== t.correct).length;
+  const percent       = bank.length ? Math.round((correctCount / bank.length) * 100) : 0;
 
   return (
     <div className="page-shell">
@@ -215,57 +189,375 @@ const PracticePage = () => {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="page-main">
-        <div className="practice-page">
-          <div className="practice-breadcrumb">
-            <Link to="/home" className="practice-breadcrumb__item">Home</Link>
-            <ChevronRight />
-            <span className="practice-breadcrumb__item practice-breadcrumb__item--active">Tasks</span>
-            {picked && (
-              <>
-                <ChevronRight />
-                <span className="practice-breadcrumb__item practice-breadcrumb__item--active">{picked.title}</span>
-              </>
-            )}
+        <div className="pr-wrap">
+
+          {/* ══ HERO ══════════════════════════════════════ */}
+          <div className="pr-hero">
+            <div className="pr-hero__content">
+              <div className="pr-hero__left">
+                <div className="pr-tag">
+                  <span className="pr-dot" />
+                  Practice Mode
+                </div>
+                <h1 className="pr-title">Solve &amp; Reinforce</h1>
+                <p className="pr-sub">
+                  Answer each question — instant feedback, live timer, and a
+                  full score breakdown at the end.
+                </p>
+                <div className="pr-stats">
+                  <div className="pr-stat">
+                    <strong>{availableTopics.length}</strong>
+                    <span>Topics</span>
+                  </div>
+                  <div className="pr-stat__div" />
+                  <div className="pr-stat">
+                    <strong>
+                      {availableTopics.reduce((s, t) => s + pickBank(t.id).length, 0)}
+                    </strong>
+                    <span>Tasks</span>
+                  </div>
+                  <div className="pr-stat__div" />
+                  <div className="pr-stat">
+                    <strong>+10</strong>
+                    <span>Per correct</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Session card */}
+              <div className="pr-hero__card">
+                <p className="pr-hero__cardcap">Current session</p>
+                <div className="pr-hero__pills">
+                  <div className="pr-hero__pill">
+                    <span>Topic</span>
+                    <strong>{activeTopic?.title ?? "—"}</strong>
+                  </div>
+                  <div className="pr-hero__pill">
+                    <span>Points</span>
+                    <strong>{sessionPoints > 0 ? `+${sessionPoints}` : "—"}</strong>
+                  </div>
+                  <div className="pr-hero__pill">
+                    <span>Time</span>
+                    <strong>{topicId && !done ? formatTime(elapsed) : "—"}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="practice-header">
-            <div className="practice-header__icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="practice-header__title">Tasks</h1>
-              <p className="practice-header__sub">
-                Assign homework to a topic. Complete all tasks to finish and earn percent.
-              </p>
+          {/* ══ TWO-COLUMN ════════════════════════════════ */}
+          <div className="pr-layout">
+
+            {/* ── Sidebar ──────────────────────────────── */}
+            <aside className="pr-side">
+              <div className="pr-side__head">
+                <div>
+                  <p className="pr-side__eyebrow">Topics</p>
+                  <p className="pr-side__hint">Pick what to practice</p>
+                </div>
+                <span className="pr-side__badge">{availableTopics.length}</span>
+              </div>
+
+              <div className="pr-side__list">
+                {availableTopics.map((t) => (
+                  <button
+                    key={t.id}
+                    className={`pr-topic${topicId === t.id ? " is-active" : ""}`}
+                    onClick={() => selectTopic(t.id)}
+                  >
+                    <div className="pr-topic__icon">
+                      {t.icon ? <t.icon size={16} /> : "?"}
+                    </div>
+                    <div className="pr-topic__txt">
+                      <p className="pr-topic__title">{t.title}</p>
+                      <p className="pr-topic__sub">{pickBank(t.id).length} tasks</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="pr-side__footer">
+                <Link to="/home" className="pr-side__link">← Back to Home</Link>
+              </div>
+            </aside>
+
+            {/* ── Board ────────────────────────────────── */}
+            <div className="pr-board">
+
+              {/* Top bar */}
+              <div className="pr-board__top">
+                <div className="pr-crumbs">
+                  <span className="pr-crumbs__topic">
+                    {activeTopic?.title ?? "No topic selected"}
+                  </span>
+                  {topicId && !done && (
+                    <>
+                      <span className="pr-crumbs__sep">/</span>
+                      <span className="pr-crumbs__sec">Task {idx + 1}</span>
+                    </>
+                  )}
+                </div>
+
+                {/* Live timer */}
+                {topicId && !done && (
+                  <div className="pr-timer">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {formatTime(elapsed)}
+                  </div>
+                )}
+
+                {/* Streak badge */}
+                {streak >= 2 && (
+                  <div className="pr-streak">
+                    <span className="pr-streak__fire">🔥</span>
+                    <span className="pr-streak__count">{streak}</span>
+                  </div>
+                )}
+
+                {/* Step dots */}
+                {topicId && !done && (
+                  <div className="pr-tracker">
+                    {bank.map((t, i) => (
+                      <div
+                        key={i}
+                        className={`pr-dotstep${
+                          answers[t.id] === t.correct ? " correct"
+                          : answers[t.id] != null    ? " wrong"
+                          : i === idx                ? " active"
+                          : ""
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Empty state */}
+              {!topicId && (
+                <div className="pr-empty">
+                  <div className="pr-empty__icon">✦</div>
+                  <p className="pr-empty__title">Select a topic to begin</p>
+                  <p className="pr-empty__sub">
+                    Choose any topic from the sidebar. The timer starts immediately.
+                  </p>
+                </div>
+              )}
+
+              {topicId && bank.length === 0 && (
+                <div className="pr-empty">
+                  <p className="pr-empty__title">No tasks found</p>
+                  <p className="pr-empty__sub">This topic has no practice tasks yet.</p>
+                </div>
+              )}
+
+              {/* Active task */}
+              {topicId && !done && current && (
+                <div className="pr-board__inner">
+
+                  {/* Progress bar */}
+                  <div className="pr-progress">
+                    <div className="pr-progress__track">
+                      <div className="pr-progress__fill" style={{ width: `${progress}%` }} />
+                    </div>
+                    <span className="pr-progress__label">{progress}%</span>
+                  </div>
+
+                  {/* Question card */}
+                  <div className={`pr-card pr-card--question${
+                    feedback ? (feedback.correct ? " pr-card--correct" : " pr-card--wrong") : ""
+                  }`}>
+
+                    {/* Feedback overlay */}
+                    {feedback && (
+                      <div className={`pr-feedback ${feedback.correct ? "pr-feedback--correct" : "pr-feedback--wrong"}`}>
+                        {feedback.correct ? (
+                          <>
+                            <span className="pr-feedback__icon">✓</span>
+                            <span className="pr-feedback__main">Correct!</span>
+                            {feedback.points > 0 && (
+                              <span className="pr-feedback__pts">+{feedback.points} pts</span>
+                            )}
+                            {streak >= 2 && (
+                              <span className="pr-feedback__streak">🔥 {streak} streak</span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="pr-feedback__icon">✕</span>
+                            <span className="pr-feedback__main">Wrong</span>
+                            <span className="pr-feedback__hint">
+                              Answer: {current.options?.find(o => o.label === current.correct)?.value ?? current.correct}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="pr-smallcap">Question {idx + 1} of {bank.length}</div>
+                    <p className="pr-question">{current.text}</p>
+                  </div>
+
+                  {/* Options */}
+                  <div className="diag-options">
+                    {(current.options || []).map((opt) => {
+                      const chosen    = answers[current.id] === opt.label;
+                      const revealed  = feedback !== null;
+                      const isCorrect = opt.label === current.correct;
+
+                      let cls = "diag-option";
+                      if (revealed && isCorrect)   cls += " diag-option--correct";
+                      else if (revealed && chosen)  cls += " diag-option--wrong";
+                      else if (!revealed && chosen) cls += " diag-option--selected";
+
+                      return (
+                        <button
+                          key={opt.value}
+                          className={cls}
+                          onClick={() => selectAnswer(current, opt.label)}
+                          disabled={revealed}
+                        >
+                          <span className="diag-option__letter">{opt.label}</span>
+                          <span className="diag-option__text">{opt.value}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Nav pill — hidden during feedback */}
+                  <div className={`pr-nav${feedback ? " pr-nav--hidden" : ""}`}>
+                    <div className="pr-navmid">
+                      <span className="pr-navpill">
+                        <strong>{idx + 1}</strong>
+                        <span>/ {bank.length}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ── Session complete ────────────────────── */}
+              {topicId && done && (
+                <div className="pr-board__inner">
+                  <div className="pr-complete">
+
+                    {/* Result ring + headline */}
+                    <div className="pr-complete__head">
+                      <div className={`pr-complete__ring ${
+                        percent >= 70 ? "pr-complete__ring--good"
+                        : percent >= 40 ? "pr-complete__ring--mid"
+                        : "pr-complete__ring--low"
+                      }`}>
+                        <span className="pr-complete__ring-pct">{percent}%</span>
+                        <span className="pr-complete__ring-label">score</span>
+                      </div>
+                      <div>
+                        <h2 className="pr-complete__title">
+                          {percent >= 70 ? "Strong result!" : percent >= 40 ? "Partial understanding" : "Keep practising"}
+                        </h2>
+                        <p className="pr-complete__sub">
+                          {activeTopic?.title} · {formatTime(elapsed)}
+                          {saved && <span className="pr-complete__saved"> · Saved ✓</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Stats grid */}
+                    <div className="pr-complete__stats">
+                      <div className="pr-complete__stat">
+                        <strong>{correctCount}</strong>
+                        <span>Correct</span>
+                      </div>
+                      <div className="pr-complete__stat">
+                        <strong className="pr-complete__stat--wrong">{wrongCount}</strong>
+                        <span>Wrong</span>
+                      </div>
+                      <div className="pr-complete__stat">
+                        <strong>{bank.length - correctCount - wrongCount}</strong>
+                        <span>Skipped</span>
+                      </div>
+                      <div className="pr-complete__stat">
+                        <strong className="pr-complete__stat--pts">+{sessionPoints}</strong>
+                        <span>Points</span>
+                      </div>
+                      <div className="pr-complete__stat">
+                        <strong>🔥 {bestStreak}</strong>
+                        <span>Best streak</span>
+                      </div>
+                      <div className="pr-complete__stat">
+                        <strong className="pr-complete__stat--time">{formatTime(elapsed)}</strong>
+                        <span>Time</span>
+                      </div>
+                    </div>
+
+                    {/* Per-question breakdown */}
+                    <div className="pr-complete__breakdown">
+                      <p className="pr-complete__breakdown-cap">Answer breakdown</p>
+                      <div className="pr-complete__breakdown-list">
+                        {bank.map((task, i) => {
+                          const chosen    = answers[task.id];
+                          const isCorrect = chosen === task.correct;
+                          const skipped   = chosen == null;
+                          return (
+                            <div
+                              key={task.id}
+                              className={`pr-brow ${
+                                skipped ? "pr-brow--skip"
+                                : isCorrect ? "pr-brow--ok"
+                                : "pr-brow--err"
+                              }`}
+                            >
+                              <span className="pr-brow__num">{i + 1}</span>
+                              <span className="pr-brow__icon">
+                                {skipped ? "–" : isCorrect ? "✓" : "✕"}
+                              </span>
+                              <span className="pr-brow__q">{task.text}</span>
+                              {!skipped && !isCorrect && (
+                                <span className="pr-brow__correct">
+                                  → {task.options?.find(o => o.label === task.correct)?.value ?? task.correct}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pr-complete__actions">
+                      {!saved ? (
+                        <button
+                          className="pr-navbtn pr-navbtn--primary"
+                          onClick={finish}
+                          disabled={saving}
+                        >
+                          {saving ? "Saving…" : "Save to Progress"}
+                        </button>
+                      ) : (
+                        <Link to="/progress" className="pr-navbtn pr-navbtn--primary">
+                          View Progress →
+                        </Link>
+                      )}
+                      <button className="pr-navbtn" onClick={retry}>Retry</button>
+                      <button className="pr-navbtn" onClick={() => {
+                        stopTimer();
+                        setTopicId(null);
+                      }}>
+                        Change topic
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
 
-          {step === "select" && (
-            <TopicSelect
-              availableTopics={availableTopics}
-              onPick={pickTopic}
-            />
-          )}
-
-          {step === "topic" && picked && (
-            <div className="practice-step">
-              <TopicCard topic={picked} grade={grade} onAssign={handleAssign} state={state} />
-
-              <button
-                className="practice-btn practice-btn--ghost"
-                onClick={() => {
-                  setPicked(null);
-                  setState({ loading: false, homework: null, progress: null });
-                  setStep("select");
-                }}
-              >
-                Choose another topic
-              </button>
-            </div>
-          )}
         </div>
       </main>
     </div>

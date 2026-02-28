@@ -1,545 +1,233 @@
 export const questions = {
   quadratic: [
-    // ── gap: conceptual ──
+    // ── q-discriminant (A1-A4)
     {
       id: "A1",
-      text: "x² − x − 6 = 0 tenglamasining ildizlari qaysi juft?",
+      text: "Which equation has no solutions in ℝ?",
       options: [
-        { value: "(3, −2)", label: "A" },
-        { value: "(−3, 2)", label: "B" },
-        { value: "(3, 2)", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "x² − 4 = 0", label: "A" },
+        { value: "x² + 4 = 0", label: "B" },
+        { value: "x² − 4x + 4 = 0", label: "C" },
+        { value: "x² − 4x + 3 = 0", label: "D" },
       ],
-      correct: "(3, −2)"
+      correct: "x² + 4 = 0",
     },
     {
       id: "A2",
-      text: "x = −2 ni x² + 3x − 10 = 0 ga qo'ysak natija nima? x = −2 bu tenglamaning ildizimi?",
+      text: "For x² − 6x + 9 = 0, D = 0. Choose the correct statement.",
       options: [
-        { value: "Ha, (−2)² + 3(−2) − 10 = 0", label: "A" },
-        { value: "Yo'q, 4 − 6 − 10 = −12 ≠ 0", label: "B" },
-        { value: "Ha, chunki 2² + 3(2) − 10 = 0", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "Exactly one value of x satisfies it", label: "A" },
+        { value: "Exactly two different values of x satisfy it", label: "B" },
+        { value: "No values of x satisfy it", label: "C" },
+        { value: "Every x satisfies it", label: "D" },
       ],
-      correct: "Yo'q, 4 − 6 − 10 = −12 ≠ 0"
+      correct: "Exactly one value of x satisfies it",
     },
-    {
-      id: "A2b",
-      text: "x² − 7x + 12 = 0 da x = 4 ildizmi? Tekshirish: 4² − 7(4) + 12 = ?",
-      options: [
-        { value: "16 − 28 + 12 = 0 ✓ — ildiz", label: "A" },
-        { value: "16 − 28 + 12 = 4 ✗ — ildiz emas", label: "B" },
-        { value: "D = 49 − 48 = 1 > 0, demak ildiz bor", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "16 − 28 + 12 = 0 ✓ — ildiz"
-    },
-    {
-      id: "A2c",
-      text: "x = −3 ni x² + 5x + 6 = 0 ga qo'ysak: (−3)² + 5(−3) + 6 = 9 − 15 + 6 = ?",
-      options: [
-        { value: "0 — x = −3 ildiz", label: "A" },
-        { value: "−6 — ildiz emas", label: "B" },
-        { value: "6 — ildiz emas", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "0 — x = −3 ildiz"
-    },
-
-    // ── gap: discriminant ──
     {
       id: "A3",
-      text: "2x² − 3x + 5 = 0 uchun D = b² − 4ac = 9 − 40 = −31. Bu nima anglatadi?",
+      text: "2x² − 3x + 5 = 0 has D < 0. Best conclusion?",
       options: [
-        { value: "D < 0 → haqiqiy ildizlar yo'q", label: "A" },
-        { value: "D < 0 → bitta ildiz bor", label: "B" },
-        { value: "D < 0 → ildizlar manfiy", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "Two different solutions in ℝ", label: "A" },
+        { value: "One solution in ℝ", label: "B" },
+        { value: "No solutions in ℝ", label: "C" },
+        { value: "Infinitely many solutions", label: "D" },
       ],
-      correct: "D < 0 → haqiqiy ildizlar yo'q"
+      correct: "No solutions in ℝ",
     },
     {
-      id: "A3b",
-      text: "x² − 6x + 9 = 0 uchun D = 36 − 36 = 0. Ildizlar qanday?",
+      id: "A4",
+      text: "For x² + 2x + 5 = 0, D = −16. Choose the correct statement.",
       options: [
-        { value: "x = ±3 (ikki ildiz)", label: "A" },
-        { value: "x = 3 (bitta takrorlanuvchi ildiz)", label: "B" },
-        { value: "Haqiqiy ildiz yo'q", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "Two different solutions in ℝ", label: "A" },
+        { value: "One solution in ℝ", label: "B" },
+        { value: "No solutions in ℝ", label: "C" },
+        { value: "Two solutions in ℝ, both negative", label: "D" },
       ],
-      correct: "x = 3 (bitta takrorlanuvchi ildiz)"
-    },
-    {
-      id: "A3c",
-      text: "x² + 2x + 5 = 0: D = 4 − 20 = −16. Quyidagilardan qaysi biri to'g'ri?",
-      options: [
-        { value: "x = (−2 ± 4) / 2, ya'ni x = 1 yoki x = −3", label: "A" },
-        { value: "Haqiqiy sonlar to'plamida ildiz yo'q", label: "B" },
-        { value: "x = −1 yagona ildiz", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "Haqiqiy sonlar to'plamida ildiz yo'q"
+      correct: "No solutions in ℝ",
     },
 
-    // ── gap: formal ──
+    // ── q-double-root (B1-B4)
     {
       id: "B1",
-      text: "5x² − 10x = 0 ni yechishning eng samarali usuli?",
+      text: "A student claims: “x² = 9 has only x = 3.” Best correction?",
       options: [
-        { value: "D = 100 − 0 = 100, x = (10 ± 10) / 10", label: "A" },
-        { value: "5x(x − 2) = 0, demak x = 0 yoki x = 2", label: "B" },
-        { value: "x² = 2x, demak x = 2", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "The solution set has two elements", label: "A" },
+        { value: "The solution set has one element", label: "B" },
+        { value: "The equation is inconsistent", label: "C" },
+        { value: "The equation has infinitely many solutions", label: "D" },
       ],
-      correct: "5x(x − 2) = 0, demak x = 0 yoki x = 2"
+      correct: "The solution set has two elements",
     },
     {
       id: "B2",
-      text: "y = x² − 4x + 4 parabola Ox o'qiga qanday joylashgan? D = ?",
+      text: "Compare: (1) x² − 25 = 0 and (2) x² − 10x + 25 = 0. Choose (solutions in ℝ for 1, then for 2).",
       options: [
-        { value: "D = 16 − 16 = 0 → bitta nuqtada tegadi (x = 2)", label: "A" },
-        { value: "D = 16 + 16 = 32 > 0 → ikki nuqtada kesadi", label: "B" },
-        { value: "D < 0 → tegmaydi", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "(2, 2)", label: "A" },
+        { value: "(2, 1)", label: "B" },
+        { value: "(1, 2)", label: "C" },
+        { value: "(1, 1)", label: "D" },
       ],
-      correct: "D = 16 − 16 = 0 → bitta nuqtada tegadi (x = 2)"
+      correct: "(2, 1)",
     },
     {
-      id: "B1b",
-      text: "3x² = 0 tenglamasini yechishning to'g'ri usuli qaysi?",
+      id: "B3",
+      text: "A student writes only x = 4 for x² = 16. How many elements are in the correct solution set?",
       options: [
-        { value: "Diskriminant formulasi: x = (0 ± √0) / 6", label: "A" },
-        { value: "x² = 0 demak x = 0 (yagona ildiz)", label: "B" },
-        { value: "x = ±√3", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "0", label: "A" },
+        { value: "1", label: "B" },
+        { value: "2", label: "C" },
+        { value: "Infinitely many", label: "D" },
       ],
-      correct: "x² = 0 demak x = 0 (yagona ildiz)"
+      correct: "2",
     },
     {
-      id: "B2b",
-      text: "x² − 9 = 0 ni ajratish usuli bilan: (x − 3)(x + 3) = 0. Ildizlar?",
+      id: "B4",
+      text: "(x − 3)² = 0. Correct description of the solution set in ℝ?",
       options: [
-        { value: "x = 3 faqat", label: "A" },
-        { value: "x = ±3", label: "B" },
-        { value: "x = 9", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "It contains exactly one element", label: "A" },
+        { value: "It contains exactly two different elements", label: "B" },
+        { value: "It contains no elements", label: "C" },
+        { value: "It contains infinitely many elements", label: "D" },
       ],
-      correct: "x = ±3"
+      correct: "It contains exactly one element",
     },
 
-    // ── gap: methodical ──
+    // ── q-div-by-var (C1-C4)
     {
       id: "C1",
-      text: "x² + x − 6 = 0 uchun to'g'ri ko'paytuvchilarga ajratish qaysi? (p·q = −6, p+q = 1)",
+      text: "5x² − 10x = 0. A student divides by x and concludes x = 2. Choose the most accurate evaluation.",
       options: [
-        { value: "(x + 3)(x − 2) = 0", label: "A" },
-        { value: "(x + 6)(x − 1) = 0", label: "B" },
-        { value: "(x − 3)(x + 2) = 0", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "Conclusion is correct and complete", label: "A" },
+        { value: "Conclusion is correct but incomplete", label: "B" },
+        { value: "Conclusion is incorrect", label: "C" },
+        { value: "Cannot be determined", label: "D" },
       ],
-      correct: "(x + 3)(x − 2) = 0"
+      correct: "Conclusion is correct but incomplete",
     },
     {
       id: "C2",
-      text: "−x² + 4x − 3 = 0 ni yechish uchun eng samarali birinchi qadam?",
+      text: "3x² = 6x. Choose the correct solution set in ℝ.",
       options: [
-        { value: "Bevosita kvadrat formula ishlatish", label: "A" },
-        { value: "−1 ga ko'paytirish: x² − 4x + 3 = 0", label: "B" },
-        { value: "x = (−4 ± √(16 − 12)) / (−2)", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "{2}", label: "A" },
+        { value: "{0}", label: "B" },
+        { value: "{0, 2}", label: "C" },
+        { value: "{−2, 2}", label: "D" },
       ],
-      correct: "−1 ga ko'paytirish: x² − 4x + 3 = 0"
+      correct: "{0, 2}",
     },
     {
-      id: "C1b",
-      text: "x² − 25 = 0: qaysi ko'paytuvchi to'g'ri? (x² − a²) = (x − a)(x + a)",
+      id: "C3",
+      text: "x² = 4x. Choose the method that preserves equivalence for all x.",
       options: [
-        { value: "(x − 25)(x + 1) = 0", label: "A" },
-        { value: "(x − 5)(x + 5) = 0", label: "B" },
-        { value: "(x − 5)² = 0", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "Divide both sides by x", label: "A" },
+        { value: "Rewrite as x² − 4x = 0 and factor", label: "B" },
+        { value: "Take square roots immediately", label: "C" },
+        { value: "Move 4x to the left, then cancel x", label: "D" },
       ],
-      correct: "(x − 5)(x + 5) = 0"
+      correct: "Rewrite as x² − 4x = 0 and factor",
     },
     {
-      id: "C2b",
-      text: "x² − 10x + 25 = 0: eng tez usul? Diqqat: (x − 5)² ≠ (x − 5)(x + 5)",
+      id: "C4",
+      text: "x³ = x². A student divides by x² and gets x = 1. Choose the best statement.",
       options: [
-        { value: "Ayirmaning kvadrati: (x − 5)(x + 5) = 0 → x = ±5", label: "A" },
-        { value: "To'liq kvadrat: (x − 5)² = 0 → x = 5", label: "B" },
-        { value: "D = 100 − 100 = 0 → x = 10/2 = 5", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "The final set is complete", label: "A" },
+        { value: "The final set is missing exactly one value", label: "B" },
+        { value: "The final set is missing two values", label: "C" },
+        { value: "The equation has no solutions", label: "D" },
       ],
-      correct: "To'liq kvadrat: (x − 5)² = 0 → x = 5"
+      correct: "The final set is missing exactly one value",
     },
 
-    // ── general ──
+    // ── q-factoring (D1-D4)
     {
       id: "D1",
-      text: "x² − 5x + 6 = 0 ildizlari x₁ va x₂. Vieta: x₁ + x₂ = ? va x₁ · x₂ = ?",
+      text: "x² − 10x + 25 = 0. Choose the correct factorization form.",
       options: [
-        { value: "x₁ + x₂ = 5,   x₁ · x₂ = 6", label: "A" },
-        { value: "x₁ + x₂ = −5,  x₁ · x₂ = 6", label: "B" },
-        { value: "x₁ + x₂ = 5,   x₁ · x₂ = −6", label: "C" },
-        { value: "Bilmayman", label: "D" }
+        { value: "(x − 5)² = 0", label: "A" },
+        { value: "(x + 5)² = 0", label: "B" },
+        { value: "(x − 5)(x + 5) = 0", label: "C" },
+        { value: "(x − 25)(x − 1) = 0", label: "D" },
       ],
-      correct: "x₁ + x₂ = 5,   x₁ · x₂ = 6"
-    }
+      correct: "(x − 5)² = 0",
+    },
+    {
+      id: "D2",
+      text: "x² − 49 = 0. Choose the correct factorization form.",
+      options: [
+        { value: "(x − 7)² = 0", label: "A" },
+        { value: "(x + 7)² = 0", label: "B" },
+        { value: "(x − 7)(x + 7) = 0", label: "C" },
+        { value: "x(x − 49) = 0", label: "D" },
+      ],
+      correct: "(x − 7)(x + 7) = 0",
+    },
+    {
+      id: "D3",
+      text: "x² + 14x + 49 = 0. How many different real solutions does it have?",
+      options: [
+        { value: "0", label: "A" },
+        { value: "1", label: "B" },
+        { value: "2", label: "C" },
+        { value: "Infinitely many", label: "D" },
+      ],
+      correct: "1",
+    },
+    {
+      id: "D4",
+      text: "A student rewrites x² − 16 = 0 as (x − 4)² = 0. Choose the best assessment.",
+      options: [
+        { value: "The rewrite is valid and preserves all solutions", label: "A" },
+        { value: "The rewrite changes the set of solutions", label: "B" },
+        { value: "The rewrite is valid only for x > 0", label: "C" },
+        { value: "The rewrite is valid only for x < 0", label: "D" },
+      ],
+      correct: "The rewrite changes the set of solutions",
+    },
+
+    // ── q-vieta (E1-E4)
+    {
+      id: "E1",
+      text: "The roots of x² − 5x + 6 = 0 are x₁ and x₂. Find x₁² + x₂² without solving.",
+      options: [
+        { value: "11", label: "A" },
+        { value: "13", label: "B" },
+        { value: "25", label: "C" },
+        { value: "36", label: "D" },
+      ],
+      correct: "13",
+    },
+    {
+      id: "E2",
+      text: "A quadratic with roots 3 and −4 is x² + bx + c = 0. Choose (b, c).",
+      options: [
+        { value: "(1, −12)", label: "A" },
+        { value: "(−1, −12)", label: "B" },
+        { value: "(7, 12)", label: "C" },
+        { value: "(−7, −12)", label: "D" },
+      ],
+      correct: "(1, −12)",
+    },
+    {
+      id: "E3",
+      text: "For x² + 7x + 12 = 0, choose (x₁ + x₂, x₁·x₂).",
+      options: [
+        { value: "(−7, 12)", label: "A" },
+        { value: "(7, 12)", label: "B" },
+        { value: "(−7, −12)", label: "C" },
+        { value: "(7, −12)", label: "D" },
+      ],
+      correct: "(−7, 12)",
+    },
+    {
+      id: "E4",
+      text: "Two roots have sum 1 and product −6. Which equation matches?",
+      options: [
+        { value: "x² − x − 6 = 0", label: "A" },
+        { value: "x² + x − 6 = 0", label: "B" },
+        { value: "x² − x + 6 = 0", label: "C" },
+        { value: "x² + x + 6 = 0", label: "D" },
+      ],
+      correct: "x² − x − 6 = 0",
+    },
   ],
-
-  systems: [
-    // ── gap: conceptual ──
-    {
-      id: "S1",
-      text: "2x + y = 5 va 4x + 2y = 10 sistema nechta yechimga ega? Nima uchun?",
-      options: [
-        { value: "Bitta — ular kesishadi", label: "A" },
-        { value: "Cheksiz — ikkinchi tenglama birinchining 2 barobari", label: "B" },
-        { value: "Nol — qarama-qarshi", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "Cheksiz — ikkinchi tenglama birinchining 2 barobari"
-    },
-    {
-      id: "S2",
-      text: "x + y = 3 va 2x + 2y = 7 sistema haqida nima deyish mumkin?",
-      options: [
-        { value: "Bitta yechim: (2, 1)", label: "A" },
-        { value: "Cheksiz ko'p yechim", label: "B" },
-        { value: "Yechim yo'q — tenglamalar qarama-qarshi", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "Yechim yo'q — tenglamalar qarama-qarshi"
-    },
-    {
-      id: "S1b",
-      text: "(2, −1) juftligi x − 2y = 4 va 3x + y = 5 sistemasining yechimimi? Tekshiring.",
-      options: [
-        { value: "Ha — 2−2(−1)=4 ✓ va 6+(−1)=5 ✓", label: "A" },
-        { value: "Yo'q — birinchi tenglamadan chiqmaydi", label: "B" },
-        { value: "Yo'q — ikkinchi tenglamadan chiqmaydi", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "Ha — 2−2(−1)=4 ✓ va 6+(−1)=5 ✓"
-    },
-    {
-      id: "S2b",
-      text: "x + y = 3 va x − y = 1 sistemasini qo'shish usulida yechsak x = ?",
-      options: [
-        { value: "x = 2", label: "A" },
-        { value: "x = 1", label: "B" },
-        { value: "x = 4", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "x = 2"
-    },
-
-    // ── gap: substitution ──
-    {
-      id: "S3",
-      text: "3x + 2y = 12 va x = 4 − y sistemasini o'rniga qo'yish usulida yechsak y = ?",
-      options: [
-        { value: "y = 0", label: "A" },
-        { value: "y = 6", label: "B" },
-        { value: "y = 2", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "y = 0"
-    },
-    {
-      id: "S3b",
-      text: "2x − y = 5 tenglamasidan y ni ifodalasak?",
-      options: [
-        { value: "y = 5 + 2x", label: "A" },
-        { value: "y = 2x − 5", label: "B" },
-        { value: "y = 5 − 2x", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "y = 2x − 5"
-    },
-    {
-      id: "S3c",
-      text: "5x + 3y = 11 va x = 1 + y bo'lsa, y = ? (o'rniga qo'ying)",
-      options: [
-        { value: "y = 1", label: "A" },
-        { value: "y = 2", label: "B" },
-        { value: "y = 3/8", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "y = 1"
-    },
-
-    // ── general ──
-    {
-      id: "S4",
-      text: "x − 2y = 3 va 3x − 6y = 10 sistemasi: koeffitsientlar proporsionalmi?",
-      options: [
-        { value: "Ha, proporsional → cheksiz yechim", label: "A" },
-        { value: "Proporsional emas → bitta yechim", label: "B" },
-        { value: "Koeffitsientlar proporsional, o'ng taraf emas → yechim yo'q", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "Koeffitsientlar proporsional, o'ng taraf emas → yechim yo'q"
-    }
-  ],
-
-  functions: [
-    // ── gap: conceptual ──
-    {
-      id: "F1",
-      text: "Quyidagilardan qaysi biri funksiya emas va nima uchun?",
-      options: [
-        { value: "y = x² (har bir x ga bitta y)", label: "A" },
-        { value: "y = ±√x (musbat x ga ikki y mos keladi)", label: "B" },
-        { value: "y = 2x + 1 (chiziqli, funksiya)", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "y = ±√x (musbat x ga ikki y mos keladi)"
-    },
-    {
-      id: "F2",
-      text: "f(x) = x² − 4x + 3 bo'lsa, f(0) + f(4) = ?",
-      options: [
-        { value: "3 + 3 = 6", label: "A" },
-        { value: "3 + (−1) = 2", label: "B" },
-        { value: "0 + 0 = 0", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "3 + 3 = 6"
-    },
-    {
-      id: "F1b",
-      text: "g(x) = 3x − 2 uchun g(g(2)) = ?",
-      options: [
-        { value: "10", label: "A" },
-        { value: "4", label: "B" },
-        { value: "12", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "10"
-    },
-    {
-      id: "F1c",
-      text: "f(a + 1) = 7 va f(x) = 2x + 1 bo'lsa, a = ?",
-      options: [
-        { value: "a = 2", label: "A" },
-        { value: "a = 3", label: "B" },
-        { value: "a = 4", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "a = 2"
-    },
-
-    // ── gap: graphical ──
-    {
-      id: "F3",
-      text: "Vertikal chiziq testi: x = 2 da grafik 3 nuqtada kesishsa nima deyamiz?",
-      options: [
-        { value: "Funksiya tez o'sadi x = 2 da", label: "A" },
-        { value: "Bu funksiya grafigi EMAS (bitta x ga 3 ta y)", label: "B" },
-        { value: "Funksiya x = 2 da uzilishga ega", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "Bu funksiya grafigi EMAS (bitta x ga 3 ta y)"
-    },
-    {
-      id: "F3b",
-      text: "Grafik (−3, 0) va (0, 9) nuqtalardan o'tsa, f(−3) + f(0) = ?",
-      options: [
-        { value: "0 + 9 = 9", label: "A" },
-        { value: "9 + 0 = 9 (tartib farq qilmaydi)", label: "B" },
-        { value: "−3 + 0 = −3", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "0 + 9 = 9"
-    },
-    {
-      id: "F3c",
-      text: "f(x) = x² ning ta'rif sohasi (domain) qaysi?",
-      options: [
-        { value: "Faqat musbat sonlar (x > 0)", label: "A" },
-        { value: "Barcha haqiqiy sonlar (−∞, +∞)", label: "B" },
-        { value: "Faqat x ≥ 0", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "Barcha haqiqiy sonlar (−∞, +∞)"
-    }
-  ],
-
-  inequalities: [
-    // ── gap: conceptual ──
-    {
-      id: "I1",
-      text: "(x − 2)(x + 3) > 0: musbat ko'paytma qachon hosil bo'ladi?",
-      options: [
-        { value: "x < −3 yoki x > 2", label: "A" },
-        { value: "−3 < x < 2", label: "B" },
-        { value: "x > 2 faqat", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "x < −3 yoki x > 2"
-    },
-    {
-      id: "I1b",
-      text: "x² − 4x + 3 ≤ 0 tengsizligini yechish: birinchi qadam?",
-      options: [
-        { value: "x² − 4x + 3 = 0 ildizlarini topish (x=1, x=3)", label: "A" },
-        { value: "Ikkala tarafni x ga bo'lish", label: "B" },
-        { value: "Kvadrat ildiz olish", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "x² − 4x + 3 = 0 ildizlarini topish (x=1, x=3)"
-    },
-    {
-      id: "I1c",
-      text: "x² < 9 → |x| < 3 → bu qanday yozilib ko'rsatiladi?",
-      options: [
-        { value: "x < 3", label: "A" },
-        { value: "−3 < x < 3", label: "B" },
-        { value: "x > −3 yoki x < 3", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "−3 < x < 3"
-    },
-
-    // ── gap: sign_flip ──
-    {
-      id: "I2",
-      text: "−3x + 12 ≤ 6 → −3x ≤ −6 → x ___  2. Bo'shliqni to'ldiring.",
-      options: [
-        { value: "x ≤ 2 (belgi saqlanadi)", label: "A" },
-        { value: "x ≥ 2 (manfiy ga bo'lganda belgi teskari)", label: "B" },
-        { value: "x < 2", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "x ≥ 2 (manfiy ga bo'lganda belgi teskari)"
-    },
-    {
-      id: "I2b",
-      text: "−2x > 8 tengsizligini yechsak: x = ?",
-      options: [
-        { value: "x > −4", label: "A" },
-        { value: "x < −4", label: "B" },
-        { value: "x > 4", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "x < −4"
-    },
-    {
-      id: "I2c",
-      text: "3 − 5x ≥ −7 → −5x ≥ −10 → x ___ 2. Belgi?",
-      options: [
-        { value: "x ≥ 2", label: "A" },
-        { value: "x ≤ 2 (−5 ga bo'lganda teskari)", label: "B" },
-        { value: "x > 2", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "x ≤ 2 (−5 ga bo'lganda teskari)"
-    },
-
-    // ── general ──
-    {
-      id: "I3",
-      text: "x² − 9 ≤ 0 → (x−3)(x+3) ≤ 0. Ildizlar x = ±3. Yechim?",
-      options: [
-        { value: "x ≤ −3 yoki x ≥ 3", label: "A" },
-        { value: "−3 ≤ x ≤ 3", label: "B" },
-        { value: "x ≤ 3 faqat", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "−3 ≤ x ≤ 3"
-    }
-  ],
-
-  percentages: [
-    // ── gap: conceptual ──
-    {
-      id: "PR1",
-      text: "500 so'm narx 40% ga oshdi, so'ng 40% ga tushdi. Oxirgi narx?",
-      options: [
-        { value: "500 so'm (o'zgarmadi)", label: "A" },
-        { value: "420 so'm (500 × 1.4 × 0.6 = 420)", label: "B" },
-        { value: "460 so'm", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "420 so'm (500 × 1.4 × 0.6 = 420)"
-    },
-    {
-      id: "PR2",
-      text: "Narx 20% ga tushib 240 so'm bo'ldi. Asl narx?",
-      options: [
-        { value: "300 so'm", label: "A" },
-        { value: "288 so'm (240 × 1.2)", label: "B" },
-        { value: "200 so'm", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "300 so'm"
-    },
-    {
-      id: "PR3",
-      text: "15 dan 18 ga o'tish necha foiz o'sish?",
-      options: [
-        { value: "15%", label: "A" },
-        { value: "20%", label: "B" },
-        { value: "3%", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "20%"
-    },
-    {
-      id: "PR4",
-      text: "Yig'im = 800 so'm, soliq 15%. To'lash kerak bo'lgan jami miqdor?",
-      options: [
-        { value: "920 so'm", label: "A" },
-        { value: "815 so'm", label: "B" },
-        { value: "680 so'm", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "920 so'm"
-    },
-    {
-      id: "PR5",
-      text: "A dan B ga o'tganda +25%. B dan A ga qaytganda necha foiz kamayish?",
-      options: [
-        { value: "25% kamayish", label: "A" },
-        { value: "20% kamayish", label: "B" },
-        { value: "75% kamayish", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "20% kamayish"
-    },
-    {
-      id: "PR6",
-      text: "60 dan 45 ga pasayish necha foiz?",
-      options: [
-        { value: "15%", label: "A" },
-        { value: "25%", label: "B" },
-        { value: "33.3%", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "25%"
-    },
-    {
-      id: "PR7",
-      text: "1000 so'm 3 yil 10% yillik foizda (murakkab). Oxirgi qiymat?",
-      options: [
-        { value: "1300 so'm (oddiy foiz)", label: "A" },
-        { value: "1331 so'm (1000 × 1.1³)", label: "B" },
-        { value: "1100 so'm", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "1331 so'm (1000 × 1.1³)"
-    },
-    {
-      id: "PR8",
-      text: "Mahsulot narxi ketma-ket 10% va 10% oshirildi. Jami o'sish necha foiz?",
-      options: [
-        { value: "20%", label: "A" },
-        { value: "21% (1.1 × 1.1 = 1.21)", label: "B" },
-        { value: "19%", label: "C" },
-        { value: "Bilmayman", label: "D" }
-      ],
-      correct: "21% (1.1 × 1.1 = 1.21)"
-    }
-  ]
 };

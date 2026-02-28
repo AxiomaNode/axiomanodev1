@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import { logoutUser } from "../../firebase/auth";
+import { logoutUser, getUserProfile } from "../../firebase/auth";
 
 const MenuIcon = ({ open }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -41,11 +41,34 @@ const MoonIcon = () => (
   </svg>
 );
 
+const StarIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 2l3 7 7 .5-5 4.5 1.5 7-6.5-4-6.5 4L7 14 2 9.5 9 9z" />
+  </svg>
+);
+
 const Header = ({ sidebarOpen, onToggleSidebar }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    if (!user?.uid) {
+      setProfile(null);
+      return;
+    }
+    getUserProfile(user.uid).then((p) => {
+      if (!alive) return;
+      setProfile(p || null);
+    });
+    return () => { alive = false; };
+  }, [user?.uid]);
+
+  const points = useMemo(() => profile?.ratingPoints ?? 0, [profile]);
 
   const handleLogout = async () => {
     await logoutUser();
@@ -84,13 +107,13 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
       <nav className="header__nav">
         <Link to="/home" className="header__nav-link">Home</Link>
         <Link to="/diagnostics" className="header__nav-link">Diagnostics</Link>
+        <Link to="/practice" className="header__nav-link">Practice</Link>
         <Link to="/support" className="header__nav-link">Support</Link>
         <Link to="/theory" className="header__nav-link">Theory</Link>
         <Link to="/about" className="header__nav-link">About</Link>
       </nav>
 
       <div className="header__right">
-        {/* Theme toggle */}
         <button
           className="header__theme-btn"
           onClick={toggleTheme}
@@ -100,7 +123,6 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
           {theme === "light" ? <MoonIcon /> : <SunIcon />}
         </button>
 
-        {/* User avatar + dropdown */}
         <div className="header__user" onClick={() => setUserMenuOpen(v => !v)}>
           <div className="header__avatar">{initials}</div>
           <span className="header__username">
@@ -118,18 +140,29 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
             <div className="header__user-menu">
               <div className="header__user-menu-info">
                 <div className="header__avatar header__avatar--lg">{initials}</div>
-                <div>
+
+                <div className="header__user-menu-text">
                   <p className="header__user-menu-name">{user?.displayName ?? "—"}</p>
                   <p className="header__user-menu-email">{user?.email}</p>
+
+                  <div className="rating-row">
+                    <div className="rating-pill rating-pill--gold" title="Rating points">
+                      <StarIcon />
+                      <span>{points}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+
               <div className="header__user-menu-divider" />
+
               <Link to="/progress" className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                 </svg>
                 My Progress
               </Link>
+
               <Link to="/results" className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -139,13 +172,16 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
                 </svg>
                 Results
               </Link>
+
               <div className="header__user-menu-divider" />
-              {/* Theme toggle inside menu too */}
+
               <button className="header__user-menu-item" onClick={() => { toggleTheme(); setUserMenuOpen(false); }}>
                 {theme === "light" ? <MoonIcon /> : <SunIcon />}
                 {theme === "light" ? "Dark Mode" : "Light Mode"}
               </button>
+
               <div className="header__user-menu-divider" />
+
               <button className="header__user-menu-item header__user-menu-item--danger" onClick={handleLogout}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

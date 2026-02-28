@@ -9,10 +9,6 @@ body {
   font-family: var(--sans);
   font-size: 15px;
   line-height: 1.6;
-  background:
-    radial-gradient(1200px 700px at 18% -10%, rgba(106,168,255,.14), transparent 55%),
-    radial-gradient(900px 600px at 90% 10%, rgba(232,196,74,.12), transparent 55%),
-    var(--bg-0);
   color: var(--white);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;

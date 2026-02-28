@@ -8,18 +8,29 @@ import {
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 
-export const registerUser = async (email, password, displayName, language, grade) => {
+export const registerUser = async (email, password, displayName, language) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName });
 
     // Save additional profile data to Firestore
-    await setDoc(doc(db, "users", userCredential.user.uid), {
-      displayName,
-      email,
-      language: language || "ru",
-      grade: grade || null
-    });
+   await setDoc(doc(db, "users", userCredential.user.uid), {
+    displayName,
+    email,
+    language: language || "ru",
+    
+    ratingPoints: 0,
+    stats: {
+      practiceSessions: 0,
+      diagnosticsCompleted: 0,
+      puzzlesSolved: 0,
+      homeworkCompleted: 0,
+      feedbackSent: 0,
+    },
+  
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
 
     await sendEmailVerification(userCredential.user);
     return userCredential.user;

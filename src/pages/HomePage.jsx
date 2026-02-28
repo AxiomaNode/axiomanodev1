@@ -207,7 +207,7 @@ const HomePage = () => {
           {/* Header */}
           <div className="home-survey-section__head">
             <div className="home-survey-section__head-left">
-              <p className="home-survey-section__eyebrow">Survey · 50 students · 2025</p>
+              <p className="home-survey-section__eyebrow">Survey · 50 students · 2026</p>
               <h1 className="home-survey-section__title">Where reasoning breaks down</h1>
               <p className="home-survey-section__sub">
                 Students were assessed across five thinking blocks. The gap between Block A and Block C
@@ -279,9 +279,8 @@ const HomePage = () => {
             <p>Mapping mathematical reasoning since 2025.</p>
           </div>
           <div className="home-footer__links">
-            <a href="#">Our Study</a>
-            <a href="#">For Teachers</a>
-            <a href="mailto:support@axiomano.com">Contact Us</a>
+            <Link to='/about'>Studies</Link>
+            <Link to="/support">Contact us axiomandnode@gmail.com</Link>
             <a href="#">Privacy Policy</a>
           </div>
         </footer>

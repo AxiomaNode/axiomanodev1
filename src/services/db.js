@@ -101,7 +101,6 @@ export const assignHomework = async (uid, topicId, payload, force = false) => {
   const docData = {
     topicId,
     topicTitle: payload.topicTitle || topicId,
-    grade: payload.grade ?? null,
     status: "assigned", // assigned | in_progress | completed
     tasks: (payload.tasks || []).map((t) => ({
       id: t.id,
@@ -252,4 +251,43 @@ export const getTopicProgress = async (uid, topicId) => {
   const ref = doc(db, "users", uid, "topicProgress", topicId);
   const snap = await getDoc(ref);
   return snap.exists() ? snap.data() : null;
+};
+
+/* ─────────────────────────────────────────────
+   Homework Results — best score per topic
+   Firestore structure:
+   users/{uid}/homeworkResults/{topicId}
+───────────────────────────────────────────── */
+
+/**
+ * Returns the best saved result for a topic, or null if none exists.
+ * Shape: { pct, correct, total, completedAt, updatedAt }
+ */
+export const getHomeworkResult = async (uid, topicId) => {
+  const ref = doc(db, "users", uid, "homeworkResults", topicId);
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
+
+/**
+ * Saves (or overwrites) the best result for a topic.
+ * payload: { pct, correct, total, completedAt }
+ *
+ * Call-site already guards "only save if pct > prev.pct",
+ * so here we simply overwrite unconditionally.
+ */
+export const saveHomeworkResult = async (uid, topicId, payload) => {
+  const ref = doc(db, "users", uid, "homeworkResults", topicId);
+  await setDoc(
+    ref,
+    {
+      topicId,
+      pct:         payload.pct,
+      correct:     payload.correct,
+      total:       payload.total,
+      completedAt: payload.completedAt ?? new Date().toISOString(),
+      updatedAt:   serverTimestamp(),
+    },
+    { merge: false } // full overwrite — call-site already checked it's a new best
+  );
 };

@@ -448,3 +448,55 @@
   .survey-row { padding: 16px; }
   .survey-row__meta { flex-wrap: wrap; gap: 6px; }
 }
+
+/* ── Layout fix ─────────────────────────── */
+.hw-wrap {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-height: calc(100vh - 56px);
+}
+
+.hw-side {
+  width: 220px;
+  flex-shrink: 0;
+  min-height: calc(100vh - 56px);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+}
+
+.hw-board {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 48px;
+  max-width: 860px;
+}
+
+/* ── Quiz width ─────────────────────────── */
+.hw-quiz,
+.hw-result,
+.hw-review {
+  max-width: 620px;
+}
+
+/* ── Progress bar ───────────────────────── */
+.hw-progress {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+
+.hw-progress__fill {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .hw-side  { display: none; }
+  .hw-board { padding: 24px 20px; }
+}

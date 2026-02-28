@@ -235,6 +235,7 @@
   gap: 6px;
 }
 
+
 .auth-fields-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1109,4 +1110,68 @@
   .action-panel--right {
     padding: 32px 20px 48px;
   }
+}
+
+
+/* One-column row (for Language) */
+.auth-fields-row--single {
+  grid-template-columns: 1fr;
+}
+
+/* Make the select look like a premium input */
+.auth-field__input--select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  width: 100%;
+  display: block;
+
+  padding: 11px 44px 11px 38px; /* left = icon space, right = arrow */
+  line-height: 1.2;
+
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--input-bg);
+
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-dark);
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
+
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.25s;
+}
+
+.auth-field__input--select:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(42, 143, 160, 0.12);
+  background: var(--card-bg);
+  outline: none;
+}
+
+/* Custom dropdown arrow */
+.auth-field__input-wrap:has(.auth-field__input--select)::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  border-right: 2px solid var(--text-light);
+  border-bottom: 2px solid var(--text-light);
+  transform: rotate(45deg);
+}
+
+/* Dark theme arrow a bit brighter */
+[data-theme="dark"] .auth-field__input-wrap:has(.auth-field__input--select)::after {
+  border-right-color: rgba(255, 255, 255, 0.55);
+  border-bottom-color: rgba(255, 255, 255, 0.55);
+}
+
+/* Option typography */
+.auth-field__input--select option {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
+  font-size: 0.95rem;
 }

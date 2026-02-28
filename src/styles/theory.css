@@ -637,12 +637,13 @@
   line-height: 1.5;
 }
 
-/* ── Board (canvas) card ── */
+/* ── Board (canvas) card — clean dark, no green ── */
 .th-card--board {
   padding: 0;
   overflow: hidden;
-  background: #1a2a22;
-  border-color: rgba(42,143,160,0.17);
+  background: #0d1117;
+  border: 1px solid rgba(42,143,160,0.2);
+  border-radius: 11px;
 }
 
 /* ════════════════════════════════════════════════════
@@ -657,12 +658,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: rgba(0,0,0,0.25);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  font-size: 0.65rem;
+  padding: 9px 16px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(42,143,160,0.12);
+  font-size: 0.64rem;
   font-weight: 700;
-  color: rgba(200,230,225,0.55);
+  color: rgba(42,143,160,0.7);
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -681,11 +682,12 @@
 .th-boardviz__captext {
   padding: 10px 16px;
   font-size: 0.75rem;
-  color: rgba(200,230,225,0.45);
+  color: var(--text-light);
   font-family: -apple-system, sans-serif;
   line-height: 1.55;
   margin: 0;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(42,143,160,0.08);
+  background: rgba(255,255,255,0.02);
 }
 
 /* ════════════════════════════════════════════════════
@@ -754,7 +756,11 @@
   border: 1px solid rgba(42,143,160,0.2);
   border-radius: 5px;
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
+.th-check__cap svg { flex-shrink: 0; }
 .th-check__q {
   font-size: 0.95rem;
   font-weight: 600;
@@ -904,75 +910,6 @@
 }
 
 /* ════════════════════════════════════════════════════
-   HOMEWORK UNLOCK
-════════════════════════════════════════════════════ */
-.th-homework-unlock {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding: 32px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
-  /* layered background: dot-grid + solid bg */
-  background-color: var(--card-bg);
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(42,143,160,0.07) 1px, transparent 0);
-  background-size: 28px 28px;
-}
-/* Radial glow top-right */
-.th-homework-unlock::before {
-  content: '';
-  position: absolute;
-  top: -60px; right: -60px;
-  width: 280px; height: 280px;
-  background: radial-gradient(ellipse at 100% 0%, rgba(42,143,160,0.1) 0%, transparent 65%);
-  pointer-events: none;
-}
-/* Subtle bottom glow */
-.th-homework-unlock::after {
-  content: '';
-  position: absolute;
-  bottom: -40px; left: 50%;
-  transform: translateX(-50%);
-  width: 200px; height: 100px;
-  background: radial-gradient(ellipse, rgba(42,143,160,0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.th-homework-unlock__head {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  position: relative;
-}
-.th-homework-unlock__icon {
-  width: 48px; height: 48px;
-  border-radius: 12px;
-  background: var(--teal-light);
-  border: 1px solid rgba(42,143,160,0.22);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--teal);
-  flex-shrink: 0;
-}
-.th-homework-unlock__title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text-dark);
-  font-family: 'Georgia', serif;
-  margin: 0 0 8px;
-  letter-spacing: -0.015em;
-}
-
-.th-homework-unlock__actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  position: relative;
-}
-
-/* ════════════════════════════════════════════════════
    BOTTOM NAVIGATION
 ════════════════════════════════════════════════════ */
 .th-nav {
@@ -1048,6 +985,222 @@
 .th-navpill span { color: var(--text-light); font-weight: 400; }
 
 /* ════════════════════════════════════════════════════
+   NEW CARD TYPES
+════════════════════════════════════════════════════ */
+
+/* ── Formula card — "write this down" ── */
+.th-card--formula {
+  background: #0d1117;
+  border: 1.5px solid rgba(42,143,160,0.3);
+  border-radius: 11px;
+  padding: 0;
+  overflow: hidden;
+}
+.th-formula__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(42,213,160,0.9);
+  font-family: 'Courier New', monospace;
+  background: rgba(42,143,160,0.1);
+  border-bottom: 1px solid rgba(42,143,160,0.2);
+  width: 100%;
+  box-sizing: border-box;
+}
+.th-formula__badge svg { flex-shrink: 0; opacity: 0.8; }
+.th-formula__expr {
+  font-family: 'Georgia', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(235, 245, 255, 0.92);
+  padding: 18px 22px 14px;
+  margin: 0;
+  letter-spacing: 0.02em;
+  white-space: pre-wrap;
+  line-height: 1.65;
+}
+.th-formula__note {
+  font-size: 0.78rem;
+  color: rgba(160,190,185,0.65);
+  padding: 10px 22px 14px;
+  margin: 0;
+  font-family: -apple-system, sans-serif;
+  line-height: 1.55;
+  border-top: 1px solid rgba(42,143,160,0.1);
+}
+
+/* ── Analogy card — purple friendly ── */
+.th-card--analogy {
+  background: rgba(124,58,237,0.05);
+  border-color: rgba(124,58,237,0.18);
+  border-radius: 11px;
+  padding: 16px 20px;
+  gap: 10px;
+}
+.th-analogy__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.th-analogy__icon {
+  font-size: 1.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.th-analogy__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #a78bfa;
+  font-family: -apple-system, sans-serif;
+}
+.th-card--analogy .th-p {
+  color: var(--text-mid);
+  font-size: 0.9rem;
+}
+
+/* ── Reveal card — collapsible explanation ── */
+.th-card--reveal {
+  border: 1px dashed rgba(42,143,160,0.25);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: none;
+}
+.th-card--reveal-open {
+  border-style: solid;
+  border-color: rgba(42,143,160,0.2);
+  background: var(--card-bg);
+}
+.th-reveal__trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 16px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--teal);
+  font-family: -apple-system, sans-serif;
+  text-align: left;
+  transition: background 0.14s;
+}
+.th-reveal__trigger:hover { background: var(--teal-light); }
+.th-reveal__trigger svg { flex-shrink: 0; opacity: 0.8; }
+.th-reveal__chevron {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+  color: var(--text-light);
+}
+.th-reveal__chevron--open { transform: rotate(180deg); }
+.th-reveal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 12px 14px;
+  animation: th-slidein 0.18s ease;
+}
+
+/* ── Step spacer (empty string in steps) ── */
+.th-step-spacer { height: 6px; }
+
+/* ════════════════════════════════════════════════════
+   THEORY COMPLETION CARD
+════════════════════════════════════════════════════ */
+.th-complete {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 26px 28px;
+  border-radius: 14px;
+  border: 1px solid rgba(39,174,96,0.22);
+  background: rgba(39,174,96,0.04);
+  position: relative;
+  overflow: hidden;
+  margin-top: 8px;
+  animation: th-slidein 0.25s ease;
+}
+.th-complete::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  background: radial-gradient(ellipse at 100% 0%, rgba(39,174,96,0.08) 0%, transparent 65%);
+  pointer-events: none;
+}
+.th-complete__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.th-complete__badge {
+  width: 44px; height: 44px;
+  border-radius: 11px;
+  background: rgba(39,174,96,0.12);
+  border: 1px solid rgba(39,174,96,0.25);
+  display: flex; align-items: center; justify-content: center;
+  color: #27ae60;
+  flex-shrink: 0;
+}
+.th-complete__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Georgia', serif;
+  margin: 0 0 4px;
+}
+.th-complete__sub {
+  font-size: 0.82rem;
+  color: var(--text-mid);
+  font-family: -apple-system, sans-serif;
+  margin: 0;
+}
+.th-complete__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Board scroll ───────────────────────── */
+.th-board {
+  overflow-y: auto;
+  max-height: calc(100vh - 64px);
+  scroll-behavior: smooth;
+}
+
+/* ── Custom scrollbar (WebKit) ───────── */
+.th-board::-webkit-scrollbar {
+  width: 5px;
+}
+.th-board::-webkit-scrollbar-track {
+  background: transparent;
+}
+.th-board::-webkit-scrollbar-thumb {
+  background: rgba(42, 143, 160, 0.2);
+  border-radius: 10px;
+}
+.th-board::-webkit-scrollbar-thumb:hover {
+  background: rgba(42, 143, 160, 0.5);
+}
+/* Firefox */
+.th-board {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(42, 143, 160, 0.2) transparent;
+}
+
+/* ════════════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════════════ */
 @media (max-width: 860px) {
@@ -1082,8 +1235,8 @@
   .th-stats { width: 100%; }
   .th-stat { padding: 10px 16px; }
   .th-navbtn { padding: 9px 13px; font-size: 0.82rem; }
-  .th-homework-unlock { padding: 20px 18px; }
-  .th-homework-unlock__actions { flex-direction: column; }
+  .th-complete { padding: 20px 18px; }
+  .th-complete__actions { flex-direction: column; }
   .th-btn { width: 100%; justify-content: center; }
   .th-board__top { flex-direction: column; align-items: flex-start; gap: 10px; }
 }

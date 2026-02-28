@@ -506,20 +506,45 @@
 .ab-cta__tally strong { color: var(--text-dark); }
 
 /* ── Page background ── */
+/* ── Page background — Deep Graph Style ── */
 .page-main:has(.ab-page)::before {
-  content: ''; position: fixed; inset: 0;
-  background-image:
-    radial-gradient(circle, transparent 20%, transparent 20.5%,
-      rgba(42,143,160,0.05) 20.5%, rgba(42,143,160,0.05) 21%,
-      transparent 21%, transparent 40%,
-      rgba(42,143,160,0.04) 40%, rgba(42,143,160,0.04) 40.5%,
-      transparent 40.5%),
-    repeating-conic-gradient(rgba(42,143,160,0.025) 0deg, rgba(42,143,160,0.025) 1deg, transparent 1deg, transparent 45deg);
-  background-size: 700px 700px, 100% 100%;
-  background-position: center center, center center;
-  background-repeat: no-repeat, repeat;
-  pointer-events: none; z-index: 0;
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background:
+    /* deep base gradient */
+    linear-gradient(
+      180deg,
+      #0b1622 0%,
+      #0d1b2a 35%,
+      #0a1520 100%
+    ),
+
+    /* subtle grid */
+    linear-gradient(rgba(42,143,160,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42,143,160,0.035) 1px, transparent 1px);
+
+  background-size:
+    100% 100%,
+    48px 48px,
+    48px 48px;
+
+  background-position:
+    center,
+    center,
+    center;
+
+  background-repeat:
+    no-repeat,
+    repeat,
+    repeat;
 }
+
+
+
 
 /* ── Responsive ──────────────────────────── */
 @media (max-width: 800px) {

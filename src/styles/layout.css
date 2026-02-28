@@ -289,6 +289,39 @@
   color: var(--error-text);
 }
 
+.rating-row{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.rating-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:13px;
+  line-height:1;
+  border:1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  user-select:none;
+}
+
+.rating-pill--gold{
+  color: #ffd36a;
+  border-color: rgba(255, 211, 106, 0.25);
+  background: rgba(255, 211, 106, 0.07);
+}
+
+/* чтобы блок текста красиво стоял рядом с аватаром */
+.header__user-menu-text{
+  display:flex;
+  flex-direction:column;
+}
+
+
 /* ─────────────────────────────────────────
    SIDEBAR
 ───────────────────────────────────────── */
