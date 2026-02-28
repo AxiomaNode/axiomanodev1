@@ -12,7 +12,7 @@ import SupportPage     from "../pages/SupportPage";
 import TheoryPage      from "../pages/TheoryPage";
 import EmailActionPage from "../pages/EmailActionPage";
 import AboutPage from "../pages/AboutPage";
-import HomeworkPage from "../pages/HomeWorkPage";
+import HomeworkPage from "../pages/HomeworkPage";
 
 
 const PublicRoute = ({ children }) => {
