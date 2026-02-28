@@ -12,7 +12,7 @@ import SupportPage     from "../pages/SupportPage";
 import TheoryPage      from "../pages/TheoryPage";
 import EmailActionPage from "../pages/EmailActionPage";
 import AboutPage from "../pages/AboutPage";
-import HomeWorkPage from "../pages/HomeWorkPage";
+import HomeworkPage from "../pages/HomeWorkPage";
 
 
 const PublicRoute = ({ children }) => {
@@ -39,7 +39,7 @@ const AppRouter = () => (
     <Route path="/progress"    element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
     <Route path="/results"     element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"     element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-    <Route path="/homework"     element={<ProtectedRoute><HomeWorkPage /></ProtectedRoute>} />
+    <Route path="/homework"     element={<ProtectedRoute><HomeworkPage /></ProtectedRoute>} />
     <Route path="/theory"      element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
     <Route path="/about"      element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
     <Route path="/auth/action" element={<EmailActionPage />} />
