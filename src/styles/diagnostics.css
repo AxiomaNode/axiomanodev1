@@ -1033,3 +1033,172 @@
 @media (min-width: 641px) and (max-width: 860px) {
   .diag-topic-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ════════════════════════════════════════════════════
+   ANSWER BREAKDOWN  — append to diagnostics.css
+════════════════════════════════════════════════════ */
+
+.diag-breakdown {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+
+.diag-breakdown__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(231, 76, 60, 0.04);
+}
+
+.diag-breakdown__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e74c3c;
+}
+
+.diag-breakdown__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0;
+  font-family: -apple-system, sans-serif;
+}
+
+.diag-breakdown__count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  padding: 3px 9px;
+  background: var(--page-bg, var(--card-bg-alt));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+/* ── Item list ── */
+.diag-breakdown__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.diag-breakdown__item {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background 0.12s;
+}
+
+.diag-breakdown__item:last-child {
+  border-bottom: none;
+}
+
+.diag-breakdown__item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ── Item header: id + topic ── */
+.diag-breakdown__item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diag-breakdown__item-id {
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+}
+
+.diag-breakdown__item-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.64rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: var(--teal);
+  background: var(--teal-light);
+  border: 1px solid rgba(42, 143, 160, 0.18);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* ── Question text ── */
+.diag-breakdown__item-question {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Answer pair ── */
+.diag-breakdown__item-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diag-breakdown__answer {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.diag-breakdown__answer--wrong {
+  background: rgba(231, 76, 60, 0.05);
+  border-color: rgba(231, 76, 60, 0.15);
+}
+
+.diag-breakdown__answer--correct {
+  background: rgba(39, 174, 96, 0.05);
+  border-color: rgba(39, 174, 96, 0.15);
+}
+
+.diag-breakdown__answer-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 88px;
+}
+
+.diag-breakdown__answer--wrong .diag-breakdown__answer-label {
+  color: #e74c3c;
+}
+
+.diag-breakdown__answer--correct .diag-breakdown__answer-label {
+  color: #27ae60;
+}
+
+.diag-breakdown__answer-value {
+  font-size: 0.855rem;
+  font-family: -apple-system, sans-serif;
+  line-height: 1.45;
+}
+
+.diag-breakdown__answer--wrong .diag-breakdown__answer-value {
+  color: rgba(231, 76, 60, 0.85);
+}
+
+.diag-breakdown__answer--correct .diag-breakdown__answer-value {
+  color: rgba(39, 174, 96, 0.9);
+  font-weight: 500;
+}

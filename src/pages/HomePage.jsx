@@ -5,6 +5,7 @@ import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import "../styles/home.css";
 import "../styles/layout.css";
+import Logo from "../App/AxiomaLogo.png";
 
 /* ── Radar Chart ── */
 const RadarChart = () => {
@@ -256,9 +257,6 @@ const HomePage = () => {
             </p>
             <Link to="/diagnostics" className="home-survey-section__cta">
               Start Diagnostic
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-              </svg>
             </Link>
           </div>
         </section>
@@ -267,14 +265,10 @@ const HomePage = () => {
         <footer className="home-footer">
           <div className="home-footer__left">
             <div className="home-footer__brand">
-              <div className="header__logo-circle header__logo-circle--sm">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                  <path d="M2 17l10 5 10-5"/>
-                  <path d="M2 12l10 5 10-5"/>
-                </svg>
+              <div className="">
+                <img src={Logo} className="axioma-logo" alt="" />
               </div>
-              <span>Axiomano</span>
+              <span>Axioma</span>
             </div>
             <p>Mapping mathematical reasoning since 2025.</p>
           </div>

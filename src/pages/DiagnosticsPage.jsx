@@ -33,6 +33,11 @@ const AlertIcon = () => (
     <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
+const XIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
 
 const GAP_WRONG_THRESHOLD = 2;
 
@@ -494,12 +499,17 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
     .map(id => topics.find(t => t.id === id))
     .filter(Boolean);
   const topicsClean = activeTopics.filter(t => !gapsByTopic[t.id]);
-  const correctCount = allQuestions.filter(q => answers[q.id] === q.correct).length;
+
+  // ── Correct count — count all questions where answer matches correct ──
+  const wrongQuestions = allQuestions.filter(q => answers[q.id] !== q.correct);
+  const correctCount = allQuestions.length - wrongQuestions.length;
   const accuracy = Math.round((correctCount / allQuestions.length) * 100);
 
   return (
     <div className="diag-step">
       <div className="diag-results">
+
+        {/* ── Summary header ── */}
         <div className={`diag-results__summary diag-results__summary--${totalGaps === 0 ? "clean" : "gaps"}`}>
           <div className="diag-results__summary-icon">
             {totalGaps === 0 ? <CheckIcon /> : <AlertIcon />}
@@ -523,6 +533,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
           </div>
         </div>
 
+        {/* ── Clean topics ── */}
         {topicsClean.length > 0 && (
           <div className="diag-results__clean">
             <p className="diag-results__clean-label"><CheckIcon /> Solid reasoning in:</p>
@@ -537,6 +548,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
           </div>
         )}
 
+        {/* ── Reasoning gaps ── */}
         {topicsWithGaps.length > 0 && (
           <div className="diag-gaps">
             <h4 className="diag-gaps__title"><AlertIcon /> Where your reasoning broke</h4>
@@ -576,6 +588,58 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
           </div>
         )}
 
+        {/* ── Answer Breakdown ── */}
+        {wrongQuestions.length > 0 && (
+          <div className="diag-breakdown">
+            <div className="diag-breakdown__header">
+              <div className="diag-breakdown__header-left">
+                <XIcon />
+                <h4 className="diag-breakdown__title">Answer Breakdown</h4>
+              </div>
+              <span className="diag-breakdown__count">
+                {wrongQuestions.length} wrong · {correctCount} correct
+              </span>
+            </div>
+
+            <div className="diag-breakdown__list">
+              {wrongQuestions.map((q, idx) => {
+                const given = answers[q.id];
+                const isSkipped = !given;
+                const topicMeta = topics.find(t => t.id === q.topicId);
+                return (
+                  <div key={q.id} className="diag-breakdown__item">
+                    <div className="diag-breakdown__item-header">
+                      <span className="diag-breakdown__item-id">// {q.id}</span>
+                      {topicMeta && (
+                        <span className="diag-breakdown__item-topic">
+                          <topicMeta.icon size={11} strokeWidth={2.5} />
+                          {topicMeta.title}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="diag-breakdown__item-question">{q.text}</p>
+
+                    <div className="diag-breakdown__item-answers">
+                      <div className="diag-breakdown__answer diag-breakdown__answer--wrong">
+                        <span className="diag-breakdown__answer-label">Your answer</span>
+                        <span className="diag-breakdown__answer-value">
+                          {isSkipped ? "— skipped" : given}
+                        </span>
+                      </div>
+                      <div className="diag-breakdown__answer diag-breakdown__answer--correct">
+                        <span className="diag-breakdown__answer-label">Correct answer</span>
+                        <span className="diag-breakdown__answer-value">{q.correct}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── CTA ── */}
         <div className="diag-results__cta-block">
           {totalGaps > 0 && (
             <div className="diag-results__cta-hint">
@@ -597,6 +661,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
             <Link to="/practice" className="diag-btn diag-btn--ghost">Targeted practice</Link>
           </div>
         </div>
+
       </div>
     </div>
   );

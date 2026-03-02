@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import Logo from "../../App/AxiomaLogo.png";
 
 const NAV_SECTIONS = [
   {
@@ -126,12 +127,8 @@ const Sidebar = ({ open, onClose }) => {
       <aside className={`sidebar ${open ? "sidebar--open" : ""}`}>
         <div className="sidebar__header">
           <div className="sidebar__brand">
-            <div className="header__logo-circle">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
+            <div className="">
+              <img src={Logo} className="axioma-logo" alt="" />
             </div>
             <span className="sidebar__brand-name">Axioma</span>
           </div>

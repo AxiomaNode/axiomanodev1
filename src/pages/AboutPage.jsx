@@ -10,9 +10,10 @@ import { db } from "../firebase/firebaseConfig";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import "../styles/about.css";
+import PerseusLogo from "../App/PerseusTeamSiteIconBGRemoved.png";
 
 const ChevronRight = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
@@ -49,11 +50,11 @@ function useInView(threshold = 0.2) {
 }
 
 const BLOCKS = [
-  { id: "A", label: "Block A", name: "Conceptual Understanding",   score: 120, total: 150, pct: 80, color: "var(--teal)",  note: "Students can recall definitions correctly. Surface knowledge is largely intact." },
-  { id: "B", label: "Block B", name: "Formal Procedures",          score: 40,  total: 150, pct: 27, color: "#f39c12",      note: "Sharp drop when applying methods step-by-step. Skipped steps are the most common error." },
-  { id: "C", label: "Block C", name: "Strategic Choice",           score: 21,  total: 100, pct: 21, color: "#e74c3c",      note: "68% of students jump to a formula before understanding what is asked.", highlight: true },
-  { id: "D", label: "Block D", name: "Visual & Geometric Reasoning",score: 75, total: 100, pct: 75, color: "#27ae60",      note: "Students reason better when spatial or graphical context makes logic explicit." },
-  { id: "E", label: "Block E", name: "Non-Standard Problems",      score: 34,  total: 100, pct: 34, color: "#9b59b6",      note: "Without a familiar algorithm, most students struggle to construct a strategy." },
+  { id: "A", label: "Block A", name: "Conceptual Understanding",    score: 120, total: 150, pct: 80, color: "#2ad5b4", note: "Students can recall definitions correctly. Surface knowledge is largely intact." },
+  { id: "B", label: "Block B", name: "Formal Procedures",           score: 40,  total: 150, pct: 27, color: "#f39c12", note: "Sharp drop when applying methods step-by-step. Skipped steps are the most common error." },
+  { id: "C", label: "Block C", name: "Strategic Choice",            score: 21,  total: 100, pct: 21, color: "#e74c3c", note: "68% of students jump to a formula before understanding what is asked.", highlight: true },
+  { id: "D", label: "Block D", name: "Visual & Geometric Reasoning", score: 75, total: 100, pct: 75, color: "#27ae60", note: "Students reason better when spatial or graphical context makes logic explicit." },
+  { id: "E", label: "Block E", name: "Non-Standard Problems",       score: 34,  total: 100, pct: 34, color: "#9b59b6", note: "Without a familiar algorithm, most students struggle to construct a strategy." },
 ];
 
 function BlockBar({ block, animate }) {
@@ -66,13 +67,23 @@ function BlockBar({ block, animate }) {
           <span className="ab-block-row__name">{block.name}</span>
         </div>
         <div className="ab-block-row__right">
-          <span className="ab-block-row__score" style={{ color: block.color }}>{animate ? val : block.score}</span>
+          <span className="ab-block-row__score" style={{ color: block.color }}>
+            {animate ? val : block.score}
+          </span>
           <span className="ab-block-row__denom">/{block.total}</span>
           <span className="ab-block-row__pct" style={{ color: block.color }}>{block.pct}%</span>
         </div>
       </div>
       <div className="ab-block-row__track">
-        <div className="ab-block-row__fill" style={{ width: animate ? `${block.pct}%` : "0%", background: block.color, transitionDelay: "0.1s" }} />
+        <div
+          className="ab-block-row__fill"
+          style={{
+            width: animate ? `${block.pct}%` : "0%",
+            background: block.color,
+            transitionDelay: "0.15s",
+            color: block.color,
+          }}
+        />
         <div className="ab-block-row__bench" />
       </div>
       <p className={`ab-block-row__note${block.highlight ? " ab-block-row__note--key" : ""}`}>
@@ -121,7 +132,7 @@ function AboutPage() {
       <main className="page-main">
         <div className="ab-page">
 
-          {/* Breadcrumb */}
+          {/* ── Breadcrumb ── */}
           <nav className="ab-breadcrumb">
             <Link to="/home" className="ab-breadcrumb__item">Home</Link>
             <ChevronRight />
@@ -129,11 +140,14 @@ function AboutPage() {
           </nav>
 
           {/* ─── HERO ─── */}
-          <section className={`ab-hero${heroInView ? " ab-hero--visible" : ""}`} ref={heroRef}>
+          <section
+            className={`ab-hero${heroInView ? " ab-hero--visible" : ""}`}
+            ref={heroRef}
+          >
             <div className="ab-hero__left">
               <div className="ab-hero__eyebrow">
                 <span className="ab-hero__dot" />
-                REASONING DIAGNOSTIC PLATFORM · TASHKENT 2025
+                Reasoning Diagnostic Platform · Tashkent 2025
               </div>
               <h1 className="ab-hero__title">
                 Most students don't<br />
@@ -141,8 +155,8 @@ function AboutPage() {
                 <span className="ab-hero__accent">they struggle with thinking.</span>
               </h1>
               <p className="ab-hero__lead">
-                Most errors happen before the calculation — when a student misreads the problem,
-                picks the wrong method, or skips a step they don't know is missing.
+                Most errors happen before the calculation — when a student misreads the
+                problem, picks the wrong method, or skips a step they don't know is missing.
                 Axioma finds exactly where that happens.
               </p>
               <div className="ab-hero__actions">
@@ -153,11 +167,12 @@ function AboutPage() {
               </div>
             </div>
 
+            {/* Reasoning preview card */}
             <div className="ab-hero__right">
               <div className="ab-reasoning-preview">
                 <div className="ab-reasoning-preview__header">
                   <span className="ab-reasoning-preview__label">Reasoning profile</span>
-                  <span className="ab-reasoning-preview__tag">SAMPLE OUTPUT</span>
+                  <span className="ab-reasoning-preview__tag">Sample output</span>
                 </div>
                 {BLOCKS.map((b, i) => (
                   <div key={b.id} className="ab-mini-row">
@@ -168,7 +183,7 @@ function AboutPage() {
                         style={{
                           width: heroInView ? `${b.pct}%` : "0%",
                           background: b.color,
-                          transitionDelay: `${i * 0.07}s`,
+                          transitionDelay: `${i * 0.08}s`,
                         }}
                       />
                     </div>
@@ -195,7 +210,11 @@ function AboutPage() {
               { val: "21%", label: "Weakest result",     note: "Block C — method choice" },
               { val: "80%", label: "Strongest result",   note: "Block A — definitions" },
             ].map((s, i) => (
-              <div key={i} className={`ab-stat${statsInView ? " ab-stat--visible" : ""}`} style={{ transitionDelay: `${i * 0.08}s` }}>
+              <div
+                key={i}
+                className={`ab-stat${statsInView ? " ab-stat--visible" : ""}`}
+                style={{ transitionDelay: `${i * 0.09}s` }}
+              >
                 <strong className="ab-stat__val">{s.val}</strong>
                 <span className="ab-stat__label">{s.label}</span>
                 <span className="ab-stat__note">{s.note}</span>
@@ -205,7 +224,10 @@ function AboutPage() {
 
           {/* ─── PROBLEM ─── */}
           <section className="ab-section" id="research">
-            <div className="ab-section__tag"><span className="ab-tag-num">01</span> Problem Statement</div>
+            <div className="ab-section__tag">
+              <span className="ab-tag-num">01</span>
+              Problem Statement
+            </div>
             <div className="ab-two-col">
               <div>
                 <h2 className="ab-section__title">
@@ -253,13 +275,17 @@ function AboutPage() {
 
           {/* ─── HYPOTHESIS ─── */}
           <section className="ab-section">
-            <div className="ab-section__tag"><span className="ab-tag-num">02</span> Research Hypothesis</div>
+            <div className="ab-section__tag">
+              <span className="ab-tag-num">02</span>
+              Research Hypothesis
+            </div>
             <div className="ab-hypothesis">
               <div className="ab-hypothesis__statement">
                 <p className="ab-hypothesis__text">
                   Most mathematical errors are not caused by computational difficulties.
                   They originate from <em>breaks between stages of thinking</em> — misunderstanding
-                  the problem, choosing an inappropriate method, or failing to connect different representations.
+                  the problem, choosing an inappropriate method, or failing to connect
+                  different representations.
                 </p>
               </div>
               <div className="ab-stages">
@@ -291,29 +317,45 @@ function AboutPage() {
 
           {/* ─── SURVEY RESULTS ─── */}
           <section className="ab-section" ref={blocksRef}>
-            <div className="ab-section__tag"><span className="ab-tag-num">03</span> Survey Results · 50 Students · 2025</div>
+            <div className="ab-section__tag">
+              <span className="ab-tag-num">03</span>
+              Survey Results · 50 Students · 2025
+            </div>
             <div className="ab-survey-intro">
-              <h2 className="ab-section__title" style={{ margin: 0 }}>Where reasoning breaks down</h2>
+              <h2 className="ab-section__title" style={{ margin: 0 }}>
+                Where reasoning breaks down
+              </h2>
               <div className="ab-survey-legend">
-                <span className="ab-legend-item"><span className="ab-legend-line" /> 50% benchmark</span>
-                <span className="ab-legend-item ab-legend-item--warn"><span className="ab-legend-dot" /> Critical gap</span>
+                <span className="ab-legend-item">
+                  <span className="ab-legend-line" /> 50% benchmark
+                </span>
+                <span className="ab-legend-item ab-legend-item--warn">
+                  <span className="ab-legend-dot" /> Critical gap
+                </span>
               </div>
             </div>
             <div className="ab-blocks-panel">
-              {BLOCKS.map((b) => <BlockBar key={b.id} block={b} animate={blocksInView} />)}
+              {BLOCKS.map((b) => (
+                <BlockBar key={b.id} block={b} animate={blocksInView} />
+              ))}
             </div>
             <p className="ab-footnote">
               Group averages across 50 secondary school students. Block A scored out of 150 pts; Blocks B–E out of 100 pts each.
-              <Link to="/diagnostics" className="ab-footnote__link">Start your own diagnostic →</Link>
+              <Link to="/diagnostics" className="ab-footnote__link">
+                Start your own diagnostic →
+              </Link>
             </p>
           </section>
 
           {/* ─── WHAT AXIOMA DOES ─── */}
           <section className="ab-section">
-            <div className="ab-section__tag"><span className="ab-tag-num">04</span> What Axioma Does</div>
+            <div className="ab-section__tag">
+              <span className="ab-tag-num">04</span>
+              What Axioma Does
+            </div>
             <div className="ab-two-col">
               <div>
-                <h2 className="ab-section__title">Not a grade — a reasoning map.</h2>
+                <h2 className="ab-section__title">Not a grade —<br />a reasoning map.</h2>
                 <p className="ab-body">
                   After a short diagnostic, Axioma shows exactly which thinking blocks
                   need work — not a percentage, but a specific description of where and
@@ -328,9 +370,16 @@ function AboutPage() {
                 <div className="ab-list-card">
                   <p className="ab-list-card__title">For students</p>
                   <ul className="ab-checklist">
-                    {["Short diagnostic — ~12 min", "See exactly which block failed", "Targeted practice, not random drills", "Theory explained from first principles"].map((item, i) => (
+                    {[
+                      "Short diagnostic — ~12 min",
+                      "See exactly which block failed",
+                      "Targeted practice, not random drills",
+                      "Theory explained from first principles",
+                    ].map((item, i) => (
                       <li key={i} className="ab-checklist__item ab-checklist__item--check">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
                         {item}
                       </li>
                     ))}
@@ -338,9 +387,15 @@ function AboutPage() {
                   <div className="ab-list-card__divider" />
                   <p className="ab-list-card__title">For parents</p>
                   <ul className="ab-checklist">
-                    {["Clear, jargon-free reasoning report", "Know exactly where to focus", "Track progress over time"].map((item, i) => (
+                    {[
+                      "Clear, jargon-free reasoning report",
+                      "Know exactly where to focus",
+                      "Track progress over time",
+                    ].map((item, i) => (
                       <li key={i} className="ab-checklist__item ab-checklist__item--check">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
                         {item}
                       </li>
                     ))}
@@ -352,12 +407,15 @@ function AboutPage() {
 
           {/* ─── TEAM ─── */}
           <section className="ab-section">
-            <div className="ab-section__tag"><span className="ab-tag-num">05</span> Built by</div>
+            <div className="ab-section__tag">
+              <span className="ab-tag-num">05</span>
+              Built by
+            </div>
             <div className="ab-team-card">
               <div className="ab-team-card__left">
-                <div className="ab-team-avatar">Ax</div>
+                <img src={PerseusLogo} className="perseus-logo" alt="Perseus Team" />
                 <div>
-                  <h3 className="ab-team-name">Axioma Team</h3>
+                  <h3 className="ab-team-name">Perseus Team</h3>
                   <span className="ab-team-loc">Tashkent · 2025</span>
                 </div>
               </div>
@@ -378,7 +436,9 @@ function AboutPage() {
               <div className="ab-cta__grid" />
               <div className="ab-cta__body">
                 <p className="ab-cta__eyebrow">Free to use · Built to teach thinking</p>
-                <h2 className="ab-cta__title">Find the gap<br />before the exam does.</h2>
+                <h2 className="ab-cta__title">
+                  Find the gap<br />before the exam does.
+                </h2>
                 <p className="ab-cta__desc">
                   A 12-minute diagnostic. A personal reasoning map.
                   Targeted practice for exactly what needs work.
@@ -395,7 +455,12 @@ function AboutPage() {
                     {loadingSupport ? (
                       <><span className="ab-spinner" /> Saving...</>
                     ) : supported ? (
-                      <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg> Mission Supported</>
+                      <>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Mission Supported
+                      </>
                     ) : "Support This Mission"}
                   </button>
                 </div>

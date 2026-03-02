@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import Logo from "../../App/AxiomaLogo.png";
+import "./logo.css"
 import { logoutUser, getUserProfile } from "../../firebase/auth";
 
 const MenuIcon = ({ open }) => (
@@ -92,12 +94,8 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
 
         <Link to="/home" className="header__brand">
           <div className="header__logo-wrap">
-            <div className="header__logo-circle">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
+            <div className="">
+              <img src={Logo} className="axioma-logo" alt="" />
             </div>
           </div>
           <span className="header__brand-name">Axioma</span>

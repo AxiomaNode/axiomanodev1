@@ -8,7 +8,6 @@ import { tasks as taskBank } from "../data/tasks";
 import { getTheoryProgress, saveTheoryProgress } from "../services/db";
 import { getUserProfile } from "../firebase/auth";
 
-
 import "../styles/theory.css";
 import "../styles/layout.css";
 
@@ -67,30 +66,37 @@ const Chalkboard = ({ scene, revealKey }) => {
     ctx.globalAlpha = alpha;
   };
 
-  const drawAxes = (ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax) => {
+  // ── SPLIT into two passes ──────────────────────────────
+  // Pass 1: only the axis LINES — drawn BEFORE the curve
+  const drawAxesLines = (ctx, ox, oy, w, h, scaleX, xMin, xMax) => {
     ctx.save();
     ctx.strokeStyle = "rgba(255,255,255,0.45)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    // x-axis
     ctx.moveTo(ox + xMin * scaleX, oy);
     ctx.lineTo(ox + xMax * scaleX, oy);
-    // y-axis
     ctx.moveTo(ox, 20);
     ctx.lineTo(ox, h - 20);
     ctx.stroke();
+    ctx.restore();
+  };
+
+  // Pass 2: arrows + ticks + numbers — drawn AFTER the curve
+  // Each number gets a small dark background rect so it stays readable
+  const drawAxesLabels = (ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax) => {
+    ctx.save();
 
     // Arrow heads
     ctx.fillStyle = "rgba(255,255,255,0.45)";
-    ctx.beginPath();
     const ax = ox + xMax * scaleX;
+    ctx.beginPath();
     ctx.moveTo(ax, oy); ctx.lineTo(ax - 8, oy - 4); ctx.lineTo(ax - 8, oy + 4);
     ctx.fill();
     ctx.beginPath();
     ctx.moveTo(ox, 20); ctx.lineTo(ox - 4, 28); ctx.lineTo(ox + 4, 28);
     ctx.fill();
 
-    // Axis labels
+    // Axis letter labels
     ctx.font = "italic 600 13px Georgia, serif";
     ctx.fillStyle = "rgba(255,255,255,0.4)";
     ctx.fillText("x", ax + 6, oy + 5);
@@ -100,13 +106,32 @@ const Chalkboard = ({ scene, revealKey }) => {
     ctx.lineWidth = 1;
     ctx.strokeStyle = "rgba(255,255,255,0.2)";
     ctx.font = "600 11px 'Courier New', monospace";
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
+
     for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
       if (x === 0) continue;
       const px = ox + x * scaleX;
-      ctx.beginPath(); ctx.moveTo(px, oy - 4); ctx.lineTo(px, oy + 4); ctx.stroke();
-      ctx.fillText(String(x), px - 4, oy + 17);
+
+      // tick stroke
+      ctx.beginPath();
+      ctx.moveTo(px, oy - 4);
+      ctx.lineTo(px, oy + 4);
+      ctx.stroke();
+
+      // dark background behind the number so the curve doesn't bleed through
+      const label = String(x);
+      const tw = ctx.measureText(label).width;
+      const bgX = px - tw / 2 - 2;
+      const bgY = oy + 5;
+      const bgW = tw + 4;
+      const bgH = 14;
+      ctx.fillStyle = "rgba(13,17,23,0.78)";
+      ctx.fillRect(bgX, bgY, bgW, bgH);
+
+      // number text
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillText(label, px - tw / 2, oy + 17);
     }
+
     ctx.restore();
   };
 
@@ -121,7 +146,6 @@ const Chalkboard = ({ scene, revealKey }) => {
     const xMin = xRange[0], xMax = xRange[1];
     const scaleX = cw / (xMax - xMin);
 
-    // find yMin, yMax by sampling
     let yMin = Infinity, yMax = -Infinity;
     for (let xi = xMin; xi <= xMax; xi += 0.1) {
       const y = a * xi * xi + b * xi + c;
@@ -135,16 +159,14 @@ const Chalkboard = ({ scene, revealKey }) => {
     const ox = padL + (-xMin) * scaleX;
     const oy = padT + (yMax) * scaleY;
 
-    // Helper: math → canvas
     const toC = (x, y) => [ox + x * scaleX, oy - y * scaleY];
 
-    // Axes
-    drawAxes(ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax);
+    // ── LAYER 1: axis lines (below curve) ──
+    drawAxesLines(ctx, ox, oy, w, h, scaleX, xMin, xMax);
 
-    // Phase 1 (t 0→0.65): draw the curve progressively
+    // ── LAYER 2: the curve ──
     const SAMPLES = 120;
     const curveEnd = Math.floor(SAMPLES * Math.min(1, t / 0.65));
-
     if (curveEnd > 1) {
       ctx.save();
       chalkStyle(ctx, 0.92);
@@ -164,14 +186,16 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.restore();
     }
 
-    // Phase 2 (t 0.65→0.82): root dots appear
+    // ── LAYER 3: axis arrows + tick labels (above curve) ──
+    drawAxesLabels(ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax);
+
+    // ── LAYER 4: root dots ──
     if (t > 0.65) {
       const dotT = Math.min(1, (t - 0.65) / 0.17);
       roots.forEach((rx) => {
         const [px, py] = toC(rx, 0);
         const r = 5 * dotT;
 
-        // glow
         ctx.save();
         ctx.globalAlpha = 0.25 * dotT;
         const grad = ctx.createRadialGradient(px, py, 0, px, py, 14);
@@ -181,7 +205,6 @@ const Chalkboard = ({ scene, revealKey }) => {
         ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
-        // dot
         ctx.save();
         ctx.globalAlpha = dotT;
         ctx.fillStyle = "rgba(42, 213, 180, 0.95)";
@@ -192,30 +215,45 @@ const Chalkboard = ({ scene, revealKey }) => {
       });
     }
 
-    // Phase 3 (t 0.82→1.0): labels fade in
+    // ── LAYER 5: root labels with dark background pills ──
     if (t > 0.82) {
       const labelT = Math.min(1, (t - 0.82) / 0.18);
       roots.forEach((rx, idx) => {
         const [px, py] = toC(rx, 0);
         const label = idx === 0 ? `x₁ = ${rx}` : `x₂ = ${rx}`;
         const offsetX = rx < 0 ? -52 : 10;
+        const lx = px + offsetX;
+        const ly = py - 16;
 
         ctx.save();
         ctx.globalAlpha = labelT;
         ctx.font = "700 12px 'Courier New', monospace";
+
+        // measure first, then draw background pill
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = "rgba(13,17,23,0.82)";
+        const rPad = 4;
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(lx - rPad, ly - 12, tw + rPad * 2, 16, 3);
+          ctx.fill();
+        } else {
+          ctx.fillRect(lx - rPad, ly - 12, tw + rPad * 2, 16);
+        }
+
         ctx.fillStyle = "rgba(42, 213, 180, 0.9)";
         ctx.shadowBlur = 5;
         ctx.shadowColor = "rgba(42,213,180,0.4)";
-        ctx.fillText(label, px + offsetX, py - 16);
+        ctx.fillText(label, lx, ly);
         ctx.restore();
       });
 
-      // vertex dot (subtle)
+      // vertex dot
       const vx = -b / (2 * a);
       const vy = a * vx * vx + b * vx + c;
       const [vpx, vpy] = toC(vx, vy);
       ctx.save();
-      ctx.globalAlpha = 0.4 * labelT;
+      ctx.globalAlpha = 0.4 * Math.min(1, (t - 0.82) / 0.18);
       ctx.fillStyle = "rgba(255,255,255,0.6)";
       ctx.beginPath(); ctx.arc(vpx, vpy, 3, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
@@ -231,7 +269,7 @@ const Chalkboard = ({ scene, revealKey }) => {
     const top = pad;
 
     const shifts = [
-      { shiftY: -1.4, label: "D > 0", hint: "2 real roots", color: "rgba(42,213,180,0.9)" },
+      { shiftY: -1.4, label: "D > 0", hint: "2 real roots",    color: "rgba(42,213,180,0.9)" },
       { shiftY: 0.0,  label: "D = 0", hint: "1 repeated root", color: "rgba(255,210,100,0.9)" },
       { shiftY: 1.4,  label: "D < 0", hint: "no real roots",   color: "rgba(255,100,100,0.9)" },
     ];
@@ -240,7 +278,7 @@ const Chalkboard = ({ scene, revealKey }) => {
       const left = pad + i * (boxW + 9);
       const s = shifts[i];
 
-      // box border — subtle divider
+      // column divider
       ctx.save();
       if (i < 2) {
         ctx.strokeStyle = "rgba(255,255,255,0.06)";
@@ -252,13 +290,12 @@ const Chalkboard = ({ scene, revealKey }) => {
       }
       ctx.restore();
 
-      // local coordinate system
       const ox = left + boxW / 2;
       const oy = top + boxH * 0.58;
       const lw = boxW * 0.8;
       const lh = boxH * 0.65;
 
-      // mini axes
+      // ── LAYER 1: mini axis lines (before curve) ──
       ctx.save();
       ctx.strokeStyle = "rgba(255,255,255,0.3)";
       ctx.lineWidth = 1.2;
@@ -268,7 +305,7 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.stroke();
       ctx.restore();
 
-      // parabola points
+      // ── LAYER 2: parabola curve ──
       const pts = [];
       for (let k = -50; k <= 50; k++) {
         const x = k / 10;
@@ -278,7 +315,6 @@ const Chalkboard = ({ scene, revealKey }) => {
         pts.push([px, py]);
       }
 
-      // draw curve progressively
       const maxPts = Math.floor(pts.length * Math.min(1, t / 0.7));
       ctx.save();
       chalkStyle(ctx, 0.88);
@@ -294,7 +330,7 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.stroke();
       ctx.restore();
 
-      // root dots & labels after curve is drawn
+      // ── LAYER 3: root dots + text labels (above curve) ──
       if (t > 0.7) {
         const tt = Math.min(1, (t - 0.7) / 0.3);
 
@@ -322,15 +358,22 @@ const Chalkboard = ({ scene, revealKey }) => {
           ctx.restore();
         }
 
-        // labels
+        // D-label with dark background
         ctx.save();
         ctx.globalAlpha = tt;
         ctx.font = "800 12px 'Courier New', monospace";
+        const dw = ctx.measureText(s.label).width;
+        ctx.fillStyle = "rgba(13,17,23,0.8)";
+        ctx.fillRect(left + 8, top + 6, dw + 8, 15);
         ctx.fillStyle = s.color;
-        ctx.fillText(s.label, left + 10, top + 18);
+        ctx.fillText(s.label, left + 12, top + 18);
+
         ctx.font = "500 11px -apple-system, sans-serif";
-        ctx.fillStyle = "rgba(180, 210, 205, 0.6)";
-        ctx.fillText(s.hint, left + 10, top + 34);
+        const hw = ctx.measureText(s.hint).width;
+        ctx.fillStyle = "rgba(13,17,23,0.8)";
+        ctx.fillRect(left + 8, top + 22, hw + 8, 14);
+        ctx.fillStyle = "rgba(180, 210, 205, 0.75)";
+        ctx.fillText(s.hint, left + 12, top + 33);
         ctx.restore();
       }
     }
@@ -339,18 +382,11 @@ const Chalkboard = ({ scene, revealKey }) => {
   /* ── Main render dispatcher ── */
   const renderScene = (ctx, w, h, t) => {
     ctx.clearRect(0, 0, w, h);
-
-    // Fill with clean dark background (no green tint)
     ctx.fillStyle = "#0d1117";
     ctx.fillRect(0, 0, w, h);
-
     if (!scene) return;
-
-    if (scene.type === "parabola_single") {
-      renderParabolaSingle(ctx, w, h, t, scene);
-    } else if (scene.type === "parabola_D_cases") {
-      renderDCases(ctx, w, h, t);
-    }
+    if (scene.type === "parabola_single") renderParabolaSingle(ctx, w, h, t, scene);
+    else if (scene.type === "parabola_D_cases") renderDCases(ctx, w, h, t);
   };
 
   useEffect(() => {
@@ -748,6 +784,26 @@ const TheoryPage = () => {
   const stepsDots      = currSection?.steps || [];
   const secProgress    = `${secIdx + 1}/${Math.max(sectionsCount, 1)}`;
 
+  // ── Keyboard navigation — must be after canGoNext / isFinished ──
+  useEffect(() => {
+    const onKey = (e) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+
+      if (e.key === "ArrowRight" || e.key === "Enter") {
+        e.preventDefault();
+        if (isFinished && canGoNext) { handleGoHomework(); return; }
+        if (canGoNext && !isFinished) handleNextStep();
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (!(secIdx === 0 && stepIdx === 0)) handlePrevStep();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secIdx, stepIdx, canGoNext, isFinished]);
+
   return (
     <div className="page-shell">
       <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} />
@@ -865,7 +921,6 @@ const TheoryPage = () => {
                   {hasCheck && (
                     <MiniCheck check={currStep.check} isPassed={isPassed} onPass={handlePassCheck} />
                   )}
-                  {/* Completion card */}
                   {isFinished && canGoNext && (
                     <div className="th-complete">
                       <div className="th-complete__head">
@@ -893,7 +948,6 @@ const TheoryPage = () => {
               )}
             </div>
 
-            {/* Bottom nav */}
             {!loading && (
               <div className="th-nav">
                 <button
@@ -903,6 +957,7 @@ const TheoryPage = () => {
                 >
                   <span className="th-navbtn__ic"><ChevronLeft /></span>
                   <span>Prev</span>
+                  <kbd className="th-kbd">←</kbd>
                 </button>
 
                 <div className="th-navmid">
@@ -919,6 +974,7 @@ const TheoryPage = () => {
                   disabled={!canGoNext || isFinished}
                 >
                   <span>{isFinished ? "All done" : "Next"}</span>
+                  <kbd className="th-kbd">{isFinished ? "↵" : "→"}</kbd>
                   <span className="th-navbtn__ic">
                     {isFinished ? (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">

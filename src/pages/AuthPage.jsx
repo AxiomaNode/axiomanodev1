@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import LoginForm from "../components/auth/LoginForm";
 import RegisterForm from "../components/auth/RegisterForm";
 import "../styles/auth.css";
+import LoginForm from "../components/auth/LoginForm";
+import axiomaLogo from "../App/AxiomaLogo.png";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -71,11 +72,7 @@ const AuthPage = () => {
 
         <div className="auth-panel__content">
           <div className="auth-brand">
-            <svg className="auth-brand__logo" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+            <img src={axiomaLogo} style={{width: "48px", height: "48px"}} className="axioma-logo" alt="" />
             <span className="auth-brand__name">AxiomaNode</span>
           </div>
 

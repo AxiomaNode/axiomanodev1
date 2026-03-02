@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser } from "../../firebase/auth";
+import axiomaLogo from "../../App/AxiomaLogo.png";
 
 const EyeIcon = ({ open }) => (
   <svg
@@ -139,18 +140,7 @@ const RegisterForm = ({ onSwitch }) => {
     <div className="auth-form">
       <div className="auth-form__header">
         <div className="auth-form__icon">
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
-          </svg>
+          <img src={axiomaLogo} alt="" className="axioma-logo" />
         </div>
         <h1 className="auth-form__title">Create account</h1>
         <p className="auth-form__subtitle">Map your mathematical thinking</p>
