@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import RegisterForm from "../components/auth/RegisterForm";
 import "../styles/auth.css";
 import LoginForm from "../components/auth/LoginForm";
-import axiomaLogo from "../App/AxiomaLogo.png";
+import AxiomaLogo from "../App/AxiomaLogo.png";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -72,7 +72,7 @@ const AuthPage = () => {
 
         <div className="auth-panel__content">
           <div className="auth-brand">
-            <img src={axiomaLogo} style={{width: "48px", height: "48px"}} className="axioma-logo" alt="" />
+            <img src={AxiomaLogo} style={{width: "48px", height: "48px"}} className="axioma-logo" alt="" />
             <span className="auth-brand__name">AxiomaNode</span>
           </div>
 
