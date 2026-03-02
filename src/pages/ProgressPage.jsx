@@ -1,6 +1,6 @@
 // src/pages/ProgressPage.jsx
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
@@ -180,6 +180,7 @@ const ProgressChart = ({ diagnostics, practice }) => {
 
 const ProgressPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [diagnostics, setDiagnostics] = useState([]);
   const [practice, setPractice] = useState([]);
@@ -188,19 +189,19 @@ const ProgressPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    // Load both in parallel
     Promise.all([
       getDiagnostics(user.uid),
       getPractice(user.uid),
     ]).then(([diags, pracs]) => {
-      setDiagnostics(diags);
-      setPractice(pracs);
+      setDiagnostics(diags ?? []);   // guard against undefined
+      setPractice(pracs ?? []);
       setLoading(false);
     });
   }, [user]);
 
   const firstName = user?.displayName?.split(" ")[0] ?? "there";
 
+  // Safe — diagnostics is always [] before and after load
   const topicStats = topics
     .map((topic) => {
       const diagSessions = diagnostics.filter((d) => d.topicId === topic.id);
@@ -232,6 +233,11 @@ const ProgressPage = () => {
   const totalGaps = diagnostics.reduce((s, d) => s + (d.gaps?.length || 0), 0);
   const isEmpty = totalDiag === 0 && totalPrac === 0;
   const showChart = diagnostics.length + practice.length >= 2;
+
+  // Navigate to /results and pass the selected session index via state
+  const handleDiagnosticClick = (idx) => {
+    navigate("/results", { state: { selectedIdx: idx } });
+  };
 
   if (loading) {
     return (
@@ -393,7 +399,12 @@ const ProgressPage = () => {
                       {diagnostics.map((d, i) => {
                         const pct = Math.round((d.score.correct / d.score.total) * 100);
                         return (
-                          <div key={i} className="progress-history-row">
+                          <button
+                            key={i}
+                            type="button"
+                            className="progress-history-row progress-history-row--clickable"
+                            onClick={() => handleDiagnosticClick(i)}
+                          >
                             <MiniRing pct={pct} color={scoreColor(pct)} size={48} />
                             <div className="progress-history-row__info">
                               <div className="progress-history-row__top">
@@ -419,7 +430,8 @@ const ProgressPage = () => {
                                 </div>
                               )}
                             </div>
-                          </div>
+                            <span className="progress-history-row__arrow"><ChevronRight /></span>
+                          </button>
                         );
                       })}
                     </div>

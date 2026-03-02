@@ -109,7 +109,7 @@
 .results-session-btn__info { flex: 1; display: flex; flex-direction: column; gap: 1px; }
 .results-session-btn__title { font-size: 0.8rem; font-weight: 600; color: var(--text-dark); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 .results-session-btn__date  { font-size: 0.72rem; color: var(--text-light); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.results-session-btn__pct  { font-size: 0.85rem; font-weight: 800; font-family: 'Georgia', serif; flex-shrink: 0; }
+.results-session-btn__pct   { font-size: 0.85rem; font-weight: 800; font-family: 'Georgia', serif; flex-shrink: 0; }
 
 .results-sidebar__new-btn {
   display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -145,8 +145,8 @@
 .results-ring-center span   { font-size: 0.75rem; color: var(--text-light); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
 .results-overview-info { flex: 1; }
-.results-overview-date  { font-size: 0.78rem; color: var(--text-light); margin: 0 0 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.results-overview-title { font-size: 1.3rem; font-weight: 700; color: var(--text-dark); margin: 0 0 4px; font-family: 'Georgia', serif; }
+.results-overview-date    { font-size: 0.78rem; color: var(--text-light); margin: 0 0 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.results-overview-title   { font-size: 1.3rem; font-weight: 700; color: var(--text-dark); margin: 0 0 4px; font-family: 'Georgia', serif; }
 .results-overview-verdict { font-size: 0.9rem; font-weight: 600; margin: 0 0 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
 .results-overview-stats { display: flex; gap: 24px; }
@@ -175,7 +175,6 @@
   flex-direction: column;
   gap: 10px;
 }
-.results-gap-card__head { }
 .results-gap-card__label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .results-gap-card__tag {
   font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
@@ -184,7 +183,7 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 .results-gap-card__title { font-size: 0.975rem; font-weight: 700; color: var(--text-dark); margin: 0; font-family: 'Georgia', serif; }
-.results-gap-card__desc { font-size: 0.85rem; color: var(--text-mid); margin: 0; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.results-gap-card__desc  { font-size: 0.85rem; color: var(--text-mid); margin: 0; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 .results-gap-card__rec {
   display: flex; align-items: flex-start; gap: 8px;
   padding: 10px 12px; background: var(--card-bg-alt);
@@ -202,25 +201,140 @@
 }
 .results-no-gaps p { margin: 0; }
 
-/* Answers */
-.results-answers { display: flex; flex-direction: column; gap: 8px; }
-.results-answer-row {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 16px; background: var(--card-bg);
-  border: 1px solid var(--border); border-radius: 10px;
+/* ── Answer Breakdown (новый компонент) ── */
+.results-breakdown {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg);
 }
-.results-answer-row--correct { border-left: 3px solid #27ae60; }
-.results-answer-row--wrong   { border-left: 3px solid #c0392b; }
-.results-answer-row__icon { flex-shrink: 0; margin-top: 1px; }
-.results-answer-row__icon--ok  { color: #27ae60; }
-.results-answer-row__icon--err { color: #c0392b; }
-.results-answer-row__content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.results-answer-row__qid  { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-light); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.results-answer-row__ans  { font-size: 0.875rem; color: var(--text-dark); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-weight: 500; }
+
+.results-breakdown__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(231, 76, 60, 0.04);
+}
+.results-breakdown__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e74c3c;
+}
+.results-breakdown__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.results-breakdown__count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  padding: 3px 9px;
+  background: var(--card-bg-alt, var(--card-bg));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.results-breakdown__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.results-breakdown__item {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transition: background 0.12s;
+}
+.results-breakdown__item:last-child { border-bottom: none; }
+.results-breakdown__item:hover { background: var(--card-bg-alt, rgba(255,255,255,0.02)); }
+
+.results-breakdown__item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.results-breakdown__item-id {
+  font-size: 0.63rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  letter-spacing: 0.06em;
+}
+.results-breakdown__item-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.61rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: var(--teal);
+  background: var(--teal-light);
+  border: 1px solid rgba(42,143,160,0.18);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.results-breakdown__item-question {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.results-breakdown__item-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.results-breakdown__answer {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.results-breakdown__answer--wrong {
+  background: rgba(231, 76, 60, 0.05);
+  border-color: rgba(231, 76, 60, 0.15);
+}
+.results-breakdown__answer--correct {
+  background: rgba(39, 174, 96, 0.05);
+  border-color: rgba(39, 174, 96, 0.15);
+}
+.results-breakdown__answer-label {
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 86px;
+}
+.results-breakdown__answer--wrong .results-breakdown__answer-label   { color: #e74c3c; }
+.results-breakdown__answer--correct .results-breakdown__answer-label { color: #27ae60; }
+.results-breakdown__answer-value {
+  font-size: 0.855rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.45;
+}
+.results-breakdown__answer--wrong .results-breakdown__answer-value   { color: rgba(231, 76, 60, 0.85); }
+.results-breakdown__answer--correct .results-breakdown__answer-value { color: rgba(39, 174, 96, 0.9); font-weight: 500; }
 
 /* Actions */
 .results-actions { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
 
+/* ── Responsive ── */
 @media (max-width: 860px) {
   .results-layout { grid-template-columns: 1fr; }
   .results-sidebar { position: static; }

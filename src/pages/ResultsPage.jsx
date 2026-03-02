@@ -1,10 +1,11 @@
 // src/pages/ResultsPage.jsx
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import { topics } from "../data/topics";
+import { questions as questionsDb } from "../data/questions";
 import { getDiagnostics } from "../services/db";
 import "../styles/results.css";
 import "../styles/layout.css";
@@ -54,17 +55,93 @@ const ScoreRing = ({ pct, color }) => {
   );
 };
 
+// ── Answer Breakdown ──────────────────────────────────────────────────────────
+// Shows ALL wrong answers with question text + correct answer
+const AnswerBreakdown = ({ session }) => {
+  const allQMap = {};
+  Object.values(questionsDb).flat().forEach((q) => { allQMap[q.id] = q; });
+
+  const entries = Object.entries(session.answers || {});
+  const wrongEntries = entries.filter(([qId, userAns]) => {
+    const q = allQMap[qId];
+    return q && userAns !== q.correct;
+  });
+  const correctCount = entries.length - wrongEntries.length;
+
+  if (wrongEntries.length === 0) {
+    return (
+      <div className="results-no-gaps">
+        <CheckIcon />
+        <p>All answers were correct — perfect score.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="results-breakdown">
+      <div className="results-breakdown__header">
+        <div className="results-breakdown__header-left">
+          <XIcon />
+          <span className="results-breakdown__title">Answer Breakdown</span>
+        </div>
+        <span className="results-breakdown__count">
+          {wrongEntries.length} wrong · {correctCount} correct
+        </span>
+      </div>
+      <div className="results-breakdown__list">
+        {wrongEntries.map(([qId, userAns]) => {
+          const q = allQMap[qId];
+          if (!q) return null;
+          const isSkipped = !userAns;
+          const topicMeta = topics.find((t) =>
+            questionsDb[t.id]?.some((qq) => qq.id === qId)
+          );
+          return (
+            <div key={qId} className="results-breakdown__item">
+              <div className="results-breakdown__item-header">
+                <span className="results-breakdown__item-id">// {qId}</span>
+                {topicMeta && (
+                  <span className="results-breakdown__item-topic">
+                    <TopicIcon topic={topicMeta} size={11} />
+                    {topicMeta.title}
+                  </span>
+                )}
+              </div>
+              <p className="results-breakdown__item-question">{q.text}</p>
+              <div className="results-breakdown__item-answers">
+                <div className="results-breakdown__answer results-breakdown__answer--wrong">
+                  <span className="results-breakdown__answer-label">Your answer</span>
+                  <span className="results-breakdown__answer-value">
+                    {isSkipped ? "— skipped" : userAns}
+                  </span>
+                </div>
+                <div className="results-breakdown__answer results-breakdown__answer--correct">
+                  <span className="results-breakdown__answer-label">Correct answer</span>
+                  <span className="results-breakdown__answer-value">{q.correct}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ── ResultsPage ───────────────────────────────────────────────────────────────
 const ResultsPage = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  // Read selectedIdx from navigation state (when coming from ProgressPage click)
+  const [selectedIdx, setSelectedIdx] = useState(location.state?.selectedIdx ?? 0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     getDiagnostics(user.uid).then((data) => {
-      setSessions(data);
+      setSessions(data ?? []);
       setLoading(false);
     });
   }, [user]);
@@ -176,7 +253,6 @@ const ResultsPage = () => {
 
                     <div className="results-overview-info">
                       <p className="results-overview-date">{formatDate(session.date)}</p>
-                      {/* FIX: was h2 nested inside h2 */}
                       <h2 className="results-overview-title">
                         {topic?.icon ? <topic.icon size={18} strokeWidth={2.5} /> : ""}
                         {session.topicTitle}
@@ -250,38 +326,7 @@ const ResultsPage = () => {
                       </svg>
                       Answer breakdown
                     </h3>
-                    <div className="results-answers">
-                      {Object.entries(session.answers || {}).filter(([qId, userAns]) => {
-                       return session.gaps?.some(
-                         (g) => g?.signs && Object.prototype.hasOwnProperty.call(g.signs, qId) && (g.signs[qId] || []).includes(userAns)
-                        );
-                      }).map(([qId, userAns]) => {
-                        // FIX: check if answer triggered any gap sign — that means it was a wrong/gap answer
-                        const triggeredGap = session.gaps?.some(
-                          (g) =>
-                            g?.signs &&
-                            Object.prototype.hasOwnProperty.call(g.signs, qId) &&
-                            (g.signs[qId] || []).includes(userAns)
-                        );
-                        // "correct" here means: didn't trigger a gap
-                        const correct = !triggeredGap;
-
-                        return (
-                          <div
-                            key={qId}
-                            className={`results-answer-row ${correct ? "results-answer-row--correct" : "results-answer-row--wrong"}`}
-                          >
-                            <span className={`results-answer-row__icon ${correct ? "results-answer-row__icon--ok" : "results-answer-row__icon--err"}`}>
-                              {correct ? <CheckIcon /> : <XIcon />}
-                            </span>
-                            <div className="results-answer-row__content">
-                              <span className="results-answer-row__qid">Question {qId}</span>
-                              <span className="results-answer-row__ans">{String(userAns)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <AnswerBreakdown session={session} />
                   </div>
 
                   <div className="results-actions">
