@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser } from "../../firebase/auth";
-import axiomaLogo from "../../App/AxiomaLogo.png";
+import axiomaLogo from "../../AxiomaLogo.png";
 
 const EyeIcon = ({ open }) => (
   <svg

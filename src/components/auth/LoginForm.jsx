@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../firebase/auth";
-import axiomaLogo from "../../App/AxiomaLogo.png";
+import AxiomaLogo from "../../AxiomaLogo.png";
 
 const EyeIcon = ({ open }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -60,7 +60,7 @@ const LoginForm = ({ onSwitch }) => {
     <div className="auth-form">
       <div className="auth-form__header">
         <div className="auth-form__icon">
-          <img src={axiomaLogo} className="axioma-logo" alt="" />
+          <img src={AxiomaLogo} className="axioma-logo" alt="" />
         </div>
         <h1 className="auth-form__title">Welcome back</h1>
         <p className="auth-form__subtitle">Continue your reasoning journey</p>
