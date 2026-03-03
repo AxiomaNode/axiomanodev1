@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import Logo from "../../App/AxiomaLogo.png";
+import Logo from "../../AxiomaLogo.png";
 
 const NAV_SECTIONS = [
   {
