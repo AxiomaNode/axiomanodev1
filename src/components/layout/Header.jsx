@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
-import Logo from "../../App/AxiomaLogo.png";
+import Logo from "../../AxiomaLogo.png";
 import "./logo.css"
 import { logoutUser, getUserProfile } from "../../firebase/auth";
 
