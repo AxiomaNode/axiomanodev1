@@ -5,7 +5,7 @@ import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
 import "../styles/home.css";
 import "../styles/layout.css";
-import Logo from "../App/AxiomaLogo.png";
+import Logo from "../AxiomaLogo.png";
 
 /* ── Radar Chart ── */
 const RadarChart = () => {
