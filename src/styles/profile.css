@@ -1,0 +1,508 @@
+/* ════════════════════════════════════════════════════
+   profile.css  ·  Axioma
+   Import order in ProfilePage:
+     profile.css → progress.css → results.css → layout.css
+════════════════════════════════════════════════════ */
+
+/* ── Page shell ── */
+.profile-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 32px 80px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Breadcrumb ── */
+.profile-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-family: -apple-system, sans-serif;
+}
+.profile-breadcrumb svg { color: var(--border); flex-shrink: 0; }
+.profile-breadcrumb__item {
+  color: var(--text-light);
+  text-decoration: none;
+  transition: color 0.13s;
+}
+.profile-breadcrumb__item:hover { color: var(--text-dark); }
+.profile-breadcrumb__item--active { color: var(--text-dark); font-weight: 600; }
+
+/* ── Loading state ── */
+.profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  height: 240px;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+}
+.profile-loading__ring {
+  width: 24px; height: 24px;
+  border: 2px solid rgba(42,143,160,0.18);
+  border-top-color: var(--teal, #2a8fa0);
+  border-radius: 50%;
+  animation: profile-spin 0.75s linear infinite;
+}
+@keyframes profile-spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════════════════
+   HERO CARD
+════════════════════════════════════════════════════ */
+.profile-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 26px 28px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative teal glow top-right */
+.profile-hero::after {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 240px; height: 240px;
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(42,143,160,0.09) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* ── Left block ── */
+.profile-hero__left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Avatar ── */
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.profile-avatar__img {
+  display: block;
+  border: 2px solid var(--border);
+  object-fit: cover;
+}
+.profile-avatar__initials {
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal, #2a8fa0) 0%, rgba(42,143,160,0.55) 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-family: -apple-system, sans-serif;
+  letter-spacing: -0.03em;
+  border: 2px solid rgba(42,143,160,0.25);
+}
+/* Level badge */
+.profile-avatar__lvl {
+  position: absolute;
+  bottom: -3px; right: -3px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--teal, #2a8fa0);
+  border: 2px solid var(--card-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  line-height: 1;
+}
+
+/* ── Identity block ── */
+.profile-hero__identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.profile-hero__name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.profile-hero__name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Georgia', serif;
+  margin: 0;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-hero__tier {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-family: 'Courier New', monospace;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.profile-hero__email {
+  font-size: 0.76rem;
+  color: var(--text-light);
+  font-family: -apple-system, sans-serif;
+  margin: 0;
+}
+
+/* ── XP bar ── */
+.profile-xp {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+.profile-xp__bar-outer {
+  width: 100%;
+  max-width: 320px;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.profile-xp__bar-inner {
+  height: 100%;
+  background: var(--teal, #2a8fa0);
+  border-radius: 3px;
+  transition: width 0.7s ease;
+}
+.profile-xp__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 320px;
+}
+.profile-xp__total {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  color: var(--teal, #2a8fa0);
+  font-family: 'Courier New', monospace;
+}
+.profile-xp__next {
+  font-size: 0.63rem;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Right stats pill ── */
+.profile-hero__stats {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  background: var(--page-bg, #0d1117);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  align-self: center;
+}
+.profile-hero__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 20px;
+  font-family: -apple-system, sans-serif;
+}
+.profile-hero__stat strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  font-family: 'Courier New', monospace;
+  line-height: 1;
+}
+.profile-hero__stat span {
+  font-size: 0.6rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+}
+.profile-hero__stat-sep {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+}
+
+/* ════════════════════════════════════════════════════
+   PROFILE TABS
+════════════════════════════════════════════════════ */
+.profile-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-light);
+  font-family: -apple-system, sans-serif;
+  transition: color 0.13s, border-color 0.13s;
+  margin-bottom: -1px;
+  border-radius: 6px 6px 0 0;
+}
+.profile-tab:hover { color: var(--text-dark); }
+.profile-tab--active {
+  color: var(--teal, #2a8fa0);
+  border-bottom-color: var(--teal, #2a8fa0);
+}
+
+.profile-tab__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(42,143,160,0.12);
+  border: 1px solid rgba(42,143,160,0.2);
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--teal, #2a8fa0);
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Section area ── */
+.profile-section {
+  min-height: 360px;
+}
+
+/* ════════════════════════════════════════════════════
+   CLICKABLE HISTORY ROW  (diagnostic)
+════════════════════════════════════════════════════ */
+
+/* Override default div to make button look like a row */
+.progress-history-row--clickable {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 16px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.13s;
+}
+.progress-history-row--clickable:last-child { border-bottom: none; }
+.progress-history-row--clickable:hover {
+  background: rgba(42,143,160,0.05);
+}
+.progress-history-row--clickable:hover .progress-history-row__arrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.progress-history-row__arrow {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--text-light);
+  opacity: 0;
+  transition: opacity 0.13s, transform 0.13s;
+  display: flex;
+  align-items: center;
+  padding-top: 2px;
+}
+
+/* ════════════════════════════════════════════════════
+   ANSWER BREAKDOWN  (used in ResultsSection)
+════════════════════════════════════════════════════ */
+.results-breakdown {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+
+.results-breakdown__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(231,76,60,0.04);
+}
+
+.results-breakdown__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e74c3c;
+}
+
+.results-breakdown__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: -apple-system, sans-serif;
+}
+
+.results-breakdown__count {
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  padding: 3px 9px;
+  background: var(--page-bg, #0d1117);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.results-breakdown__list { display: flex; flex-direction: column; }
+
+.results-breakdown__item {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transition: background 0.12s;
+}
+.results-breakdown__item:last-child { border-bottom: none; }
+.results-breakdown__item:hover { background: rgba(255,255,255,0.02); }
+
+.results-breakdown__item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.results-breakdown__item-id {
+  font-size: 0.63rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  letter-spacing: 0.06em;
+}
+
+.results-breakdown__item-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.61rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: var(--teal, #2a8fa0);
+  background: rgba(42,143,160,0.08);
+  border: 1px solid rgba(42,143,160,0.18);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.results-breakdown__item-question {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.results-breakdown__item-answers { display: flex; flex-direction: column; gap: 5px; }
+
+.results-breakdown__answer {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.results-breakdown__answer--wrong {
+  background: rgba(231,76,60,0.05);
+  border-color: rgba(231,76,60,0.15);
+}
+.results-breakdown__answer--correct {
+  background: rgba(39,174,96,0.05);
+  border-color: rgba(39,174,96,0.15);
+}
+
+.results-breakdown__answer-label {
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 86px;
+}
+.results-breakdown__answer--wrong .results-breakdown__answer-label    { color: #e74c3c; }
+.results-breakdown__answer--correct .results-breakdown__answer-label  { color: #27ae60; }
+
+.results-breakdown__answer-value {
+  font-size: 0.855rem;
+  font-family: -apple-system, sans-serif;
+  line-height: 1.45;
+}
+.results-breakdown__answer--wrong .results-breakdown__answer-value    { color: rgba(231,76,60,0.85); }
+.results-breakdown__answer--correct .results-breakdown__answer-value  { color: rgba(39,174,96,0.9); font-weight: 500; }
+
+/* ════════════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════════════ */
+@media (max-width: 860px) {
+  .profile-page  { padding: 16px 16px 60px; gap: 18px; }
+  .profile-hero  { flex-direction: column; gap: 20px; padding: 20px 18px; }
+  .profile-hero__stats {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .profile-hero__stat { flex: 1; padding: 12px 10px; }
+  .profile-hero__left { gap: 16px; }
+  .profile-hero__name { font-size: 1.1rem; }
+  .profile-xp__bar-outer,
+  .profile-xp__meta { max-width: 100%; }
+}
+
+@media (max-width: 540px) {
+  .profile-hero__name-row { flex-direction: column; align-items: flex-start; gap: 5px; }
+  .profile-tab  { padding: 9px 12px; font-size: 0.82rem; }
+  .profile-hero__stat strong { font-size: 1rem; }
+}
