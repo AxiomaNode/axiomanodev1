@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import RegisterForm from "../components/auth/RegisterForm";
 import "../styles/auth.css";
 import LoginForm from "../components/auth/LoginForm";
-import AxiomaLogo from '../App/AxiomaLogo.png';
+import AxiomaLogo from '../App/AxiomaLogo';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
