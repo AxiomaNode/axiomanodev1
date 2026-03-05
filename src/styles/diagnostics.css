@@ -12,6 +12,15 @@
   z-index: 1;
 }
 
+/* Allow text selection everywhere on the diagnostics page */
+.diag-page,
+.diag-question-card,
+.diag-option__text,
+.diag-results {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* ── Breadcrumb ── */
 .diag-breadcrumb {
   display: flex;
@@ -1204,12 +1213,17 @@
 }
 
 
-.diag-shell { display: block; }
+.diag-shell {
+  display: block;
+}
 
 .diag-shell--with-notes {
   display: flex;
-  align-items: stretch;
-  min-height: calc(100vh - 60px);
+  align-items: flex-start;
+  gap: 0;
 }
 
-.diag-shell__main { flex: 1; min-width: 0; overflow-y: auto; }
+.diag-shell__main {
+  flex: 1;
+  min-width: 0;
+}

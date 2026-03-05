@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
 import Sidebar from "../components/layout/Sidebar";
+import NotesPanel from "../components/NotesPanel";   // ← standalone component
 import { topics } from "../data/topics";
 import { saveDiagnostic } from "../services/db";
 import { gapsDatabase } from "../data/gaps";
@@ -10,7 +11,7 @@ import { questions } from "../data/questions";
 import "../styles/diagnostics.css";
 import "../styles/layout.css";
 import { awardPoints } from "../core/scoringEngine";
-import "../components/notes-panel.css"
+// notes-panel.css is imported by NotesPanel.jsx — no need to duplicate here
 
 /* ════════════════════════════════════════════
    ICONS
@@ -40,29 +41,11 @@ const XIcon = () => (
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-const NoteIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-  </svg>
-);
-const TrashIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="3 6 5 6 21 6"/>
-    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-    <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-  </svg>
-);
 
 /* ════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════ */
 const GAP_WRONG_THRESHOLD = 2;
-const FONT_STEPS = [12, 13, 14, 15, 16, 17, 18];
-const DEFAULT_FONT_IDX = 2;
-const MIN_PANEL_W = 260;
-const MAX_PANEL_RATIO = 0.45;
 
 /* ════════════════════════════════════════════
    DIAGNOSTIC LOGIC
@@ -104,152 +87,6 @@ const detectAllGaps = (answers, allQuestions) => {
     if (found.length) result[topic.id] = found;
   });
   return result;
-};
-
-/* ════════════════════════════════════════════
-   NOTES PANEL
-════════════════════════════════════════════ */
-const NotesPanel = ({ sessionId }) => {
-  const storageKey   = `diag_notes_${sessionId}`;
-  const collapseKey  = `diag_notes_col_${sessionId}`;
-  const fontKey      = `diag_notes_font_${sessionId}`;
-
-  const [value, setValue]         = useState(() => localStorage.getItem(storageKey) ?? "");
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(collapseKey) === "true");
-  const [fontIdx, setFontIdx]     = useState(() => {
-    const n = parseInt(localStorage.getItem(fontKey), 10);
-    return isNaN(n) ? DEFAULT_FONT_IDX : Math.max(0, Math.min(FONT_STEPS.length - 1, n));
-  });
-  const [showClear, setShowClear]   = useState(false);
-  const [panelWidth, setPanelWidth] = useState(300);
-  const [dragging, setDragging]     = useState(false);
-
-  const saveTimer  = useRef(null);
-  const dragStartX = useRef(0);
-  const dragStartW = useRef(0);
-
-  /* auto-save */
-  const handleChange = (e) => {
-    const v = e.target.value;
-    setValue(v);
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => localStorage.setItem(storageKey, v), 800);
-  };
-
-  useEffect(() => { localStorage.setItem(collapseKey, collapsed); }, [collapsed, collapseKey]);
-  useEffect(() => { localStorage.setItem(fontKey, fontIdx); }, [fontIdx, fontKey]);
-
-  /* resize drag — drag handle on the RIGHT edge, dragging RIGHT increases width */
-  const onDragStart = useCallback((e) => {
-    e.preventDefault();
-    dragStartX.current = e.clientX;
-    dragStartW.current = panelWidth;
-    setDragging(true);
-  }, [panelWidth]);
-
-  useEffect(() => {
-    if (!dragging) return;
-    const onMove = (e) => {
-      const delta = e.clientX - dragStartX.current;
-      const maxW  = Math.floor(window.innerWidth * MAX_PANEL_RATIO);
-      setPanelWidth(Math.min(maxW, Math.max(MIN_PANEL_W, dragStartW.current + delta)));
-    };
-    const onUp = () => setDragging(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
-  }, [dragging]);
-
-  const handleClearConfirm = () => {
-    setValue(""); localStorage.removeItem(storageKey); setShowClear(false);
-  };
-
-  const fontSize = FONT_STEPS[fontIdx];
-
-  /* ── Collapsed strip ── */
-  if (collapsed) {
-    return (
-      <aside className="notes-strip">
-        <button className="notes-strip__btn" onClick={() => setCollapsed(false)} title="Open notes">
-          <NoteIcon />
-          <span className="notes-strip__label">Notes</span>
-          <ChevronRight />
-        </button>
-      </aside>
-    );
-  }
-
-  return (
-    <>
-      {/* Clear confirm */}
-      {showClear && (
-        <div className="notes-confirm-overlay" onClick={() => setShowClear(false)}>
-          <div className="notes-confirm" onClick={e => e.stopPropagation()}>
-            <p className="notes-confirm__title">Clear all notes?</p>
-            <p className="notes-confirm__sub">This cannot be undone.</p>
-            <div className="notes-confirm__row">
-              <button className="notes-confirm__btn notes-confirm__btn--cancel" onClick={() => setShowClear(false)}>Cancel</button>
-              <button className="notes-confirm__btn notes-confirm__btn--clear" onClick={handleClearConfirm}>Clear</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <aside
-        className={`notes-panel${dragging ? " notes-panel--drag" : ""}`}
-        style={{ width: panelWidth }}
-      >
-        {/* header */}
-        <div className="notes-panel__hd">
-          <div className="notes-panel__hd-left">
-            <span className="notes-panel__hd-icon"><NoteIcon /></span>
-            <span className="notes-panel__hd-title">Notes</span>
-          </div>
-          <div className="notes-panel__hd-right">
-            {/* font size */}
-            <div className="notes-font">
-              <button
-                className="notes-font__btn"
-                onClick={() => setFontIdx(i => Math.max(0, i - 1))}
-                disabled={fontIdx === 0}
-                title="Smaller"
-              >A<sup>-</sup></button>
-              <span className="notes-font__val">{fontSize}</span>
-              <button
-                className="notes-font__btn"
-                onClick={() => setFontIdx(i => Math.min(FONT_STEPS.length - 1, i + 1))}
-                disabled={fontIdx === FONT_STEPS.length - 1}
-                title="Larger"
-              >A<sup>+</sup></button>
-            </div>
-            <button className="notes-icon-btn" onClick={() => setShowClear(true)} disabled={!value} title="Clear">
-              <TrashIcon />
-            </button>
-            <button className="notes-icon-btn" onClick={() => setCollapsed(true)} title="Collapse">
-              <ChevronLeft />
-            </button>
-          </div>
-        </div>
-
-        {/* body */}
-        <div className="notes-panel__body">
-          <textarea
-            className="notes-ta"
-            value={value}
-            onChange={handleChange}
-            placeholder="Scratch work…"
-            spellCheck={false}
-            autoCorrect="off"
-            autoCapitalize="off"
-            style={{ fontSize }}
-          />
-        </div>
-
-        {/* resize handle */}
-        <div className="notes-resize" onMouseDown={onDragStart} />
-      </aside>
-    </>
-  );
 };
 
 /* ════════════════════════════════════════════
@@ -488,8 +325,8 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
    QUESTION STEP
 ════════════════════════════════════════════ */
 const QuestionStep = ({ allQuestions, onFinish }) => {
-  const [current, setCurrent]       = useState(0);
-  const [answers, setAnswers]       = useState({});
+  const [current, setCurrent]         = useState(0);
+  const [answers, setAnswers]         = useState({});
   const [showConfirm, setShowConfirm] = useState(false);
 
   const q         = allQuestions[current];
@@ -506,6 +343,7 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
   useEffect(() => {
     const h = (e) => {
       if (showConfirm) return;
+      if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
         const opts = q.options.map(o => o.value);
@@ -632,15 +470,15 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
    RESULTS STEP
 ════════════════════════════════════════════ */
 const ResultsStep = ({ answers, allQuestions, onRetry }) => {
-  const gapsByTopic   = detectAllGaps(answers, allQuestions);
-  const totalGaps     = Object.values(gapsByTopic).flat().length;
+  const gapsByTopic    = detectAllGaps(answers, allQuestions);
+  const totalGaps      = Object.values(gapsByTopic).flat().length;
   const topicsWithGaps = Object.keys(gapsByTopic);
-  const activeTopics  = [...new Set(allQuestions.map(q => q.topicId))]
+  const activeTopics   = [...new Set(allQuestions.map(q => q.topicId))]
     .map(id => topics.find(t => t.id === id)).filter(Boolean);
-  const topicsClean   = activeTopics.filter(t => !gapsByTopic[t.id]);
+  const topicsClean    = activeTopics.filter(t => !gapsByTopic[t.id]);
   const wrongQuestions = allQuestions.filter(q => answers[q.id] !== q.correct);
-  const correctCount  = allQuestions.length - wrongQuestions.length;
-  const accuracy      = Math.round((correctCount / allQuestions.length) * 100);
+  const correctCount   = allQuestions.length - wrongQuestions.length;
+  const accuracy       = Math.round((correctCount / allQuestions.length) * 100);
 
   return (
     <div className="diag-step">
@@ -796,11 +634,11 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
 ════════════════════════════════════════════ */
 const DiagnosticsPage = () => {
   const { user }   = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [step, setStep]               = useState("intro");
+  const [sidebarOpen, setSidebarOpen]   = useState(false);
+  const [step, setStep]                 = useState("intro");
   const [finalAnswers, setFinalAnswers] = useState({});
   const [allQuestions, setAllQuestions] = useState([]);
-  const [sessionId, setSessionId]     = useState(() => `s_${Date.now()}`);
+  const [sessionId, setSessionId]       = useState(() => `s_${Date.now()}`);
   const savingRef = useRef(false);
 
   const handleTopicStart = (selectedTopicIds) => {
@@ -845,11 +683,15 @@ const DiagnosticsPage = () => {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="page-main">
-        {/* ── two-column shell: notes (left) + content (right) ── */}
-        <div className={`diag-shell${isQuestionStep ? " diag-shell--with-notes" : ""}`}>
+        {/*
+          Two-column shell:
+            LEFT  → diag-shell__main  (flex: 1, main content)
+            RIGHT → NotesPanel        (sticky, fixed width, only during questions)
 
-          {/* Notes panel — only during question step */}
-          {isQuestionStep && <NotesPanel sessionId={sessionId} />}
+          NotesPanel is rendered AFTER main so it sits on the right naturally
+          in the flex row — no CSS order tricks needed.
+        */}
+        <div className={`diag-shell${isQuestionStep ? " diag-shell--with-notes" : ""}`}>
 
           {/* Main content column */}
           <div className="diag-shell__main">
@@ -880,6 +722,9 @@ const DiagnosticsPage = () => {
               {step === "results"      && <ResultsStep answers={finalAnswers} allQuestions={allQuestions} onRetry={handleRetry} />}
             </div>
           </div>
+
+          {/* Notes panel — RIGHT side, only during question step */}
+          {isQuestionStep && <NotesPanel sessionId={sessionId} />}
 
         </div>
       </main>

@@ -38,7 +38,7 @@ const TopicIcon = ({ topic, size = 16 }) => {
   const Icon = topic?.icon;
   if (typeof Icon === "function") return <Icon size={size} strokeWidth={2.5} />;
   if (typeof Icon === "string") return <span>{Icon}</span>;
-  return <span></span>;
+  return <span>◆</span>;
 };
 
 const ScoreRing = ({ pct, color }) => {
@@ -46,7 +46,18 @@ const ScoreRing = ({ pct, color }) => {
   const dash = (pct / 100) * circ;
   return (
     <svg viewBox="0 0 130 130" className="results-ring-svg">
+      <defs>
+        <filter id="ring-glow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
       <circle cx="65" cy="65" r="52" fill="none" stroke="var(--border)" strokeWidth="9" />
+      <circle
+        cx="65" cy="65" r="52" fill="none" stroke={color} strokeWidth="9"
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+        transform="rotate(-90 65 65)" opacity="0.25" filter="url(#ring-glow)"
+      />
       <circle
         cx="65" cy="65" r="52" fill="none" stroke={color} strokeWidth="9"
         strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform="rotate(-90 65 65)"
@@ -55,8 +66,6 @@ const ScoreRing = ({ pct, color }) => {
   );
 };
 
-// ── Answer Breakdown ──────────────────────────────────────────────────────────
-// Shows ALL wrong answers with question text + correct answer
 const AnswerBreakdown = ({ session }) => {
   const allQMap = {};
   Object.values(questionsDb).flat().forEach((q) => { allQMap[q.id] = q; });
@@ -89,7 +98,7 @@ const AnswerBreakdown = ({ session }) => {
         </span>
       </div>
       <div className="results-breakdown__list">
-        {wrongEntries.map(([qId, userAns]) => {
+        {wrongEntries.map(([qId, userAns], idx) => {
           const q = allQMap[qId];
           if (!q) return null;
           const isSkipped = !userAns;
@@ -99,6 +108,7 @@ const AnswerBreakdown = ({ session }) => {
           return (
             <div key={qId} className="results-breakdown__item">
               <div className="results-breakdown__item-header">
+                <span className="results-breakdown__item-num">#{idx + 1}</span>
                 <span className="results-breakdown__item-id">// {qId}</span>
                 {topicMeta && (
                   <span className="results-breakdown__item-topic">
@@ -128,13 +138,11 @@ const AnswerBreakdown = ({ session }) => {
   );
 };
 
-// ── ResultsPage ───────────────────────────────────────────────────────────────
 const ResultsPage = () => {
   const { user } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
-  // Read selectedIdx from navigation state (when coming from ProgressPage click)
   const [selectedIdx, setSelectedIdx] = useState(location.state?.selectedIdx ?? 0);
   const [loading, setLoading] = useState(true);
 
@@ -158,6 +166,8 @@ const ResultsPage = () => {
 
       <main className="page-main">
         <div className="results-page">
+
+          {/* Breadcrumb */}
           <div className="results-breadcrumb">
             <Link to="/home" className="results-breadcrumb__item">Home</Link>
             <ChevronRight />
@@ -166,6 +176,7 @@ const ResultsPage = () => {
             <span className="results-breadcrumb__item results-breadcrumb__item--active">Results</span>
           </div>
 
+          {/* Header */}
           <div className="results-header">
             <div className="results-header__icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -176,6 +187,10 @@ const ResultsPage = () => {
               </svg>
             </div>
             <div>
+              <div className="results-header__eyebrow">
+                <span className="results-header__eyebrow-dot" />
+                Diagnostic Report
+              </div>
               <h1 className="results-header__title">Diagnostic Results</h1>
               <p className="results-header__sub">Full breakdown of your reasoning performance.</p>
             </div>
@@ -203,6 +218,8 @@ const ResultsPage = () => {
             </div>
           ) : (
             <div className="results-layout">
+
+              {/* Sidebar */}
               <aside className="results-sidebar">
                 <p className="results-sidebar__label">Session History</p>
                 <div className="results-sidebar__list">
@@ -216,12 +233,12 @@ const ResultsPage = () => {
                         onClick={() => setSelectedIdx(i)}
                       >
                         <span className="results-session-btn__icon">
-                          <TopicIcon topic={t} size={16} />
+                          <TopicIcon topic={t} size={14} />
                         </span>
                         <div className="results-session-btn__info">
                           <span className="results-session-btn__title">{s.topicTitle}</span>
                           <span className="results-session-btn__date">
-                            {new Date(s.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                            {new Date(s.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                           </span>
                         </div>
                         <span className="results-session-btn__pct" style={{ color: scoreColor(p) }}>
@@ -242,6 +259,8 @@ const ResultsPage = () => {
 
               {session && (
                 <div className="results-main">
+
+                  {/* Overview card */}
                   <div className="results-overview-card">
                     <div className="results-overview-ring">
                       <ScoreRing pct={pct} color={color} />
@@ -266,18 +285,21 @@ const ResultsPage = () => {
                           <strong style={{ color: "#27ae60" }}>{session.score.correct}</strong>
                           <span>Correct</span>
                         </div>
+                        <div className="results-overview-stat__div" />
                         <div className="results-overview-stat">
                           <strong style={{ color: "#c0392b" }}>{session.score.total - session.score.correct}</strong>
                           <span>Wrong</span>
                         </div>
+                        <div className="results-overview-stat__div" />
                         <div className="results-overview-stat">
                           <strong style={{ color: "#d35400" }}>{session.gaps?.length ?? 0}</strong>
-                          <span>Gaps found</span>
+                          <span>Gaps</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Gaps */}
                   {session.gaps?.length > 0 && (
                     <div className="results-section">
                       <h3 className="results-section__title">
@@ -287,10 +309,11 @@ const ResultsPage = () => {
                           <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
                         Reasoning gaps identified
+                        <span className="results-section__count">{session.gaps.length}</span>
                       </h3>
                       <div className="results-gaps-list">
-                        {session.gaps.map((gap) => (
-                          <div key={gap.id} className="results-gap-card">
+                        {session.gaps.map((gap, gIdx) => (
+                          <div key={gap.id} className="results-gap-card" style={{ animationDelay: `${gIdx * 0.07}s` }}>
                             <div className="results-gap-card__head">
                               <div className="results-gap-card__label-row">
                                 <span className="results-gap-card__tag">Gap</span>
@@ -317,6 +340,7 @@ const ResultsPage = () => {
                     </div>
                   )}
 
+                  {/* Answer breakdown */}
                   <div className="results-section">
                     <h3 className="results-section__title">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -329,6 +353,7 @@ const ResultsPage = () => {
                     <AnswerBreakdown session={session} />
                   </div>
 
+                  {/* Actions */}
                   <div className="results-actions">
                     <Link to="/diagnostics" className="results-btn results-btn--primary">
                       Retry topic <ChevronRight />
@@ -337,6 +362,7 @@ const ResultsPage = () => {
                       Go to Practice
                     </Link>
                   </div>
+
                 </div>
               )}
             </div>

@@ -1,23 +1,12 @@
-/* ═══════════════════════════════════════════
-   NOTES PANEL  —  Axioma Diagnostics
-═══════════════════════════════════════════ */
-
-/* ── Layout: wrap diagnostics content + notes panel ── */
-.diag-with-notes {
-  display: flex;
-  align-items: stretch;
-  min-height: calc(100vh - 60px); /* subtract header height */
-  position: relative;
-}
-
-.diag-with-notes__main {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-}
+/* ═══════════════════════════════════════════════════════
+   NOTES PANEL  —  Axioma
+   Desktop  : sticky right-side panel, resizable from left edge
+   Tablet   : slide-in overlay from right + backdrop
+   Mobile   : bottom sheet + teal FAB to open
+═══════════════════════════════════════════════════════ */
 
 /* ════════════════════════════════════════
-   PANEL
+   PANEL (expanded)
 ════════════════════════════════════════ */
 .notes-panel {
   position: sticky;
@@ -26,17 +15,19 @@
   display: flex;
   flex-direction: column;
   background: var(--card-bg, #0f1923);
-  border-right: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-left: 1px solid var(--border, rgba(255,255,255,0.07));
   flex-shrink: 0;
   z-index: 10;
-  user-select: none;
   transition: box-shadow 0.15s;
-  order: -1; /* left side */
+  /* ensure nothing inside accidentally blocks selection */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .notes-panel--dragging {
   user-select: none;
-  box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.35);
+  cursor: col-resize;
 }
 
 /* ── Header ── */
@@ -45,45 +36,49 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 12px 14px 12px 16px;
+  padding: 11px 14px 11px 16px;
   border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
-  background: rgba(255,255,255,0.015);
+  background: rgba(255,255,255,0.012);
   flex-shrink: 0;
+  position: relative; /* for mobile pill */
 }
 
 .notes-panel__header-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .notes-panel__header-icon {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   color: var(--teal, #2a8fa0);
   opacity: 0.85;
 }
 
 .notes-panel__title {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.13em;
   color: var(--text-light, rgba(255,255,255,0.35));
   font-family: 'Courier New', Courier, monospace;
+  white-space: nowrap;
 }
 
 .notes-panel__header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
-/* ── Font size controls ── */
+/* ── Font-size controls ── */
 .notes-font-ctrl {
   display: flex;
   align-items: center;
-  gap: 0;
   border: 1px solid var(--border, rgba(255,255,255,0.08));
   border-radius: 6px;
   overflow: hidden;
@@ -92,45 +87,51 @@
 .notes-font-ctrl__btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 4px 8px;
   background: transparent;
   border: none;
   cursor: pointer;
   color: var(--text-light, rgba(255,255,255,0.35));
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   font-family: 'Courier New', monospace;
   line-height: 1;
-  transition: background 0.12s, color 0.12s;
   gap: 1px;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
 }
 
 .notes-font-ctrl__btn:hover:not(:disabled) {
-  background: rgba(42,143,160,0.12);
+  background: rgba(42,143,160,0.14);
   color: var(--teal, #2a8fa0);
 }
 
 .notes-font-ctrl__btn:disabled {
-  opacity: 0.25;
+  opacity: 0.22;
   cursor: not-allowed;
 }
 
-.notes-font-ctrl__minus { font-size: 0.65rem; margin-top: -1px; }
-.notes-font-ctrl__plus  { font-size: 0.65rem; margin-top: -1px; }
+.notes-font-ctrl__minus,
+.notes-font-ctrl__plus {
+  font-size: 0.62rem;
+  margin-top: -1px;
+  line-height: 1;
+}
 
 .notes-font-ctrl__val {
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-family: 'Courier New', monospace;
-  color: var(--text-light, rgba(255,255,255,0.3));
-  padding: 4px 6px;
-  border-left: 1px solid var(--border, rgba(255,255,255,0.07));
+  color: var(--text-light, rgba(255,255,255,0.28));
+  padding: 4px 5px;
+  border-left:  1px solid var(--border, rgba(255,255,255,0.07));
   border-right: 1px solid var(--border, rgba(255,255,255,0.07));
-  min-width: 22px;
+  min-width: 20px;
   text-align: center;
   line-height: 1;
 }
 
-/* ── Icon buttons ── */
+/* ── Shared icon buttons (used across diagnostics page too) ── */
 .notes-icon-btn {
   display: flex;
   align-items: center;
@@ -141,81 +142,73 @@
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  color: var(--text-light, rgba(255,255,255,0.3));
+  color: var(--text-light, rgba(255,255,255,0.28));
   transition: background 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
 }
 
 .notes-icon-btn:hover:not(:disabled) {
   background: rgba(42,143,160,0.1);
-  border-color: rgba(42,143,160,0.3);
+  border-color: rgba(42,143,160,0.28);
   color: var(--teal, #2a8fa0);
 }
 
 .notes-icon-btn:disabled {
-  opacity: 0.2;
+  opacity: 0.18;
   cursor: not-allowed;
 }
 
-/* ── Body / textarea area ── */
+/* ── Body ── */
 .notes-panel__body {
   flex: 1;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
+/* ── Textarea — math scratchpad feel ── */
 .notes-textarea {
+  flex: 1;
   width: 100%;
-  height: 100%;
-  padding: 18px 16px;
+  padding: 18px 16px 18px 18px;
   background: transparent;
   border: none;
   outline: none;
   resize: none;
-  color: rgba(210, 228, 245, 0.88);
-  font-family: 'JetBrains Mono', 'Fira Mono', 'Courier New', Courier, monospace;
-  line-height: 1.65;
+  color: rgba(210, 228, 245, 0.86);
+  font-family: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', 'Courier New', Courier, monospace;
+  line-height: 1.75;
   caret-color: var(--teal, #2a8fa0);
   box-sizing: border-box;
   cursor: text;
   overflow-y: auto;
-
-  /* Notebook grid */
-  background-image:
-    linear-gradient(
-      rgba(255,255,255,0.028) 1px,
-      transparent 1px
-    );
-  background-size: 100% 20px;
-  background-position: 0 calc(18px + 1px); /* align grid to first line */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
-/* Placeholder */
 .notes-textarea::placeholder {
-  color: rgba(255,255,255,0.16);
+  color: rgba(255,255,255,0.17);
   font-style: italic;
 }
 
-/* Custom thin scrollbar */
-.notes-textarea::-webkit-scrollbar {
-  width: 4px;
-}
-.notes-textarea::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Thin teal scrollbar */
+.notes-textarea::-webkit-scrollbar       { width: 3px; }
+.notes-textarea::-webkit-scrollbar-track { background: transparent; }
 .notes-textarea::-webkit-scrollbar-thumb {
-  background: rgba(42,143,160,0.25);
+  background: rgba(42,143,160,0.22);
   border-radius: 2px;
 }
 .notes-textarea::-webkit-scrollbar-thumb:hover {
-  background: rgba(42,143,160,0.45);
+  background: rgba(42,143,160,0.42);
 }
 
-/* ── Resize handle ── */
+/* ── Resize handle — LEFT edge (right-side panel) ── */
 .notes-resize-handle {
   position: absolute;
   top: 0;
-  right: -4px;
-  width: 8px;
+  left: -5px;       /* sits on the left border of the panel */
+  width: 10px;
   height: 100%;
   cursor: col-resize;
   z-index: 20;
@@ -227,32 +220,80 @@
 .notes-resize-handle::after {
   content: '';
   width: 2px;
-  height: 40px;
+  height: 44px;
   border-radius: 1px;
-  background: rgba(42,143,160,0.0);
+  background: rgba(42,143,160,0);
   transition: background 0.15s;
 }
 
 .notes-resize-handle:hover::after,
 .notes-panel--dragging .notes-resize-handle::after {
-  background: rgba(42,143,160,0.5);
+  background: rgba(42,143,160,0.55);
 }
 
 /* ════════════════════════════════════════
-   COLLAPSED STATE
+   SYMBOL TOOLBAR
+════════════════════════════════════════ */
+.notes-symbols {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 10px 6px 12px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+  background: rgba(255,255,255,0.008);
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+.notes-symbols::-webkit-scrollbar { display: none; }
+
+.notes-symbols__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-mid, rgba(255,255,255,0.55));
+  font-size: 1.1rem;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.1s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.notes-symbols__btn:hover {
+  background: rgba(42,143,160,0.14);
+  border-color: rgba(42,143,160,0.28);
+  color: var(--teal, #2a8fa0);
+  transform: translateY(-1px);
+}
+
+.notes-symbols__btn:active {
+  transform: translateY(0) scale(0.9);
+  background: rgba(42,143,160,0.22);
+}
+
+/* ════════════════════════════════════════
+   COLLAPSED — desktop right strip
 ════════════════════════════════════════ */
 .notes-collapsed {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 16px 6px;
-  border-right: 1px solid var(--border, rgba(255,255,255,0.07));
+  border-left: 1px solid var(--border, rgba(255,255,255,0.07));
   background: var(--card-bg, #0f1923);
   position: sticky;
   top: 0;
   height: 100vh;
   flex-shrink: 0;
-  order: -1;
 }
 
 .notes-collapsed__btn {
@@ -265,7 +306,7 @@
   border-radius: 8px;
   background: transparent;
   cursor: pointer;
-  color: var(--text-light, rgba(255,255,255,0.3));
+  color: var(--text-light, rgba(255,255,255,0.28));
   font-family: 'Courier New', monospace;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
@@ -277,12 +318,24 @@
 }
 
 .notes-collapsed__label {
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.15em;
   writing-mode: vertical-rl;
   text-orientation: mixed;
+}
+
+/* ════════════════════════════════════════
+   BACKDROP (tablet + mobile)
+════════════════════════════════════════ */
+.notes-backdrop {
+  display: none; /* hidden on desktop; shown via media query */
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.42);
+  z-index: 88;
+  animation: notes-fade-in 0.2s ease;
 }
 
 /* ════════════════════════════════════════
@@ -297,7 +350,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 300;
+  z-index: 400;
   animation: notes-fade-in 0.15s ease;
 }
 
@@ -310,17 +363,17 @@
   background: var(--card-bg, #111a24);
   border: 1px solid var(--border, rgba(255,255,255,0.1));
   border-radius: 14px;
-  padding: 24px 28px;
+  padding: 24px 26px;
   width: 280px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.55);
   animation: notes-modal-in 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @keyframes notes-modal-in {
-  from { transform: scale(0.93) translateY(8px); opacity: 0; }
+  from { transform: scale(0.92) translateY(10px); opacity: 0; }
   to   { transform: scale(1) translateY(0); opacity: 1; }
 }
 
@@ -356,120 +409,230 @@
   transition: opacity 0.12s, transform 0.1s;
 }
 
-.notes-confirm__btn:hover { opacity: 0.85; transform: translateY(-1px); }
-
-.notes-confirm__btn--cancel {
-  background: var(--card-bg-alt, rgba(255,255,255,0.06));
-  color: var(--text-mid, rgba(255,255,255,0.6));
+.notes-confirm__btn:hover         { opacity: 0.85; transform: translateY(-1px); }
+.notes-confirm__btn--cancel  {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-mid, rgba(255,255,255,0.55));
   border: 1px solid var(--border, rgba(255,255,255,0.08));
 }
-
 .notes-confirm__btn--confirm {
-  background: rgba(211,84,0,0.85);
+  background: rgba(211,84,0,0.88);
   color: #fff;
 }
 
 /* ════════════════════════════════════════
-   TABLET: slide-in overlay
+   TABLET  (768 – 1023px)
+   Slide-in overlay from the right edge
 ════════════════════════════════════════ */
 @media (min-width: 768px) and (max-width: 1023px) {
   .notes-panel {
     position: fixed;
     top: 0;
-    left: 0;
+    right: 0;
     height: 100vh;
-    z-index: 80;
-    box-shadow: 4px 0 32px rgba(0,0,0,0.5);
-    transform: translateX(0);
-    animation: notes-slide-in 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 89;
+    box-shadow: -6px 0 36px rgba(0,0,0,0.5);
+    animation: notes-slide-right 0.24s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  @keyframes notes-slide-in {
-    from { transform: translateX(-100%); }
+  @keyframes notes-slide-right {
+    from { transform: translateX(100%); }
     to   { transform: translateX(0); }
   }
 
   .notes-collapsed {
     position: fixed;
     top: 0;
-    left: 0;
+    right: 0;
     height: 100vh;
-    z-index: 80;
+    z-index: 89;
   }
 
-  /* dimmed backdrop — add via JS toggling a class on body, or handle inline */
-  .notes-panel-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 79;
-  }
-}
-
-/* ════════════════════════════════════════
-   MOBILE: full-screen overlay
-════════════════════════════════════════ */
-@media (max-width: 767px) {
-  .notes-panel {
-    position: fixed;
-    inset: 0;
-    width: 100% !important;
-    height: 100%;
-    z-index: 90;
-    border-right: none;
-    animation: notes-slide-up 0.2s ease;
-  }
-
-  @keyframes notes-slide-up {
-    from { transform: translateY(20px); opacity: 0; }
-    to   { transform: translateY(0); opacity: 1; }
+  .notes-backdrop {
+    display: block;
   }
 
   .notes-resize-handle { display: none; }
+}
 
-  .notes-collapsed {
-    flex-direction: row;
+/* ════════════════════════════════════════
+   MOBILE  (< 768px)
+   Bottom sheet + teal FAB when collapsed
+════════════════════════════════════════ */
+@media (max-width: 767px) {
+
+  /* ── Expanded: bottom sheet ── */
+  .notes-panel {
     position: fixed;
-    bottom: 20px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: 58vh;
+    max-height: 82vh;
+    border-left: none;
+    border-top: 1px solid var(--border, rgba(255,255,255,0.1));
+    border-radius: 18px 18px 0 0;
+    z-index: 89;
+    box-shadow: 0 -10px 48px rgba(0,0,0,0.55);
+    animation: notes-sheet-up 0.3s cubic-bezier(0.34, 1.15, 0.64, 1);
+  }
+
+  @keyframes notes-sheet-up {
+    from { transform: translateY(100%); opacity: 0.5; }
+    to   { transform: translateY(0);    opacity: 1;   }
+  }
+
+  /* Drag pill at top center */
+  .notes-panel__header::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 38px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.14);
+  }
+  .notes-panel__header { padding-top: 22px; }
+
+  .notes-resize-handle { display: none; }
+
+  /* ── Backdrop ── */
+  .notes-backdrop {
+    display: block;
+    z-index: 88;
+  }
+
+  /* ── Collapsed: teal FAB ── */
+  .notes-collapsed {
+    position: fixed;
+    bottom: 22px;
     right: 16px;
     top: auto;
     left: auto;
     height: auto;
     width: auto;
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
-    border-radius: 12px;
+    border: none;
     padding: 0;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    z-index: 90;
+    background: transparent;
+    z-index: 87;
   }
 
   .notes-collapsed__btn {
     flex-direction: row;
-    gap: 6px;
-    padding: 10px 14px;
+    gap: 7px;
+    padding: 11px 18px;
+    border-radius: 28px;
+    background: var(--teal, #2a8fa0);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 4px 20px rgba(42,143,160,0.5), 0 2px 8px rgba(0,0,0,0.3);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  }
+
+  .notes-collapsed__btn:hover {
+    background: rgba(42,143,160,0.9);
+    border-color: transparent;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(42,143,160,0.55), 0 4px 12px rgba(0,0,0,0.3);
   }
 
   .notes-collapsed__label {
     writing-mode: horizontal-tb;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
   }
 
-  .diag-with-notes__main {
-    width: 100%;
+  /* Textarea: prevent virtual keyboard from obscuring content */
+  .notes-textarea {
+    overscroll-behavior: contain;
   }
 }
 
 /* ════════════════════════════════════════
-   DESKTOP: side-by-side layout
+   DESKTOP  (≥ 1024px)  —  sticky right panel
 ════════════════════════════════════════ */
 @media (min-width: 1024px) {
-  .diag-with-notes {
-    gap: 0;
-  }
-
   .notes-panel {
     position: sticky;
     top: 0;
     flex-shrink: 0;
+    height: 100vh;
   }
+
+  .notes-backdrop { display: none; }
 }
+
+/* ════════════════════════════════════════
+   CLOUD SAVE STATUS  (Firestore mode)
+════════════════════════════════════════ */
+.notes-fs-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  border: 1px solid transparent;
+}
+
+/* Idle — just a dim cloud icon, no text */
+.notes-fs-status--idle {
+  color: rgba(42,143,160,0.3);
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Loading */
+.notes-fs-status--loading {
+  color: var(--text-light, rgba(255,255,255,0.3));
+  background: transparent;
+}
+
+/* Saving */
+.notes-fs-status--saving {
+  color: var(--teal, #2a8fa0);
+  background: rgba(42,143,160,0.08);
+  border-color: rgba(42,143,160,0.18);
+}
+
+/* Saved */
+.notes-fs-status--saved {
+  color: #27ae60;
+  background: rgba(39,174,96,0.07);
+  border-color: rgba(39,174,96,0.18);
+}
+
+/* Error */
+.notes-fs-status--error {
+  color: #e74c3c;
+  background: rgba(231,76,60,0.07);
+  border-color: rgba(231,76,60,0.2);
+}
+
+.notes-fs-status__label {
+  line-height: 1;
+}
+
+/* Spinner for "Saving…" */
+.notes-fs-status__spin {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid rgba(42,143,160,0.2);
+  border-top-color: var(--teal, #2a8fa0);
+  border-radius: 50%;
+  animation: notes-fs-spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes notes-fs-spin { to { transform: rotate(360deg); } }

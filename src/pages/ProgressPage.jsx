@@ -47,9 +47,20 @@ const scoreColor = (pct) => (pct >= 70 ? "#27ae60" : pct >= 40 ? "#d35400" : "#c
 const CHART_DIAG_COLOR = "#2a8fa0";
 const CHART_PRAC_COLOR = "#d35400";
 
+// ─── Animated Chart ───────────────────────────────────────────────────────────
 const ProgressChart = ({ diagnostics, practice }) => {
   const svgRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
+  // Drives the draw animation — false on mount, true after first paint
+  const [drawn, setDrawn] = useState(false);
+
+  useEffect(() => {
+    // Let the browser paint the initial (invisible) state, then trigger transition
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setDrawn(true));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const W = 860;
   const H = 220;
@@ -92,7 +103,42 @@ const ProgressChart = ({ diagnostics, practice }) => {
 
   const gridY = [0, 25, 50, 75, 100];
   const hasDisag = diagPoints.length > 0;
-  const hasPrac = pracPoints.length > 0;
+  const hasPrac  = pracPoints.length > 0;
+
+  const TW = 180;
+  const TH = 54;
+
+  const clampTooltip = (cx, cy) => {
+    const tx = Math.min(Math.max(cx - TW / 2, PAD.left), PAD.left + INNER_W - TW);
+    const aboveY = cy - TH - 12;
+    const ty = aboveY < PAD.top ? cy + 14 : aboveY;
+    return { tx, ty };
+  };
+
+  // Shared line animation style
+  const lineStyle = (delay = 0) => ({
+    strokeDasharray: 2000,
+    strokeDashoffset: drawn ? 0 : 2000,
+    transition: drawn
+      ? `stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1) ${delay}ms`
+      : "none",
+  });
+
+  // Area polygon fades in after the line is mostly drawn
+  const areaStyle = (delay = 0) => ({
+    opacity: drawn ? 1 : 0,
+    transition: drawn ? `opacity 0.6s ease ${delay + 900}ms` : "none",
+  });
+
+  // Individual dot pop-in
+  const dotStyle = (delay = 0) => ({
+    opacity: drawn ? 1 : 0,
+    transform: drawn ? "scale(1)" : "scale(0)",
+    transformOrigin: "center",
+    transition: drawn
+      ? `opacity 0.25s ease ${delay}ms, transform 0.25s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`
+      : "none",
+  });
 
   return (
     <div className="progress-chart-wrap">
@@ -110,12 +156,41 @@ const ProgressChart = ({ diagnostics, practice }) => {
           </span>
         )}
       </div>
+
       <div className="progress-chart-svg-wrap">
-        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="progress-chart-svg" onMouseLeave={() => setTooltip(null)}>
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="progress-chart-svg"
+          onMouseLeave={() => setTooltip(null)}>
+
+          <defs>
+            {hasDisag && diagPoints.length > 1 && (
+              <linearGradient id="diagGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={CHART_DIAG_COLOR} stopOpacity="0.18" />
+                <stop offset="100%" stopColor={CHART_DIAG_COLOR} stopOpacity="0" />
+              </linearGradient>
+            )}
+            {hasPrac && pracPoints.length > 1 && (
+              <linearGradient id="pracGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={CHART_PRAC_COLOR} stopOpacity="0.14" />
+                <stop offset="100%" stopColor={CHART_PRAC_COLOR} stopOpacity="0" />
+              </linearGradient>
+            )}
+            {/* Glow filter for active dots */}
+            <filter id="glow-teal" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="glow-orange" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          {/* Horizontal grid */}
           {gridY.map((y) => (
             <g key={y}>
               <line x1={PAD.left} y1={toY(y)} x2={PAD.left + INNER_W} y2={toY(y)}
-                stroke="var(--border)" strokeWidth="1" strokeDasharray={y === 0 ? "none" : "4 4"} />
+                stroke="var(--border)" strokeWidth="1"
+                strokeDasharray={y === 0 ? "none" : "4 4"} />
               <text x={PAD.left - 8} y={toY(y)} textAnchor="end" dominantBaseline="middle"
                 fontSize="10" fill="var(--text-light)" fontFamily="-apple-system, sans-serif">
                 {y}%
@@ -123,50 +198,117 @@ const ProgressChart = ({ diagnostics, practice }) => {
             </g>
           ))}
 
+          {/* ── Area fills (animate in after lines) ── */}
           {hasDisag && diagPoints.length > 1 && (
-            <polyline points={polylineStr(diagPoints)} fill="none" stroke={CHART_DIAG_COLOR}
-              strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+            <polygon
+              style={areaStyle(0)}
+              points={[
+                ...diagPoints.map((p, i) =>
+                  `${xForSeries(diagPoints, i).toFixed(1)},${toY(p.pct).toFixed(1)}`),
+                `${xForSeries(diagPoints, diagPoints.length - 1).toFixed(1)},${toY(0).toFixed(1)}`,
+                `${xForSeries(diagPoints, 0).toFixed(1)},${toY(0).toFixed(1)}`
+              ].join(" ")}
+              fill="url(#diagGrad)"
+            />
           )}
           {hasPrac && pracPoints.length > 1 && (
-            <polyline points={polylineStr(pracPoints)} fill="none" stroke={CHART_PRAC_COLOR}
-              strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+            <polygon
+              style={areaStyle(200)}
+              points={[
+                ...pracPoints.map((p, i) =>
+                  `${xForSeries(pracPoints, i).toFixed(1)},${toY(p.pct).toFixed(1)}`),
+                `${xForSeries(pracPoints, pracPoints.length - 1).toFixed(1)},${toY(0).toFixed(1)}`,
+                `${xForSeries(pracPoints, 0).toFixed(1)},${toY(0).toFixed(1)}`
+              ].join(" ")}
+              fill="url(#pracGrad)"
+            />
           )}
 
+          {/* ── Lines (draw animation) ── */}
+          {hasDisag && diagPoints.length > 1 && (
+            <polyline
+              style={lineStyle(0)}
+              points={polylineStr(diagPoints)}
+              fill="none" stroke={CHART_DIAG_COLOR}
+              strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"
+            />
+          )}
+          {hasPrac && pracPoints.length > 1 && (
+            <polyline
+              style={lineStyle(200)}
+              points={polylineStr(pracPoints)}
+              fill="none" stroke={CHART_PRAC_COLOR}
+              strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"
+            />
+          )}
+
+          {/* ── Diagnostic dots (staggered pop-in) ── */}
           {hasDisag && diagPoints.map((pt, i) => {
             const cx = xForSeries(diagPoints, i);
             const cy = toY(pt.pct);
+            const delay = 800 + i * 60;
             return (
-              <g key={i}>
-                <circle cx={cx} cy={cy} r="5" fill={CHART_DIAG_COLOR} stroke="var(--card-bg)" strokeWidth="2" />
-                <circle cx={cx} cy={cy} r="12" fill="transparent"
-                  onMouseEnter={() => setTooltip({ x: cx, y: cy, label: pt.label, pct: pt.pct, date: pt.date, type: "Diagnostic", col: scoreColor(pt.pct) })} />
+              <g key={`d-${i}`}>
+                <circle cx={cx} cy={cy} r="5"
+                  style={dotStyle(delay)}
+                  fill={CHART_DIAG_COLOR} stroke="var(--card-bg)" strokeWidth="2.5"
+                />
+                {/* invisible hit area */}
+                <circle cx={cx} cy={cy} r="14" fill="transparent"
+                  style={{ cursor: "crosshair" }}
+                  onMouseEnter={() => setTooltip({
+                    x: cx, y: cy,
+                    label: pt.label, pct: pt.pct, date: pt.date,
+                    type: "Diagnostic", col: scoreColor(pt.pct),
+                  })}
+                />
               </g>
             );
           })}
 
+          {/* ── Practice dots ── */}
           {hasPrac && pracPoints.map((pt, i) => {
             const cx = xForSeries(pracPoints, i);
             const cy = toY(pt.pct);
+            const delay = 1000 + i * 60;
             return (
-              <g key={i}>
-                <circle cx={cx} cy={cy} r="5" fill={CHART_PRAC_COLOR} stroke="var(--card-bg)" strokeWidth="2" />
-                <circle cx={cx} cy={cy} r="12" fill="transparent"
-                  onMouseEnter={() => setTooltip({ x: cx, y: cy, label: pt.label, pct: pt.pct, date: pt.date, type: "Practice", col: scoreColor(pt.pct) })} />
+              <g key={`p-${i}`}>
+                <circle cx={cx} cy={cy} r="5"
+                  style={dotStyle(delay)}
+                  fill={CHART_PRAC_COLOR} stroke="var(--card-bg)" strokeWidth="2.5"
+                />
+                <circle cx={cx} cy={cy} r="14" fill="transparent"
+                  style={{ cursor: "crosshair" }}
+                  onMouseEnter={() => setTooltip({
+                    x: cx, y: cy,
+                    label: pt.label, pct: pt.pct, date: pt.date,
+                    type: "Practice", col: scoreColor(pt.pct),
+                  })}
+                />
               </g>
             );
           })}
 
+          {/* ── Tooltip ── */}
           {tooltip && (() => {
-            const TW = 168, TH = 52;
-            const tx = Math.min(Math.max(tooltip.x - TW / 2, PAD.left), PAD.left + INNER_W - TW);
-            const ty = Math.max(PAD.top, tooltip.y - TH - 12);
+            const { tx, ty } = clampTooltip(tooltip.x, tooltip.y);
             return (
               <g>
-                <rect x={tx} y={ty} width={TW} height={TH} rx="6" fill="var(--card-bg)" stroke="var(--border)" strokeWidth="1" />
-                <text x={tx + TW / 2} y={ty + 16} textAnchor="middle" fontSize="10" fill="var(--text-light)" fontFamily="-apple-system, sans-serif">
+                <rect x={tx} y={ty} width={TW} height={TH} rx="7"
+                  fill="var(--card-bg)" stroke={tooltip.col} strokeWidth="1"
+                  style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))" }}
+                />
+                {/* Top accent on tooltip */}
+                <rect x={tx} y={ty} width={TW} height={2} rx="1"
+                  fill={tooltip.col} opacity="0.6"
+                />
+                <text x={tx + TW / 2} y={ty + 18} textAnchor="middle" fontSize="10"
+                  fill="var(--text-light)" fontFamily="-apple-system, sans-serif"
+                  fontFamily="'Courier New', monospace">
                   {tooltip.type} · {formatDate(tooltip.date)}
                 </text>
-                <text x={tx + TW / 2} y={ty + 34} textAnchor="middle" fontSize="13" fontWeight="700" fill={tooltip.col} fontFamily="-apple-system, sans-serif">
+                <text x={tx + TW / 2} y={ty + 37} textAnchor="middle" fontSize="13"
+                  fontWeight="700" fill={tooltip.col} fontFamily="-apple-system, sans-serif">
                   {tooltip.pct}% — {tooltip.label}
                 </text>
               </g>
@@ -178,14 +320,15 @@ const ProgressChart = ({ diagnostics, practice }) => {
   );
 };
 
+// ─── ProgressPage ─────────────────────────────────────────────────────────────
 const ProgressPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [diagnostics, setDiagnostics] = useState([]);
-  const [practice, setPractice] = useState([]);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(true);
+  const [practice, setPractice]       = useState([]);
+  const [activeTab, setActiveTab]     = useState("overview");
+  const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -193,7 +336,7 @@ const ProgressPage = () => {
       getDiagnostics(user.uid),
       getPractice(user.uid),
     ]).then(([diags, pracs]) => {
-      setDiagnostics(diags ?? []);   // guard against undefined
+      setDiagnostics(diags ?? []);
       setPractice(pracs ?? []);
       setLoading(false);
     });
@@ -201,7 +344,6 @@ const ProgressPage = () => {
 
   const firstName = user?.displayName?.split(" ")[0] ?? "there";
 
-  // Safe — diagnostics is always [] before and after load
   const topicStats = topics
     .map((topic) => {
       const diagSessions = diagnostics.filter((d) => d.topicId === topic.id);
@@ -214,27 +356,31 @@ const ProgressPage = () => {
       const pracAvg = pracSessions.length
         ? Math.round(pracSessions.reduce((s, p) => {
             const correct = Number(p.correct) || 0;
-            const wrong = Number(p.wrong) || 0;
-            const total = correct + wrong;
+            const wrong   = Number(p.wrong)   || 0;
+            const total   = correct + wrong;
             return s + (total > 0 ? (correct / total) * 100 : 0);
           }, 0) / pracSessions.length)
         : null;
 
       const totalSessions = diagSessions.length + pracSessions.length;
-      return { ...topic, diagAvg, pracAvg, totalSessions, diagSessions: diagSessions.length, pracSessions: pracSessions.length };
+      return {
+        ...topic,
+        diagAvg, pracAvg, totalSessions,
+        diagSessions: diagSessions.length,
+        pracSessions: pracSessions.length,
+      };
     })
     .filter((t) => t.totalSessions > 0);
 
-  const totalDiag = diagnostics.length;
-  const totalPrac = practice.length;
-  const globalAvg = diagnostics.length
+  const totalDiag  = diagnostics.length;
+  const totalPrac  = practice.length;
+  const globalAvg  = diagnostics.length
     ? Math.round(diagnostics.reduce((s, d) => s + (d.score.correct / d.score.total) * 100, 0) / diagnostics.length)
     : null;
-  const totalGaps = diagnostics.reduce((s, d) => s + (d.gaps?.length || 0), 0);
-  const isEmpty = totalDiag === 0 && totalPrac === 0;
-  const showChart = diagnostics.length + practice.length >= 2;
+  const totalGaps  = diagnostics.reduce((s, d) => s + (d.gaps?.length || 0), 0);
+  const isEmpty    = totalDiag === 0 && totalPrac === 0;
+  const showChart  = diagnostics.length + practice.length >= 2;
 
-  // Navigate to /results and pass the selected session index via state
   const handleDiagnosticClick = (idx) => {
     navigate("/results", { state: { selectedIdx: idx } });
   };
@@ -247,7 +393,9 @@ const ProgressPage = () => {
         <main className="page-main">
           <div className="progress-page">
             <div className="progress-empty">
-              <p style={{ color: "var(--text-light)", fontFamily: "-apple-system, sans-serif" }}>Loading your progress...</p>
+              <p style={{ color: "var(--text-light)", fontFamily: "-apple-system, sans-serif" }}>
+                Loading your progress...
+              </p>
             </div>
           </div>
         </main>
@@ -262,16 +410,25 @@ const ProgressPage = () => {
 
       <main className="page-main">
         <div className="progress-page">
+
+          {/* Breadcrumb */}
           <div className="progress-breadcrumb">
             <Link to="/home" className="progress-breadcrumb__item">Home</Link>
             <ChevronRight />
             <span className="progress-breadcrumb__item progress-breadcrumb__item--active">Progress</span>
           </div>
 
+          {/* Header */}
           <div className="progress-header">
             <div>
+              <div className="progress-header__eyebrow">
+                <span className="progress-header__eyebrow-dot" />
+                Analytics
+              </div>
               <h1 className="progress-header__title">My Progress</h1>
-              <p className="progress-header__sub">Track your diagnostic sessions and practice history, {firstName}.</p>
+              <p className="progress-header__sub">
+                Track your diagnostic sessions and practice history, {firstName}.
+              </p>
             </div>
             <Link to="/diagnostics" className="progress-header__cta">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -293,58 +450,112 @@ const ProgressPage = () => {
               <p>Complete a diagnostic or practice session to start tracking your progress.</p>
               <div className="progress-empty__actions">
                 <Link to="/diagnostics" className="progress-btn progress-btn--primary">Start Diagnostic</Link>
-                <Link to="/practice" className="progress-btn progress-btn--ghost">Go to Practice</Link>
+                <Link to="/practice"    className="progress-btn progress-btn--ghost">Go to Practice</Link>
               </div>
             </div>
           ) : (
             <>
+              {/* Stat cards */}
               <div className="progress-stats-row">
-                <div className="progress-stat-card">
-                  <p className="progress-stat-card__label">Diagnostic Sessions</p>
-                  <strong className="progress-stat-card__num">{totalDiag}</strong>
-                  <p className="progress-stat-card__sub">sessions completed</p>
-                </div>
-                <div className="progress-stat-card">
-                  <p className="progress-stat-card__label">Practice Sessions</p>
-                  <strong className="progress-stat-card__num">{totalPrac}</strong>
-                  <p className="progress-stat-card__sub">exercises attempted</p>
-                </div>
-                <div className="progress-stat-card">
-                  <p className="progress-stat-card__label">Average Score</p>
-                  <strong className="progress-stat-card__num" style={{ color: globalAvg ? scoreColor(globalAvg) : undefined }}>
-                    {globalAvg !== null ? `${globalAvg}%` : "—"}
-                  </strong>
-                  <p className="progress-stat-card__sub">across all diagnostics</p>
-                </div>
-                <div className="progress-stat-card">
-                  <p className="progress-stat-card__label">Gaps Identified</p>
-                  <strong className="progress-stat-card__num" style={{ color: totalGaps > 0 ? "#d35400" : undefined }}>
-                    {totalGaps}
-                  </strong>
-                  <p className="progress-stat-card__sub">reasoning gaps found</p>
-                </div>
+                {[
+                  {
+                    label: "Diagnostic Sessions",
+                    num:   totalDiag,
+                    sub:   "sessions completed",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    ),
+                    color: "var(--teal)",
+                  },
+                  {
+                    label: "Practice Sessions",
+                    num:   totalPrac,
+                    sub:   "exercises attempted",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+                      </svg>
+                    ),
+                    color: "#d35400",
+                  },
+                  {
+                    label: "Average Score",
+                    num:   globalAvg !== null ? `${globalAvg}%` : "—",
+                    sub:   "across all diagnostics",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                      </svg>
+                    ),
+                    color: globalAvg ? scoreColor(globalAvg) : "var(--teal)",
+                  },
+                  {
+                    label: "Gaps Identified",
+                    num:   totalGaps,
+                    sub:   "reasoning gaps found",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8"  x2="12"    y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                    ),
+                    color: totalGaps > 0 ? "#d35400" : "var(--teal)",
+                  },
+                ].map(({ label, num, sub, icon, color }, idx) => (
+                  <div key={label} className="progress-stat-card"
+                    style={{ animationDelay: `${idx * 0.07}s` }}>
+                    <div className="progress-stat-card__icon" style={{ color }}>{icon}</div>
+                    <p className="progress-stat-card__label">{label}</p>
+                    <strong className="progress-stat-card__num" style={{ color }}>{num}</strong>
+                    <p className="progress-stat-card__sub">{sub}</p>
+                  </div>
+                ))}
               </div>
 
+              {/* Chart */}
               {showChart && (
                 <div className="progress-chart-section">
-                  <h3 className="progress-chart-section__title">Score History</h3>
-                  <p className="progress-chart-section__sub">Your diagnostic and practice scores over time. Hover a point for details.</p>
+                  <div className="progress-chart-section__header">
+                    <div>
+                      <div className="progress-chart-section__eyebrow">
+                        <span className="progress-chart-section__eyebrow-dot" />
+                        Score History
+                      </div>
+                      <h3 className="progress-chart-section__title">Performance Over Time</h3>
+                      <p className="progress-chart-section__sub">
+                        Diagnostic and practice scores over time. Hover a point for details.
+                      </p>
+                    </div>
+                    <span className="progress-chart-section__tag">
+                      <span className="progress-chart-section__tag-dot" />
+                      Live data
+                    </span>
+                  </div>
                   <ProgressChart diagnostics={diagnostics} practice={practice} />
                 </div>
               )}
 
+              {/* Tabs */}
               <div className="progress-tabs">
                 {["overview", "diagnostics", "practice"].map((tab) => (
-                  <button
-                    key={tab}
+                  <button key={tab}
                     className={`progress-tab ${activeTab === tab ? "progress-tab--active" : ""}`}
-                    onClick={() => setActiveTab(tab)}
-                  >
+                    onClick={() => setActiveTab(tab)}>
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    {tab === "diagnostics" && totalDiag > 0 && (
+                      <span className="progress-tab__count">{totalDiag}</span>
+                    )}
+                    {tab === "practice" && totalPrac > 0 && (
+                      <span className="progress-tab__count">{totalPrac}</span>
+                    )}
                   </button>
                 ))}
               </div>
 
+              {/* Overview */}
               {activeTab === "overview" && (
                 <div className="progress-overview">
                   {topicStats.length === 0 ? (
@@ -354,23 +565,32 @@ const ProgressPage = () => {
                       {topicStats.map((t) => (
                         <div key={t.id} className="progress-topic-card">
                           <div className="progress-topic-card__head">
-                            <span className="progress-topic-card__icon">{t.icon ? <t.icon /> : "?"}</span>
+                            <span className="progress-topic-card__icon">
+                              {t.icon ? <t.icon /> : "?"}
+                            </span>
                             <div>
                               <h4 className="progress-topic-card__title">{t.title}</h4>
-                              <p className="progress-topic-card__sessions">{t.totalSessions} session{t.totalSessions !== 1 ? "s" : ""}</p>
+                              <p className="progress-topic-card__sessions">
+                                {t.totalSessions} session{t.totalSessions !== 1 ? "s" : ""}
+                              </p>
                             </div>
-                            {t.diagAvg !== null && <MiniRing pct={t.diagAvg} color={scoreColor(t.diagAvg)} />}
+                            {t.diagAvg !== null && (
+                              <MiniRing pct={t.diagAvg} color={scoreColor(t.diagAvg)} />
+                            )}
                           </div>
                           <div className="progress-topic-card__stats">
                             <span>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8" />
                               </svg>
                               {t.diagSessions} diagnostic{t.diagSessions !== 1 ? "s" : ""}
                             </span>
                             <span>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2">
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
                               </svg>
                               {t.pracSessions} practice{t.pracSessions !== 1 ? "s" : ""}
                             </span>
@@ -390,33 +610,40 @@ const ProgressPage = () => {
                 </div>
               )}
 
+              {/* Diagnostics tab */}
               {activeTab === "diagnostics" && (
                 <div className="progress-history">
                   {diagnostics.length === 0 ? (
-                    <div className="progress-empty-inline">No diagnostic sessions yet. <Link to="/diagnostics">Run one now →</Link></div>
+                    <div className="progress-empty-inline">
+                      No diagnostic sessions yet.{" "}
+                      <Link to="/diagnostics">Run one now →</Link>
+                    </div>
                   ) : (
                     <div className="progress-history-list">
                       {diagnostics.map((d, i) => {
                         const pct = Math.round((d.score.correct / d.score.total) * 100);
                         return (
-                          <button
-                            key={i}
-                            type="button"
+                          <button key={i} type="button"
                             className="progress-history-row progress-history-row--clickable"
                             onClick={() => handleDiagnosticClick(i)}
-                          >
+                            style={{ animationDelay: `${i * 0.05}s` }}>
                             <MiniRing pct={pct} color={scoreColor(pct)} size={48} />
                             <div className="progress-history-row__info">
                               <div className="progress-history-row__top">
                                 <h4 className="progress-history-row__title">{d.topicTitle}</h4>
-                                <span className="progress-history-row__date">{formatDate(d.date)} · {formatTime(d.date)}</span>
+                                <span className="progress-history-row__date">
+                                  {formatDate(d.date)} · {formatTime(d.date)}
+                                </span>
                               </div>
                               <div className="progress-history-row__meta">
                                 <span>{d.score.correct}/{d.score.total} correct</span>
                                 {d.gaps?.length > 0 && (
                                   <span className="progress-history-row__gaps">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                      stroke="currentColor" strokeWidth="2">
+                                      <circle cx="12" cy="12" r="10" />
+                                      <line x1="12" y1="8" x2="12" y2="12" />
+                                      <line x1="12" y1="16" x2="12.01" y2="16" />
                                     </svg>
                                     {d.gaps.length} gap{d.gaps.length !== 1 ? "s" : ""} found
                                   </span>
@@ -439,29 +666,38 @@ const ProgressPage = () => {
                 </div>
               )}
 
+              {/* Practice tab */}
               {activeTab === "practice" && (
                 <div className="progress-history">
                   {practice.length === 0 ? (
-                    <div className="progress-empty-inline">No practice sessions yet. <Link to="/practice">Start practising →</Link></div>
+                    <div className="progress-empty-inline">
+                      No practice sessions yet.{" "}
+                      <Link to="/practice">Start practising →</Link>
+                    </div>
                   ) : (
                     <div className="progress-history-list">
                       {practice.map((p, i) => {
                         const correct = Number(p.correct) || 0;
-                        const wrong = Number(p.wrong) || 0;
-                        const total = correct + wrong;
-                        const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
-                        const topic = topics.find((t) => t.id === p.topicId);
+                        const wrong   = Number(p.wrong)   || 0;
+                        const total   = correct + wrong;
+                        const pct     = total > 0 ? Math.round((correct / total) * 100) : 0;
+                        const topic   = topics.find((t) => t.id === p.topicId);
                         return (
-                          <div key={i} className="progress-history-row">
+                          <div key={i} className="progress-history-row"
+                            style={{ animationDelay: `${i * 0.05}s` }}>
                             <MiniRing pct={pct} color={scoreColor(pct)} size={48} />
                             <div className="progress-history-row__info">
                               <div className="progress-history-row__top">
                                 <h4 className="progress-history-row__title">
                                   {topic?.icon ? <topic.icon /> : "?"}{" "}
                                   {topic?.title || p.topicId}
-                                  <span className="progress-history-row__subtopic">— {p.subtopicKey || "—"}</span>
+                                  <span className="progress-history-row__subtopic">
+                                    — {p.subtopicKey || "—"}
+                                  </span>
                                 </h4>
-                                <span className="progress-history-row__date">{formatDate(p.date)} · {formatTime(p.date)}</span>
+                                <span className="progress-history-row__date">
+                                  {formatDate(p.date)} · {formatTime(p.date)}
+                                </span>
                               </div>
                               <p className="progress-history-row__meta">
                                 <span>{correct}/{total} correct</span>

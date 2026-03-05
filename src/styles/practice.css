@@ -1013,3 +1013,29 @@
 .diag-option--selected .pr-kbd--option {
   opacity: 0;
 }
+
+/* ── Notes panel integration ── */
+
+/* When notes panel is active, pr-layout no longer needs right padding
+   or centering — it fills diag-shell__main naturally */
+.diag-shell--with-notes .pr-layout {
+  max-width: none;
+  margin: 0;
+  padding-right: 16px;   /* tighter — panel border provides visual separation */
+}
+
+
+/* Prevent hero from looking misaligned when panel is present */
+.diag-shell--with-notes .pr-layout {
+  max-width: none;
+  margin: 0;
+  padding-right: 16px;
+}
+
+@media (max-width: 1023px) {
+  .diag-shell--with-notes .pr-layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-right: 32px;
+  }
+}

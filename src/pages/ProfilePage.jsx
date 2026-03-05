@@ -161,6 +161,15 @@ const ProfilePage = () => {
   const [loading,     setLoading]     = useState(true);
   const [resultIdx,   setResultIdx]   = useState(0);
 
+  // ── Dot-grid background on body ──────────────────────────────────────────
+  // This bypasses overflow/transform stacking-context issues in page-main.
+  useEffect(() => {
+    document.body.classList.add("axioma-profile-bg");
+    return () => {
+      document.body.classList.remove("axioma-profile-bg");
+    };
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     Promise.all([
