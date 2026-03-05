@@ -1,0 +1,457 @@
+/* ═══════════════════════════════════════════════════════════════
+   header.css  ·  Axioma
+   Uses project CSS variables (--text-dark, --border, --teal, etc.)
+   Same design language as home.css + theory.css
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Shell ────────────────────────────────────────────────────── */
+.hdr {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  height: 60px;
+  padding: 0 32px;
+
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border), 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Left ─────────────────────────────────────────────────────── */
+.hdr__left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+/* Burger */
+.hdr__burger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.hdr__burger:hover,
+.hdr__burger--open {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: var(--teal-light, rgba(42,143,160,0.07));
+}
+
+/* Brand */
+.hdr__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.hdr__brand:hover { opacity: 0.82; }
+
+.hdr__logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.hdr__brand-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: -0.02em;
+}
+
+/* ── Nav ──────────────────────────────────────────────────────── */
+.hdr__nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  justify-content: center;
+}
+
+.hdr__nav-link {
+  position: relative;
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text-mid);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.hdr__nav-link:hover {
+  color: var(--text-dark);
+  background: var(--card-bg-alt, rgba(255,255,255,0.04));
+}
+
+.hdr__nav-link--active {
+  color: var(--text-dark);
+  font-weight: 600;
+  background: var(--teal-light, rgba(42,143,160,0.07));
+}
+
+/* Active indicator dot — same as theory.css th-dotstep pattern */
+.hdr__nav-link--active::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+/* ── Right ────────────────────────────────────────────────────── */
+.hdr__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Theme icon button — matches th-btn--ghost */
+.hdr__icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text-light);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.hdr__icon-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: var(--teal-light, rgba(42,143,160,0.07));
+}
+
+/* XP pill — matches home-hero__tag style */
+.hdr__xp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: rgba(42,143,160,0.10);
+  border: 1px solid rgba(42,143,160,0.25);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--teal);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* ── User trigger ─────────────────────────────────────────────── */
+.hdr__user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+  color: var(--text-mid);
+}
+.hdr__user:hover,
+.hdr__user--open {
+  border-color: var(--teal);
+  background: var(--teal-light, rgba(42,143,160,0.07));
+  color: var(--text-dark);
+}
+
+/* Avatar wrap with SVG ring */
+.hdr__avatar-wrap {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+
+.hdr__avatar-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hdr__avatar {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--teal) 0%, rgba(42,143,160,0.45) 100%);
+}
+
+.hdr__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.hdr__avatar-initials {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* Username block */
+.hdr__user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1;
+}
+.hdr__user-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  color: var(--text-dark);
+}
+.hdr__user-level {
+  font-size: 0.62rem;
+  font-family: 'Courier New', monospace;
+  color: var(--teal);
+  letter-spacing: 0.04em;
+}
+
+/* ── Dropdown ─────────────────────────────────────────────────── */
+.hdr__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 300;
+
+  width: 260px;
+
+  /* Matches th-card / home card style */
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  animation: hdr-dd-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes hdr-dd-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ── Dropdown profile card ── */
+.hdr__dd-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 18px 16px;
+}
+
+.hdr__dd-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Matches th-tag accent teal */
+  background: linear-gradient(135deg, rgba(42,143,160,0.6) 0%, rgba(42,143,160,0.25) 100%);
+  border: 1px solid rgba(42,143,160,0.25);
+
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-family: 'Courier New', monospace;
+  color: var(--text-dark);
+}
+.hdr__dd-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.hdr__dd-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hdr__dd-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.hdr__dd-email {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+/* XP bar — same structure as theory.css th-dotstep */
+.hdr__dd-xp {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.hdr__dd-xp-track {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.hdr__dd-xp-fill {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+  opacity: 0.75;
+}
+
+.hdr__dd-xp-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hdr__dd-xp-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: 0.03em;
+}
+
+.hdr__dd-xp-level {
+  font-size: 0.65rem;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  letter-spacing: 0.04em;
+}
+
+/* Separator — matches home-survey section border style */
+.hdr__dd-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 0;
+}
+
+/* Menu items — matches th-side__link / home footer links */
+.hdr__dd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 18px;
+  background: transparent;
+  border: none;
+  color: var(--text-mid);
+  font-size: 0.845rem;
+  font-weight: 500;
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.14s, background 0.14s;
+  border-radius: 0;
+}
+.hdr__dd-item svg {
+  color: var(--text-light);
+  flex-shrink: 0;
+  transition: color 0.14s;
+}
+.hdr__dd-item:hover {
+  background: var(--teal-light, rgba(42,143,160,0.07));
+  color: var(--text-dark);
+}
+.hdr__dd-item:hover svg {
+  color: var(--teal);
+}
+
+/* Danger item */
+.hdr__dd-item--danger {
+  color: var(--text-light);
+}
+.hdr__dd-item--danger:hover {
+  background: rgba(192, 57, 43, 0.06);
+  color: #c0392b;
+}
+.hdr__dd-item--danger:hover svg {
+  color: #c0392b;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .hdr { padding: 0 24px; }
+}
+
+@media (max-width: 900px) {
+  .hdr__nav    { display: none; }
+  .hdr__user-text { display: none; }
+  .hdr__user   { padding: 5px; gap: 0; }
+  .hdr__xp-pill { display: none; }
+}
+
+@media (max-width: 540px) {
+  .hdr       { padding: 0 16px; height: 56px; }
+  .hdr__brand-name { display: none; }
+}

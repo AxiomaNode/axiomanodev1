@@ -59,10 +59,13 @@ export default function SupportPage() {
     }
   };
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="container">
-      <Header />
+      <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(v => !v)} />
 
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="support-page">
         <div className="support-page__inner">
           {/* ── Left col: info ── */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/layout/Header";
@@ -10,37 +10,63 @@ import { questions } from "../data/questions";
 import "../styles/diagnostics.css";
 import "../styles/layout.css";
 import { awardPoints } from "../core/scoringEngine";
+import "../components/notes-panel.css"
 
+/* ════════════════════════════════════════════
+   ICONS
+════════════════════════════════════════════ */
 const ChevronRight = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="9 18 15 12 9 6" />
   </svg>
 );
 const ChevronLeft = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="15 18 9 12 15 6" />
   </svg>
 );
 const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
 const AlertIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
 const XIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
+const NoteIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+  </svg>
+);
+const TrashIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+);
 
+/* ════════════════════════════════════════════
+   CONSTANTS
+════════════════════════════════════════════ */
 const GAP_WRONG_THRESHOLD = 2;
+const FONT_STEPS = [12, 13, 14, 15, 16, 17, 18];
+const DEFAULT_FONT_IDX = 2;
+const MIN_PANEL_W = 260;
+const MAX_PANEL_RATIO = 0.45;
 
+/* ════════════════════════════════════════════
+   DIAGNOSTIC LOGIC
+════════════════════════════════════════════ */
 const buildFullDiagnostic = (selectedTopicIds = null) => {
   const activeTopics = topics.filter(t => {
     const hasQ = questions[t.id]?.length > 0;
@@ -50,75 +76,207 @@ const buildFullDiagnostic = (selectedTopicIds = null) => {
   if (!activeTopics.length) return [];
   const pool = [];
   activeTopics.forEach(topic => {
-    (questions[topic.id] || []).forEach(q => {
-      pool.push({ ...q, topicId: topic.id });
-    });
+    (questions[topic.id] || []).forEach(q => pool.push({ ...q, topicId: topic.id }));
   });
   return pool;
 };
 
 const detectAllGaps = (answers, allQuestions) => {
   const fullAnswers = {};
-  allQuestions.forEach(q => {
-    fullAnswers[q.id] = answers[q.id] ?? "__skipped__";
-  });
-
+  allQuestions.forEach(q => { fullAnswers[q.id] = answers[q.id] ?? "__skipped__"; });
   const result = {};
-
   topics.forEach(topic => {
     const topicGaps = gapsDatabase[topic.id];
     if (!topicGaps) return;
-
     const found = [];
     topicGaps.forEach(gap => {
-      let wrongCount = 0;
-      let signalCount = 0;
-
+      let wrongCount = 0, signalCount = 0;
       Object.entries(gap.signs).forEach(([qId, wrongAnswers]) => {
         if (fullAnswers[qId] === undefined) return;
         signalCount++;
         const given = fullAnswers[qId];
-        if (given === "__skipped__" || wrongAnswers.includes(given)) {
-          wrongCount++;
-        }
+        if (given === "__skipped__" || wrongAnswers.includes(given)) wrongCount++;
       });
-
       if (signalCount >= 2 && wrongCount >= GAP_WRONG_THRESHOLD) {
         found.push({ ...gap, wrongCount, signalCount });
       }
     });
-
     if (found.length) result[topic.id] = found;
   });
-
   return result;
 };
 
-// ── Confirm Modal ──────────────────────────────────────────────────────────────
+/* ════════════════════════════════════════════
+   NOTES PANEL
+════════════════════════════════════════════ */
+const NotesPanel = ({ sessionId }) => {
+  const storageKey   = `diag_notes_${sessionId}`;
+  const collapseKey  = `diag_notes_col_${sessionId}`;
+  const fontKey      = `diag_notes_font_${sessionId}`;
+
+  const [value, setValue]         = useState(() => localStorage.getItem(storageKey) ?? "");
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(collapseKey) === "true");
+  const [fontIdx, setFontIdx]     = useState(() => {
+    const n = parseInt(localStorage.getItem(fontKey), 10);
+    return isNaN(n) ? DEFAULT_FONT_IDX : Math.max(0, Math.min(FONT_STEPS.length - 1, n));
+  });
+  const [showClear, setShowClear]   = useState(false);
+  const [panelWidth, setPanelWidth] = useState(300);
+  const [dragging, setDragging]     = useState(false);
+
+  const saveTimer  = useRef(null);
+  const dragStartX = useRef(0);
+  const dragStartW = useRef(0);
+
+  /* auto-save */
+  const handleChange = (e) => {
+    const v = e.target.value;
+    setValue(v);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => localStorage.setItem(storageKey, v), 800);
+  };
+
+  useEffect(() => { localStorage.setItem(collapseKey, collapsed); }, [collapsed, collapseKey]);
+  useEffect(() => { localStorage.setItem(fontKey, fontIdx); }, [fontIdx, fontKey]);
+
+  /* resize drag — drag handle on the RIGHT edge, dragging RIGHT increases width */
+  const onDragStart = useCallback((e) => {
+    e.preventDefault();
+    dragStartX.current = e.clientX;
+    dragStartW.current = panelWidth;
+    setDragging(true);
+  }, [panelWidth]);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e) => {
+      const delta = e.clientX - dragStartX.current;
+      const maxW  = Math.floor(window.innerWidth * MAX_PANEL_RATIO);
+      setPanelWidth(Math.min(maxW, Math.max(MIN_PANEL_W, dragStartW.current + delta)));
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [dragging]);
+
+  const handleClearConfirm = () => {
+    setValue(""); localStorage.removeItem(storageKey); setShowClear(false);
+  };
+
+  const fontSize = FONT_STEPS[fontIdx];
+
+  /* ── Collapsed strip ── */
+  if (collapsed) {
+    return (
+      <aside className="notes-strip">
+        <button className="notes-strip__btn" onClick={() => setCollapsed(false)} title="Open notes">
+          <NoteIcon />
+          <span className="notes-strip__label">Notes</span>
+          <ChevronRight />
+        </button>
+      </aside>
+    );
+  }
+
+  return (
+    <>
+      {/* Clear confirm */}
+      {showClear && (
+        <div className="notes-confirm-overlay" onClick={() => setShowClear(false)}>
+          <div className="notes-confirm" onClick={e => e.stopPropagation()}>
+            <p className="notes-confirm__title">Clear all notes?</p>
+            <p className="notes-confirm__sub">This cannot be undone.</p>
+            <div className="notes-confirm__row">
+              <button className="notes-confirm__btn notes-confirm__btn--cancel" onClick={() => setShowClear(false)}>Cancel</button>
+              <button className="notes-confirm__btn notes-confirm__btn--clear" onClick={handleClearConfirm}>Clear</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <aside
+        className={`notes-panel${dragging ? " notes-panel--drag" : ""}`}
+        style={{ width: panelWidth }}
+      >
+        {/* header */}
+        <div className="notes-panel__hd">
+          <div className="notes-panel__hd-left">
+            <span className="notes-panel__hd-icon"><NoteIcon /></span>
+            <span className="notes-panel__hd-title">Notes</span>
+          </div>
+          <div className="notes-panel__hd-right">
+            {/* font size */}
+            <div className="notes-font">
+              <button
+                className="notes-font__btn"
+                onClick={() => setFontIdx(i => Math.max(0, i - 1))}
+                disabled={fontIdx === 0}
+                title="Smaller"
+              >A<sup>-</sup></button>
+              <span className="notes-font__val">{fontSize}</span>
+              <button
+                className="notes-font__btn"
+                onClick={() => setFontIdx(i => Math.min(FONT_STEPS.length - 1, i + 1))}
+                disabled={fontIdx === FONT_STEPS.length - 1}
+                title="Larger"
+              >A<sup>+</sup></button>
+            </div>
+            <button className="notes-icon-btn" onClick={() => setShowClear(true)} disabled={!value} title="Clear">
+              <TrashIcon />
+            </button>
+            <button className="notes-icon-btn" onClick={() => setCollapsed(true)} title="Collapse">
+              <ChevronLeft />
+            </button>
+          </div>
+        </div>
+
+        {/* body */}
+        <div className="notes-panel__body">
+          <textarea
+            className="notes-ta"
+            value={value}
+            onChange={handleChange}
+            placeholder="Scratch work…"
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            style={{ fontSize }}
+          />
+        </div>
+
+        {/* resize handle */}
+        <div className="notes-resize" onMouseDown={onDragStart} />
+      </aside>
+    </>
+  );
+};
+
+/* ════════════════════════════════════════════
+   CONFIRM MODAL (submit diagnostic)
+════════════════════════════════════════════ */
 const ConfirmModal = ({ answeredCount, totalCount, onConfirm, onCancel }) => {
   const unanswered = totalCount - answeredCount;
   useEffect(() => {
-    const handler = (e) => {
+    const h = (e) => {
       if (e.key === "Escape") onCancel();
       if (e.key === "Enter") onConfirm();
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onConfirm, onCancel]);
 
   return (
     <div className="diag-modal-overlay" onClick={onCancel}>
       <div className="diag-modal" onClick={e => e.stopPropagation()}>
         <div className="diag-modal__header">
           <div className="diag-modal__header-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <button className="diag-modal__close" onClick={onCancel} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <button className="diag-modal__close" onClick={onCancel}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
@@ -126,21 +284,19 @@ const ConfirmModal = ({ answeredCount, totalCount, onConfirm, onCancel }) => {
         <div className="diag-modal__body">
           <h3 className="diag-modal__title">Submit diagnostic?</h3>
           <p className="diag-modal__desc">
-            You've answered <strong>{answeredCount}</strong> of <strong>{totalCount}</strong> questions.
+            You answered <strong>{answeredCount}</strong> of <strong>{totalCount}</strong> questions.
           </p>
           {unanswered > 0 ? (
             <div className="diag-modal__warn-block">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
-              <p>
-                <strong>{unanswered} question{unanswered !== 1 ? "s" : ""} skipped</strong> — skipped questions count as wrong answers.
-              </p>
+              <p><strong>{unanswered} question{unanswered !== 1 ? "s" : ""} skipped</strong> — skipped count as wrong.</p>
             </div>
           ) : (
             <div className="diag-modal__ok-block">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
               <p>All questions answered. Ready to submit.</p>
@@ -151,7 +307,7 @@ const ConfirmModal = ({ answeredCount, totalCount, onConfirm, onCancel }) => {
         <div className="diag-modal__footer">
           <button className="diag-btn diag-btn--ghost" onClick={onCancel}>Go back</button>
           <button className="diag-btn diag-btn--primary diag-btn--submit" onClick={onConfirm}>
-            Submit & see analysis <ChevronRight />
+            Submit &amp; see analysis <ChevronRight />
           </button>
         </div>
         <p className="diag-modal__hint">Press <kbd>Enter</kbd> to submit · <kbd>Esc</kbd> to go back</p>
@@ -160,7 +316,9 @@ const ConfirmModal = ({ answeredCount, totalCount, onConfirm, onCancel }) => {
   );
 };
 
-// ── Intro ─────────────────────────────────────────────────────────────────────
+/* ════════════════════════════════════════════
+   INTRO SCREEN
+════════════════════════════════════════════ */
 const IntroScreen = ({ onConfigure }) => {
   const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
   const totalQ = activeTopics.reduce((s, t) => s + (questions[t.id]?.length || 0), 0);
@@ -174,7 +332,7 @@ const IntroScreen = ({ onConfigure }) => {
 
       <div className="diag-intro__hero">
         <div className="diag-intro__icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
             <rect x="3" y="3" width="7" height="7" rx="1.5" />
             <rect x="14" y="3" width="7" height="7" rx="1.5" />
             <rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -184,8 +342,7 @@ const IntroScreen = ({ onConfigure }) => {
         <h2 className="diag-intro__title">Reasoning Diagnostic</h2>
         <p className="diag-intro__desc">
           Not a grade. A <em>map</em> of where your thinking breaks down.
-          Select topics, then answer each question — we track
-          <em> how</em> you reason, not just the final answer.
+          Select topics, answer each question — we track <em>how</em> you reason, not just the final answer.
         </p>
       </div>
 
@@ -223,13 +380,13 @@ const IntroScreen = ({ onConfigure }) => {
       </div>
 
       <button className="diag-btn diag-btn--primary diag-btn--lg" onClick={onConfigure}>
-        Configure & Start <ChevronRight />
+        Configure &amp; Start <ChevronRight />
       </button>
 
       <div className="diag-intro__topics">
         {activeTopics.map(topic => (
           <span key={topic.id} className="diag-intro__topic-chip">
-            <topic.icon size={13} strokeWidth={2.5} />
+            <topic.icon size={12} strokeWidth={2.5} />
             {topic.title}
           </span>
         ))}
@@ -238,7 +395,9 @@ const IntroScreen = ({ onConfigure }) => {
   );
 };
 
-// ── Topic Select ──────────────────────────────────────────────────────────────
+/* ════════════════════════════════════════════
+   TOPIC SELECT
+════════════════════════════════════════════ */
 const TopicSelectScreen = ({ onStart, onBack }) => {
   const availableTopics = topics.filter(t => questions[t.id]?.length > 0);
   const [selected, setSelected] = useState(new Set(availableTopics.map(t => t.id)));
@@ -246,26 +405,18 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
   const toggleTopic = (id) => {
     setSelected(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        if (next.size === 1) return prev;
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) { if (next.size === 1) return prev; next.delete(id); }
+      else next.add(id);
       return next;
     });
   };
 
   const selectAll = () => setSelected(new Set(availableTopics.map(t => t.id)));
-  const clearAll  = () => {
-    const first = availableTopics[0];
-    if (first) setSelected(new Set([first.id]));
-  };
+  const clearAll  = () => { const f = availableTopics[0]; if (f) setSelected(new Set([f.id])); };
 
-  const estimatedQ = [...selected].reduce((s, id) => s + (questions[id]?.length || 0), 0);
+  const estimatedQ   = [...selected].reduce((s, id) => s + (questions[id]?.length || 0), 0);
   const estimatedMin = Math.round(estimatedQ * 0.5);
-
-  const diffColor = { easy: "easy", medium: "med", hard: "hard" };
+  const diffColor    = { easy: "easy", medium: "med", hard: "hard" };
 
   return (
     <div className="diag-topic-select">
@@ -276,7 +427,7 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
         </div>
         <h2 className="diag-topic-select__title">Select topics</h2>
         <p className="diag-topic-select__desc">
-          Choose which reasoning areas to probe. All questions for selected topics will be shown — this ensures reliable gap detection.
+          Choose which reasoning areas to probe. All questions for selected topics will appear — this ensures reliable gap detection.
         </p>
       </div>
 
@@ -286,41 +437,33 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
           <button className="diag-btn diag-btn--ghost diag-btn--xs" onClick={clearAll}>Reset</button>
         </div>
         <div className="diag-topic-select__info-row">
-          <span className="diag-topic-select__info-count">
-            <strong>{selected.size}</strong> / {availableTopics.length} topics selected
-          </span>
+          <span><strong>{selected.size}</strong> / {availableTopics.length} topics</span>
           <span className="diag-topic-select__info-divider">·</span>
-          <span className="diag-topic-select__info-q"><strong>{estimatedQ}</strong> questions</span>
+          <span><strong>{estimatedQ}</strong> questions</span>
           <span className="diag-topic-select__info-divider">·</span>
-          <span className="diag-topic-select__info-q">~<strong>{estimatedMin}</strong> min</span>
+          <span>~<strong>{estimatedMin}</strong> min</span>
         </div>
       </div>
 
       <div className="diag-topic-grid">
         {availableTopics.map(topic => {
           const isSelected = selected.has(topic.id);
-          const qCount = questions[topic.id]?.length || 0;
-          const gapCount = gapsDatabase[topic.id]?.length || 0;
-          const diff = topic.difficulty || "medium";
+          const qCount     = questions[topic.id]?.length || 0;
+          const gapCount   = gapsDatabase[topic.id]?.length || 0;
+          const diff       = topic.difficulty || "medium";
           return (
             <button
               key={topic.id}
               className={`diag-topic-card${isSelected ? " diag-topic-card--selected" : ""}`}
               onClick={() => toggleTopic(topic.id)}
             >
-              <div className="diag-topic-card__check-box">
-                {isSelected && <CheckIcon />}
-              </div>
-              <div className="diag-topic-card__icon">
-                <topic.icon size={22} strokeWidth={1.7} />
-              </div>
+              <div className="diag-topic-card__check-box">{isSelected && <CheckIcon />}</div>
+              <div className="diag-topic-card__icon"><topic.icon size={21} strokeWidth={1.7} /></div>
               <h4 className="diag-topic-card__title">{topic.title}</h4>
               <p className="diag-topic-card__desc">{topic.description}</p>
               <div className="diag-topic-card__footer">
                 <span className="diag-topic-card__q-count">{qCount}q · {gapCount} gaps</span>
-                <span className={`diag-topic-card__diff diag-topic-card__diff--${diffColor[diff] || "med"}`}>
-                  {diff}
-                </span>
+                <span className={`diag-topic-card__diff diag-topic-card__diff--${diffColor[diff] || "med"}`}>{diff}</span>
               </div>
             </button>
           );
@@ -328,9 +471,7 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
       </div>
 
       <div className="diag-topic-select__actions">
-        <button className="diag-btn diag-btn--ghost" onClick={onBack}>
-          <ChevronLeft /> Back
-        </button>
+        <button className="diag-btn diag-btn--ghost" onClick={onBack}><ChevronLeft /> Back</button>
         <button
           className="diag-btn diag-btn--primary diag-btn--lg"
           onClick={() => onStart([...selected])}
@@ -343,49 +484,46 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
   );
 };
 
-// ── Question Step ─────────────────────────────────────────────────────────────
+/* ════════════════════════════════════════════
+   QUESTION STEP
+════════════════════════════════════════════ */
 const QuestionStep = ({ allQuestions, onFinish }) => {
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [current, setCurrent]       = useState(0);
+  const [answers, setAnswers]       = useState({});
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const q = allQuestions[current];
+  const q         = allQuestions[current];
   const topicMeta = topics.find(t => t.id === q?.topicId);
-  const progress = ((current + 1) / allQuestions.length) * 100;
-  const selected = answers[q?.id] ?? null;
-  const isLast = current + 1 >= allQuestions.length;
+  const progress  = ((current + 1) / allQuestions.length) * 100;
+  const selected  = answers[q?.id] ?? null;
+  const isLast    = current + 1 >= allQuestions.length;
 
   const handleSelect = (value) => setAnswers(prev => ({ ...prev, [q.id]: value }));
-
-  const handleNext = () => {
-    if (isLast) setShowConfirm(true);
-    else setCurrent(c => c + 1);
-  };
-  const handlePrev = () => { if (current > 0) setCurrent(c => c - 1); };
+  const handleNext   = () => { if (isLast) setShowConfirm(true); else setCurrent(c => c + 1); };
+  const handlePrev   = () => { if (current > 0) setCurrent(c => c - 1); };
   const handleSubmit = () => { setShowConfirm(false); onFinish(answers); };
 
   useEffect(() => {
-    const handler = (e) => {
+    const h = (e) => {
       if (showConfirm) return;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
-        const options = q.options.map(o => o.value);
-        const currentIdx = options.indexOf(selected);
-        if (e.key === "ArrowDown") {
-          handleSelect(options[currentIdx < options.length - 1 ? currentIdx + 1 : 0]);
-        } else {
-          handleSelect(options[currentIdx > 0 ? currentIdx - 1 : options.length - 1]);
-        }
+        const opts = q.options.map(o => o.value);
+        const idx  = opts.indexOf(selected);
+        handleSelect(e.key === "ArrowDown"
+          ? opts[idx < opts.length - 1 ? idx + 1 : 0]
+          : opts[idx > 0 ? idx - 1 : opts.length - 1]
+        );
       }
       if (e.key === "ArrowLeft" && current > 0) handlePrev();
       if (e.key === "ArrowRight") handleNext();
       if (e.key === "Enter") handleNext();
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
   }, [selected, current, showConfirm, isLast, q]);
 
-  const prevTopicId = current > 0 ? allQuestions[current - 1]?.topicId : null;
+  const prevTopicId  = current > 0 ? allQuestions[current - 1]?.topicId : null;
   const topicChanged = current > 0 && q?.topicId !== prevTopicId;
 
   return (
@@ -399,11 +537,12 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
         />
       )}
 
+      {/* progress */}
       <div className="diag-progress-header">
         <div className="diag-progress-header__meta">
           {topicMeta && (
             <span className="diag-progress-header__topic">
-              <topicMeta.icon size={13} strokeWidth={2.5} />
+              <topicMeta.icon size={12} strokeWidth={2.5} />
               {topicMeta.title}
             </span>
           )}
@@ -416,11 +555,12 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
 
       {topicChanged && (
         <div className="diag-topic-transition">
-          {topicMeta && <topicMeta.icon size={14} strokeWidth={2} />}
+          {topicMeta && <topicMeta.icon size={13} strokeWidth={2} />}
           Now: {topicMeta?.title}
         </div>
       )}
 
+      {/* question card */}
       <div className="diag-question-card">
         <div className="diag-question-card__header">
           <p className="diag-question-card__meta">
@@ -433,11 +573,11 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
 
         <div className="diag-options">
           {q.options.map(opt => {
-            const isSelected = opt.value === selected;
+            const isSel = opt.value === selected;
             return (
               <button
                 key={opt.value}
-                className={`diag-option${isSelected ? " diag-option--selected" : ""}`}
+                className={`diag-option${isSel ? " diag-option--selected" : ""}`}
                 onClick={() => handleSelect(opt.value)}
               >
                 <span className="diag-option__letter">{opt.label}</span>
@@ -449,9 +589,8 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
 
         {!selected && (
           <p className="diag-skip-note">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
             No answer selected — skipping counts as wrong
           </p>
@@ -466,10 +605,9 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
           </button>
         </div>
 
+        {/* segment nav */}
         <div className="diag-seg-nav">
-          <span className="diag-seg-nav__label">
-            {Object.keys(answers).length} / {allQuestions.length} answered
-          </span>
+          <span className="diag-seg-nav__label">{Object.keys(answers).length} / {allQuestions.length} answered</span>
           <div className="diag-seg-nav__track">
             {allQuestions.map((_, i) => (
               <button
@@ -490,26 +628,25 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
   );
 };
 
-// ── Results ───────────────────────────────────────────────────────────────────
+/* ════════════════════════════════════════════
+   RESULTS STEP
+════════════════════════════════════════════ */
 const ResultsStep = ({ answers, allQuestions, onRetry }) => {
-  const gapsByTopic = detectAllGaps(answers, allQuestions);
-  const totalGaps = Object.values(gapsByTopic).flat().length;
+  const gapsByTopic   = detectAllGaps(answers, allQuestions);
+  const totalGaps     = Object.values(gapsByTopic).flat().length;
   const topicsWithGaps = Object.keys(gapsByTopic);
-  const activeTopics = [...new Set(allQuestions.map(q => q.topicId))]
-    .map(id => topics.find(t => t.id === id))
-    .filter(Boolean);
-  const topicsClean = activeTopics.filter(t => !gapsByTopic[t.id]);
-
-  // ── Correct count — count all questions where answer matches correct ──
+  const activeTopics  = [...new Set(allQuestions.map(q => q.topicId))]
+    .map(id => topics.find(t => t.id === id)).filter(Boolean);
+  const topicsClean   = activeTopics.filter(t => !gapsByTopic[t.id]);
   const wrongQuestions = allQuestions.filter(q => answers[q.id] !== q.correct);
-  const correctCount = allQuestions.length - wrongQuestions.length;
-  const accuracy = Math.round((correctCount / allQuestions.length) * 100);
+  const correctCount  = allQuestions.length - wrongQuestions.length;
+  const accuracy      = Math.round((correctCount / allQuestions.length) * 100);
 
   return (
     <div className="diag-step">
       <div className="diag-results">
 
-        {/* ── Summary header ── */}
+        {/* summary */}
         <div className={`diag-results__summary diag-results__summary--${totalGaps === 0 ? "clean" : "gaps"}`}>
           <div className="diag-results__summary-icon">
             {totalGaps === 0 ? <CheckIcon /> : <AlertIcon />}
@@ -533,32 +670,31 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
           </div>
         </div>
 
-        {/* ── Clean topics ── */}
+        {/* clean topics */}
         {topicsClean.length > 0 && (
           <div className="diag-results__clean">
             <p className="diag-results__clean-label"><CheckIcon /> Solid reasoning in:</p>
             <div className="diag-results__clean-topics">
               {topicsClean.map(t => (
                 <span key={t.id} className="diag-results__clean-chip">
-                  <t.icon size={13} strokeWidth={2.5} />
-                  {t.title}
+                  <t.icon size={12} strokeWidth={2.5} />{t.title}
                 </span>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── Reasoning gaps ── */}
+        {/* gaps */}
         {topicsWithGaps.length > 0 && (
           <div className="diag-gaps">
             <h4 className="diag-gaps__title"><AlertIcon /> Where your reasoning broke</h4>
             {topicsWithGaps.map(topicId => {
-              const topic = topics.find(t => t.id === topicId);
+              const topic     = topics.find(t => t.id === topicId);
               const topicGaps = gapsByTopic[topicId];
               return (
                 <div key={topicId} className="diag-gaps__topic-group">
                   <div className="diag-gaps__topic-head">
-                    {topic?.icon && <topic.icon size={15} strokeWidth={2.5} />}
+                    {topic?.icon && <topic.icon size={14} strokeWidth={2.5} />}
                     <h4 className="diag-gaps__topic-title">{topic?.title || topicId}</h4>
                     <span className="diag-gaps__topic-count">{topicGaps.length} gap{topicGaps.length > 1 ? "s" : ""}</span>
                   </div>
@@ -574,7 +710,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                           <span>{gap.wrongCount} / {gap.signalCount} signal questions missed</span>
                         </div>
                         <div className="diag-gap-card__rec">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                           </svg>
                           <p>{gap.recommendation}</p>
@@ -588,7 +724,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
           </div>
         )}
 
-        {/* ── Answer Breakdown ── */}
+        {/* answer breakdown */}
         {wrongQuestions.length > 0 && (
           <div className="diag-breakdown">
             <div className="diag-breakdown__header">
@@ -596,14 +732,11 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                 <XIcon />
                 <h4 className="diag-breakdown__title">Answer Breakdown</h4>
               </div>
-              <span className="diag-breakdown__count">
-                {wrongQuestions.length} wrong · {correctCount} correct
-              </span>
+              <span className="diag-breakdown__count">{wrongQuestions.length} wrong · {correctCount} correct</span>
             </div>
-
             <div className="diag-breakdown__list">
-              {wrongQuestions.map((q, idx) => {
-                const given = answers[q.id];
+              {wrongQuestions.map(q => {
+                const given     = answers[q.id];
                 const isSkipped = !given;
                 const topicMeta = topics.find(t => t.id === q.topicId);
                 return (
@@ -612,20 +745,15 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                       <span className="diag-breakdown__item-id">// {q.id}</span>
                       {topicMeta && (
                         <span className="diag-breakdown__item-topic">
-                          <topicMeta.icon size={11} strokeWidth={2.5} />
-                          {topicMeta.title}
+                          <topicMeta.icon size={10} strokeWidth={2.5} />{topicMeta.title}
                         </span>
                       )}
                     </div>
-
                     <p className="diag-breakdown__item-question">{q.text}</p>
-
                     <div className="diag-breakdown__item-answers">
                       <div className="diag-breakdown__answer diag-breakdown__answer--wrong">
                         <span className="diag-breakdown__answer-label">Your answer</span>
-                        <span className="diag-breakdown__answer-value">
-                          {isSkipped ? "— skipped" : given}
-                        </span>
+                        <span className="diag-breakdown__answer-value">{isSkipped ? "— skipped" : given}</span>
                       </div>
                       <div className="diag-breakdown__answer diag-breakdown__answer--correct">
                         <span className="diag-breakdown__answer-label">Correct answer</span>
@@ -639,24 +767,20 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
           </div>
         )}
 
-        {/* ── CTA ── */}
+        {/* CTA */}
         <div className="diag-results__cta-block">
           {totalGaps > 0 && (
             <div className="diag-results__cta-hint">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
-              <p>Practice now shows targeted exercises for every gap above. Theory explains the reasoning from scratch.</p>
+              <p>Practice shows targeted exercises for every gap above. Theory explains the reasoning from scratch.</p>
             </div>
           )}
           <div className="diag-results__actions">
             <button className="diag-btn diag-btn--ghost" onClick={onRetry}>Run again</button>
             {totalGaps > 0 && (
-              <Link to="/theory" className="diag-btn diag-btn--primary">
-                Study the gaps <ChevronRight />
-              </Link>
+              <Link to="/theory" className="diag-btn diag-btn--primary">Study the gaps <ChevronRight /></Link>
             )}
             <Link to="/practice" className="diag-btn diag-btn--ghost">Targeted practice</Link>
           </div>
@@ -667,13 +791,16 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
   );
 };
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+/* ════════════════════════════════════════════
+   PAGE ROOT
+════════════════════════════════════════════ */
 const DiagnosticsPage = () => {
-  const { user } = useAuth();
+  const { user }   = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [step, setStep] = useState("intro");
+  const [step, setStep]               = useState("intro");
   const [finalAnswers, setFinalAnswers] = useState({});
   const [allQuestions, setAllQuestions] = useState([]);
+  const [sessionId, setSessionId]     = useState(() => `s_${Date.now()}`);
   const savingRef = useRef(false);
 
   const handleTopicStart = (selectedTopicIds) => {
@@ -687,12 +814,9 @@ const DiagnosticsPage = () => {
     savingRef.current = true;
     const gapsByTopic = detectAllGaps(answers, allQuestions);
     const result = {
-      type: "full",
-      answers,
-      gapsByTopic,
+      type: "full", answers, gapsByTopic,
       gaps: Object.values(gapsByTopic).flat(),
-      topicId: "full",
-      topicTitle: "Full Diagnostic",
+      topicId: "full", topicTitle: "Full Diagnostic",
       score: {
         correct: allQuestions.filter(q => answers[q.id] === q.correct).length,
         total: allQuestions.length,
@@ -703,58 +827,60 @@ const DiagnosticsPage = () => {
     setStep("results");
     savingRef.current = false;
     await awardPoints(user.uid, "diagnostic_complete", {
-      correct: result.score.correct,
-      total: result.score.total,
+      correct: result.score.correct, total: result.score.total,
     });
   };
+
+  const handleRetry = () => {
+    setFinalAnswers({}); setAllQuestions([]);
+    setSessionId(`s_${Date.now()}`);
+    setStep("intro");
+  };
+
+  const isQuestionStep = step === "questions";
 
   return (
     <div className="page-shell">
       <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(v => !v)} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
       <main className="page-main">
-        <div className="diag-page">
-          <div className="diag-breadcrumb">
-            <Link to="/home" className="diag-breadcrumb__item">Home</Link>
-            <ChevronRight />
-            <span className="diag-breadcrumb__item diag-breadcrumb__item--active">Diagnostics</span>
+        {/* ── two-column shell: notes (left) + content (right) ── */}
+        <div className={`diag-shell${isQuestionStep ? " diag-shell--with-notes" : ""}`}>
+
+          {/* Notes panel — only during question step */}
+          {isQuestionStep && <NotesPanel sessionId={sessionId} />}
+
+          {/* Main content column */}
+          <div className="diag-shell__main">
+            <div className="diag-page">
+              {/* breadcrumb */}
+              <div className="diag-breadcrumb">
+                <Link to="/home" className="diag-breadcrumb__item">Home</Link>
+                <ChevronRight />
+                <span className="diag-breadcrumb__item diag-breadcrumb__item--active">Diagnostics</span>
+              </div>
+
+              {/* page header */}
+              <div className="diag-header">
+                <div className="diag-header__icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="diag-header__title">Diagnostics</h1>
+                  <p className="diag-header__sub">Find exactly where your reasoning breaks across all topics.</p>
+                </div>
+              </div>
+
+              {step === "intro"        && <IntroScreen onConfigure={() => setStep("topic-select")} />}
+              {step === "topic-select" && <TopicSelectScreen onStart={handleTopicStart} onBack={() => setStep("intro")} />}
+              {step === "questions"    && <QuestionStep allQuestions={allQuestions} onFinish={handleFinish} />}
+              {step === "results"      && <ResultsStep answers={finalAnswers} allQuestions={allQuestions} onRetry={handleRetry} />}
+            </div>
           </div>
 
-          <div className="diag-header">
-            <div className="diag-header__icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="diag-header__title">Diagnostics</h1>
-              <p className="diag-header__sub">Find exactly where your reasoning breaks across all topics.</p>
-            </div>
-          </div>
-
-          {step === "intro" && (
-            <IntroScreen onConfigure={() => setStep("topic-select")} />
-          )}
-
-          {step === "topic-select" && (
-            <TopicSelectScreen
-              onStart={handleTopicStart}
-              onBack={() => setStep("intro")}
-            />
-          )}
-
-          {step === "questions" && (
-            <QuestionStep allQuestions={allQuestions} onFinish={handleFinish} />
-          )}
-
-          {step === "results" && (
-            <ResultsStep
-              answers={finalAnswers}
-              allQuestions={allQuestions}
-              onRetry={() => { setFinalAnswers({}); setAllQuestions([]); setStep("intro"); }}
-            />
-          )}
         </div>
       </main>
     </div>

@@ -1202,3 +1202,14 @@
   color: rgba(39, 174, 96, 0.9);
   font-weight: 500;
 }
+
+
+.diag-shell { display: block; }
+
+.diag-shell--with-notes {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 60px);
+}
+
+.diag-shell__main { flex: 1; min-width: 0; overflow-y: auto; }

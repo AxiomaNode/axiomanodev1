@@ -1,0 +1,126 @@
+/* ═══════════════════════════════════════════════════════════════
+   background.css  ·  Axioma
+   Import once in index.css or App.jsx.
+   
+   Layered dark atmosphere matching the screenshot:
+   — Deep navy base (var(--page-bg))
+   — Soft radial teal glow, offset right-center
+   — Very faint dot grid
+   — No heavy gradients, no neon
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Base ─────────────────────────────────────────────────────── */
+html {
+  background-color: var(--page-bg, #080d16);
+}
+
+body {
+  background-color: var(--page-bg, #080d16);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ── Layer 1: radial ambient glow ─────────────────────────────── */
+/* Positioned right-center like the screenshot.
+   Uses teal at very low opacity — matches var(--teal) system */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background:
+    /* Main glow — right-center */
+    radial-gradient(
+      ellipse 70% 55% at 68% 46%,
+      rgba(14, 60, 80, 0.35) 0%,
+      rgba(10, 32, 52, 0.18) 40%,
+      transparent 70%
+    ),
+    /* Secondary ambient — bottom-left */
+    radial-gradient(
+      ellipse 40% 35% at 15% 82%,
+      rgba(8, 24, 42, 0.22) 0%,
+      transparent 65%
+    );
+}
+
+/* ── Layer 2: dot grid ────────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background-image: radial-gradient(
+    circle,
+    rgba(42, 143, 160, 0.055) 1px,
+    transparent 1px
+  );
+  background-size: 28px 28px;
+}
+
+/* ── Page shell sits above bg pseudo layers ───────────────────── */
+.page-shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+/* ── Top vignette — softens the header transition ─────────────── */
+.page-shell::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(
+    to bottom,
+    rgba(6, 10, 18, 0.5) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page-main {
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME
+   Matches [data-theme="light"] used in home.css
+═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] body {
+  background-color: var(--page-bg, #f4f6f9);
+}
+
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(
+      ellipse 65% 50% at 68% 44%,
+      rgba(42, 143, 160, 0.05) 0%,
+      transparent 65%
+    );
+}
+
+[data-theme="light"] body::after {
+  background-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.055) 1px,
+    transparent 1px
+  );
+  background-size: 28px 28px;
+}
+
+[data-theme="light"] .page-shell::before {
+  background: linear-gradient(
+    to bottom,
+    rgba(220, 228, 238, 0.5) 0%,
+    transparent 100%
+  );
+}

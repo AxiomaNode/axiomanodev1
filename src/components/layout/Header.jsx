@@ -136,7 +136,9 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
           <>
             <div className="header__user-overlay" onClick={() => setUserMenuOpen(false)} />
             <div className="header__user-menu">
-              <div className="header__user-menu-info">
+              
+              <Link to="/profile">
+                <div className="header__user-menu-info">
                 <div className="header__avatar header__avatar--lg">{initials}</div>
 
                 <div className="header__user-menu-text">
@@ -151,7 +153,8 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
                   </div>
                 </div>
               </div>
-
+              </Link>
+              
               <div className="header__user-menu-divider" />
 
               <Link to="/progress" className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
