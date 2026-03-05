@@ -1,23 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getTheoryNote, saveTheoryNote } from "../services/db";
 import "./notes-panel.css";
 
-/* ─────────────────────────────────────────────────────────────────────────
-   NotesPanel
-   ─────────────────────────────────────────────────────────────────────────
-   Props:
-     sessionId  {string}  Namespace for localStorage keys.        (required)
-     uid        {string}  Firebase auth uid.                      (optional)
-     topicId    {string}  Firestore topic id.                     (optional)
-
-   Modes:
-     • sessionId only  →  pure localStorage (Diagnostics, Practice).
-     • sessionId + uid + topicId  →  localStorage + Firestore (Theory).
-       Notes are loaded from Firestore on mount, autosaved after 1.5 s idle,
-       and a small cloud status indicator appears in the header.
-───────────────────────────────────────────────────────────────────────── */
-
-/* ── Icons ── */
+/* ── Icons ─────────────────────────────────────────────────────────────── */
 const TrashIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6"/>
@@ -29,6 +13,11 @@ const TrashIcon = () => (
 const CollapseIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
     <polyline points="15 18 9 12 15 6"/>
+  </svg>
+);
+const MobileCloseIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+    <polyline points="18 15 12 9 6 15"/>
   </svg>
 );
 const ExpandIcon = () => (
@@ -45,13 +34,8 @@ const NoteIcon = () => (
     <polyline points="10 9 9 9 8 9"/>
   </svg>
 );
-const CloudIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-  </svg>
-);
 
-/* ── Clear confirm modal ── */
+/* ── Clear Confirm Modal ────────────────────────────────────────────────── */
 const ClearConfirmModal = ({ onConfirm, onCancel }) => {
   useEffect(() => {
     const h = (e) => {
@@ -76,41 +60,36 @@ const ClearConfirmModal = ({ onConfirm, onCancel }) => {
   );
 };
 
-/* ── Constants ── */
-const FONT_STEPS       = [13, 14, 15, 16, 17, 18, 20];
-const DEFAULT_FONT_IDX = 2;   // 15 px
+/* ── Constants ─────────────────────────────────────────────────────────── */
+const FONT_STEPS      = [13, 14, 15, 16, 17, 18, 20];
+const DEFAULT_FONT_IDX = 2; // 15 px
 const MIN_WIDTH        = 280;
 const MAX_WIDTH_RATIO  = 0.5;
-const LS_DEBOUNCE_MS   = 800;
-const FS_DEBOUNCE_MS   = 1500;
 
-/* ── Math symbols ── */
+/* ── Math symbols — inserted at cursor position ─────────────────────────── */
 const MATH_SYMBOLS = [
-  { sym: "√",  label: "Square root"      },
-  { sym: "²",  label: "Squared"          },
-  { sym: "³",  label: "Cubed"            },
-  { sym: "π",  label: "Pi"               },
-  { sym: "∞",  label: "Infinity"         },
-  { sym: "≤",  label: "Less or equal"    },
-  { sym: "≥",  label: "Greater or equal" },
-  { sym: "≠",  label: "Not equal"        },
-  { sym: "×",  label: "Multiply"         },
-  { sym: "÷",  label: "Divide"           },
-  { sym: "∑",  label: "Sum (Sigma)"      },
-  { sym: "Δ",  label: "Delta"            },
+  { sym: "√",  label: "Square root"        },
+  { sym: "²",  label: "Squared"            },
+  { sym: "³",  label: "Cubed"              },
+  { sym: "π",  label: "Pi"                 },
+  { sym: "∞",  label: "Infinity"           },
+  { sym: "≤",  label: "Less or equal"      },
+  { sym: "≥",  label: "Greater or equal"   },
+  { sym: "≠",  label: "Not equal"          },
+  { sym: "×",  label: "Multiply"           },
+  { sym: "÷",  label: "Divide"             },
+  { sym: "∑",  label: "Sum (Sigma)"        },
+  { sym: "Δ",  label: "Delta"              },
 ];
 
-/* ════════════════════════════════════════════════════════════════════════ */
-
-const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
-  const firestoreMode = Boolean(uid && topicId);
-
-  /* ── localStorage keys ── */
+/* ── NotesPanel ─────────────────────────────────────────────────────────── */
+const NotesPanel = ({ sessionId = "default" }) => {
+  /* storage keys */
   const storageKey  = `axioma_notes_${sessionId}`;
   const collapseKey = `axioma_notes_col_${sessionId}`;
   const fontKey     = `axioma_notes_font_${sessionId}`;
 
-  /* ── State ── */
+  /* state */
   const [value, setValue]         = useState(() => localStorage.getItem(storageKey) ?? "");
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(collapseKey) === "true");
   const [fontIdx, setFontIdx]     = useState(() => {
@@ -121,94 +100,24 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
   const [panelWidth, setPanelWidth] = useState(300);
   const [dragging, setDragging]     = useState(false);
 
-  /* ── Firestore status: idle | loading | saving | saved | error ── */
-  const [fsStatus, setFsStatus] = useState("idle");
-
-  /* ── Refs ── */
-  const lsTimer     = useRef(null);
-  const fsTimer     = useRef(null);
-  const dragStartX  = useRef(0);
-  const dragStartW  = useRef(0);
+  const saveTimer  = useRef(null);
+  const dragStartX = useRef(0);
+  const dragStartW = useRef(0);
   const textareaRef = useRef(null);
-  const mountedRef  = useRef(true);
-  const lastFsSaved = useRef("");
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      clearTimeout(lsTimer.current);
-      clearTimeout(fsTimer.current);
-    };
-  }, []);
-
-  /* ── Load from Firestore when topicId changes ── */
-  useEffect(() => {
-    if (!firestoreMode) return;
-    let cancelled = false;
-
-    setFsStatus("loading");
-
-    // Show cached localStorage content instantly while Firestore loads
-    const cached = localStorage.getItem(storageKey) ?? "";
-    setValue(cached);
-
-    getTheoryNote(uid, topicId)
-      .then((data) => {
-        if (cancelled) return;
-        const content = data?.content ?? "";
-        setValue(content);
-        lastFsSaved.current = content;
-        localStorage.setItem(storageKey, content); // keep LS in sync
-        setFsStatus("idle");
-      })
-      .catch(() => {
-        // Silent fallback — localStorage content stays visible
-        if (!cancelled) setFsStatus("idle");
-      });
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, topicId]);
-
-  /* ── Core Firestore write ── */
-  const persistToFirestore = useCallback(async (text) => {
-    if (!firestoreMode) return;
-    if (text === lastFsSaved.current) return;
-    if (!mountedRef.current) return;
-
-    setFsStatus("saving");
-    try {
-      await saveTheoryNote(uid, topicId, text);
-      if (!mountedRef.current) return;
-      lastFsSaved.current = text;
-      setFsStatus("saved");
-      setTimeout(() => { if (mountedRef.current) setFsStatus("idle"); }, 2000);
-    } catch {
-      if (mountedRef.current) setFsStatus("error");
-    }
-  }, [uid, topicId, firestoreMode]);
-
-  /* ── Textarea change ── */
+  /* ── Auto-save (debounced 800ms) ── */
   const handleChange = (e) => {
     const v = e.target.value;
     setValue(v);
-
-    clearTimeout(lsTimer.current);
-    lsTimer.current = setTimeout(() => localStorage.setItem(storageKey, v), LS_DEBOUNCE_MS);
-
-    if (firestoreMode) {
-      setFsStatus("idle");
-      clearTimeout(fsTimer.current);
-      fsTimer.current = setTimeout(() => persistToFirestore(v), FS_DEBOUNCE_MS);
-    }
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => localStorage.setItem(storageKey, v), 800);
   };
 
-  /* ── Persist collapse + font to localStorage ── */
+  /* ── Persist collapse + font ── */
   useEffect(() => { localStorage.setItem(collapseKey, collapsed); }, [collapsed, collapseKey]);
   useEffect(() => { localStorage.setItem(fontKey, fontIdx); },     [fontIdx, fontKey]);
 
-  /* ── Resize drag — left edge, drag left = panel grows ── */
+  /* ── Resize drag — handle on LEFT edge, drag left = panel grows ── */
   const onDragStart = useCallback((e) => {
     e.preventDefault();
     dragStartX.current = e.clientX;
@@ -219,6 +128,7 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
   useEffect(() => {
     if (!dragging) return;
     const onMove = (e) => {
+      /* Moving left (negative delta) increases width for a right-side panel */
       const delta = dragStartX.current - e.clientX;
       const maxW  = Math.floor(window.innerWidth * MAX_WIDTH_RATIO);
       setPanelWidth(Math.min(maxW, Math.max(MIN_WIDTH, dragStartW.current + delta)));
@@ -232,57 +142,81 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
     };
   }, [dragging]);
 
-  /* ── Mobile: keep textarea above soft keyboard ── */
-  useEffect(() => {
-    if (collapsed) return;
-    const el = textareaRef.current;
-    if (!el) return;
-    const onFocus = () => {
-      setTimeout(() => { el.scrollIntoView({ behavior: "smooth", block: "end" }); }, 320);
-    };
-    el.addEventListener("focus", onFocus);
-    return () => el.removeEventListener("focus", onFocus);
-  }, [collapsed]);
+  /* ── Mobile: scroll textarea into view when soft keyboard opens ── */
+/* ── Mobile: avoid page jump on focus; only nudge when keyboard actually overlaps ── */
+useEffect(() => {
+  if (collapsed) return;
 
+  const el = textareaRef.current;
+  if (!el) return;
+
+  const isMobile = () => window.innerWidth < 768;
+
+  const onFocus = () => {
+    // Prevent the browser from auto-scrolling the page when focusing
+    requestAnimationFrame(() => {
+      try {
+        el.focus({ preventScroll: true });
+      } catch {
+        // older browsers: ignore
+      }
+    });
+  };
+
+  // If VisualViewport exists, react to keyboard open by adjusting only if needed
+  const vv = window.visualViewport;
+  const onVVResize = () => {
+    if (!isMobile()) return;
+    if (document.activeElement !== el) return;
+
+    const rect = el.getBoundingClientRect();
+    const vvHeight = vv?.height ?? window.innerHeight;
+
+    // If textarea bottom is below visible viewport (keyboard overlap), scroll *inside* textarea a bit
+    const overflow = rect.bottom - vvHeight;
+    if (overflow > 0) {
+      el.scrollTop += overflow + 12; // small nudge; doesn’t move the whole page
+    }
+  };
+
+  el.addEventListener("focus", onFocus);
+  vv?.addEventListener("resize", onVVResize);
+
+  return () => {
+    el.removeEventListener("focus", onFocus);
+    vv?.removeEventListener("resize", onVVResize);
+  };
+}, [collapsed]);
   /* ── Clear ── */
   const handleClearConfirm = () => {
     setValue("");
     localStorage.removeItem(storageKey);
     setShowClear(false);
-    if (firestoreMode) {
-      clearTimeout(fsTimer.current);
-      persistToFirestore("");
-    }
   };
 
-  /* ── Insert math symbol at cursor, no scroll jump ── */
+  /* ── Insert symbol at cursor — no scroll jump ── */
   const insertSymbol = (sym) => {
     const el = textareaRef.current;
     if (!el) return;
-    const start       = el.selectionStart;
-    const end         = el.selectionEnd;
-    const savedScroll = el.scrollTop;
-    const next        = value.slice(0, start) + sym + value.slice(end);
+    const start      = el.selectionStart;
+    const end        = el.selectionEnd;
+    const savedScroll = el.scrollTop;          // remember scroll before focus
+    const next       = value.slice(0, start) + sym + value.slice(end);
     setValue(next);
-
-    clearTimeout(lsTimer.current);
-    lsTimer.current = setTimeout(() => localStorage.setItem(storageKey, next), LS_DEBOUNCE_MS);
-
-    if (firestoreMode) {
-      clearTimeout(fsTimer.current);
-      fsTimer.current = setTimeout(() => persistToFirestore(next), FS_DEBOUNCE_MS);
-    }
-
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => localStorage.setItem(storageKey, next), 800);
     requestAnimationFrame(() => {
-      el.focus({ preventScroll: true });
+      el.focus({ preventScroll: true });       // focus without browser auto-scroll
       el.setSelectionRange(start + sym.length, start + sym.length);
-      el.scrollTop = savedScroll;
+      el.scrollTop = savedScroll;              // restore exact scroll position
     });
   };
 
-  /* ── Derived ── */
+  /* ── Helpers ── */
   const fontSize = FONT_STEPS[fontIdx];
-  const fsLabel  = { loading: "Loading…", saving: "Saving…", saved: "Saved ✓", error: "Save failed", idle: "" }[fsStatus];
+
+  /* ── Detect mobile for close icon (pure CSS could do this too) ── */
+  const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
 
   /* ════════════════════════════════════════
      COLLAPSED STATE
@@ -290,7 +224,11 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
   if (collapsed) {
     return (
       <div className="notes-collapsed">
-        <button className="notes-collapsed__btn" onClick={() => setCollapsed(false)} title="Open notes">
+        <button
+          className="notes-collapsed__btn"
+          onClick={() => setCollapsed(false)}
+          title="Open notes"
+        >
           <NoteIcon />
           <span className="notes-collapsed__label">Notes</span>
           <ExpandIcon />
@@ -304,6 +242,7 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
   ════════════════════════════════════════ */
   return (
     <>
+      {/* Clear confirm (sits above everything) */}
       {showClear && (
         <ClearConfirmModal
           onConfirm={handleClearConfirm}
@@ -311,9 +250,10 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
         />
       )}
 
-      {/* Backdrop — mobile/tablet only via CSS */}
+      {/* Backdrop — visible on mobile/tablet via CSS media query */}
       <div className="notes-backdrop" onClick={() => setCollapsed(true)} />
 
+      {/* Panel */}
       <aside
         className={`notes-panel${dragging ? " notes-panel--dragging" : ""}`}
         style={{ width: panelWidth }}
@@ -323,21 +263,10 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
           <div className="notes-panel__header-left">
             <span className="notes-panel__header-icon"><NoteIcon /></span>
             <span className="notes-panel__title">Notes</span>
-
-            {/* Cloud save indicator — Firestore mode only */}
-            {firestoreMode && (
-              <span className={`notes-fs-status notes-fs-status--${fsStatus}`}>
-                {fsStatus === "saving"
-                  ? <span className="notes-fs-status__spin" />
-                  : <CloudIcon />
-                }
-                {fsLabel && <span className="notes-fs-status__label">{fsLabel}</span>}
-              </span>
-            )}
           </div>
 
           <div className="notes-panel__header-actions">
-            {/* Font size control */}
+            {/* Font size */}
             <div className="notes-font-ctrl" title="Font size">
               <button
                 className="notes-font-ctrl__btn"
@@ -368,7 +297,7 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
               <TrashIcon />
             </button>
 
-            {/* Collapse */}
+            {/* Collapse — chevron left on desktop, chevron down on mobile */}
             <button
               className="notes-icon-btn"
               onClick={() => setCollapsed(true)}
@@ -379,7 +308,7 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
           </div>
         </div>
 
-        {/* ── Math symbol toolbar ── */}
+        {/* ── Symbol toolbar ── */}
         <div className="notes-symbols">
           {MATH_SYMBOLS.map(({ sym, label }) => (
             <button
@@ -387,7 +316,7 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
               className="notes-symbols__btn"
               onClick={() => insertSymbol(sym)}
               title={label}
-              tabIndex={-1}
+              tabIndex={-1}   // keep tab flow in textarea
             >
               {sym}
             </button>
@@ -401,14 +330,7 @@ const NotesPanel = ({ sessionId = "default", uid = null, topicId = null }) => {
             className="notes-textarea"
             value={value}
             onChange={handleChange}
-            placeholder={
-              fsStatus === "loading"
-                ? "Loading your notes…"
-                : firestoreMode
-                  ? "Write notes for this topic — saved to your profile…"
-                  : "Write your solution steps here…"
-            }
-            disabled={fsStatus === "loading"}
+            placeholder="Write your solution steps here…"
             spellCheck={false}
             autoCorrect="off"
             autoCapitalize="off"
