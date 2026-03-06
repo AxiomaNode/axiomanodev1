@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import NotesPanel from "../components/NotesPanel";   // ← standalone component
-import { topics } from "../data/topics";
-import { saveDiagnostic } from "../services/db";
-import { gapsDatabase } from "../data/gaps";
-import { questions } from "../data/questions";
-import "../styles/diagnostics.css";
-import "../styles/layout.css";
-import { awardPoints } from "../core/scoringEngine";
+import { useAuth } from "../../context/AuthContext";
+import Header from "../../components/layout/Header";
+import Sidebar from "../../components/layout/Sidebar";
+import NotesPanel from "../../components/NotesPanel";   // ← standalone component
+import { topics } from "../../data/topics";
+import { saveDiagnostic } from "../../services/db";
+import { gapsDatabase } from "../../data/gaps";
+import { questions } from "../../data/questions";
+import "./diagnostics.css";
+import "../../styles/layout.css"
+import { awardPoints } from "../../core/scoringEngine";
 // notes-panel.css is imported by NotesPanel.jsx — no need to duplicate here
 
 /* ════════════════════════════════════════════

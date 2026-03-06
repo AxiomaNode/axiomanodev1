@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import RegisterForm from "../components/auth/RegisterForm";
-import "../styles/auth.css";
-import LoginForm from "../components/auth/LoginForm";
-import AxiomaLogo from '../AxiomaLogo.png'
+import { useAuth } from "../../context/AuthContext";
+import RegisterForm from "../../components/auth/RegisterForm";
+import "./auth.css";
+import LoginForm from "../../components/auth/LoginForm";
+import AxiomaLogo from '../../AxiomaLogo.png'
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);

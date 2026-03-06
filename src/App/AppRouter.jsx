@@ -1,19 +1,27 @@
+// AppRouter.jsx — no changes needed here.
+// The future flags must be added on <BrowserRouter> in your main.jsx or App.jsx:
+//
+// import { BrowserRouter } from "react-router-dom";
+//
+// <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+//   <App />
+// </BrowserRouter>
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-import AuthPage        from "../pages/AuthPage";
+import AuthPage        from "../pages/authPages/AuthPage";
 import VerifyEmailPage from "../pages/VerifyEmailPage";
 import HomePage        from "../pages/HomePage";
-import DiagnosticsPage from "../pages/DiagnosticsPage";
+import DiagnosticsPage from "../pages/diagnosticsPages/DiagnosticsPage";
 import PracticePage    from "../pages/PracticePage";
 import ProgressPage    from "../pages/ProgressPage";
 import ResultsPage     from "../pages/ResultsPage";
 import SupportPage     from "../pages/SupportPage";
 import TheoryPage      from "../pages/TheoryPage";
 import EmailActionPage from "../pages/EmailActionPage";
-import AboutPage from "../pages/AboutPage";
-import ProfilePage from "../pages/ProfilePage";
-
+import AboutPage       from "../pages/aboutPages/AboutPage";
+import ProfilePage     from "../pages/ProfilePage";
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -33,18 +41,17 @@ const AppRouter = () => (
   <Routes>
     <Route path="/auth"         element={<PublicRoute><AuthPage /></PublicRoute>} />
     <Route path="/verify-email" element={<VerifyEmailPage />} />
-    <Route path="/home"        element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-    <Route path="/diagnostics" element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
-    <Route path="/practice"    element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
-    <Route path="/progress"    element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
-    <Route path="/results"     element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
-    <Route path="/support"     element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-    <Route path="/theory"      element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
+    <Route path="/home"         element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+    <Route path="/diagnostics"  element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
+    <Route path="/practice"     element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
+    <Route path="/progress"     element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+    <Route path="/results"      element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
+    <Route path="/support"      element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+    <Route path="/theory"       element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
     <Route path="/profile"      element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-    <Route path="/about"      element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
-    <Route path="/auth/action" element={<EmailActionPage />} />
-
-    <Route path="*" element={<Navigate to="/home" replace />} />
+    <Route path="/about"        element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
+    <Route path="/auth/action"  element={<EmailActionPage />} />
+    <Route path="*"             element={<Navigate to="/home" replace />} />
   </Routes>
 );
 

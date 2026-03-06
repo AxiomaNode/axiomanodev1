@@ -6,11 +6,11 @@ import {
   getCountFromServer,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "../firebase/firebaseConfig";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import "../styles/about.css";
-import PerseusLogo from "../App/PerseusTeamSiteIconBGRemoved.png";
+import Sidebar from "../../components/layout/Sidebar";
+import Header from "../../components/layout/Header";
+import { db } from "../../firebase/firebaseConfig";
+import "./about.css";
+import PerseusLogo from "../../App/PerseusTeamSiteIconBGRemoved.png";
 
 const ChevronRight = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
