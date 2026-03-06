@@ -28,7 +28,6 @@ input { font: inherit; border: 0; background: transparent; color: inherit; outli
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(244,242,238,.18); border-radius: 8px; }
-::selection { background: var(--gold); color: var(--bg-0); }
 
 @keyframes up {
   from { opacity: 0; transform: translateY(16px); }
