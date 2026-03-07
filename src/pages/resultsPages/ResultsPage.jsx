@@ -1,14 +1,14 @@
 // src/pages/ResultsPage.jsx
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import { topics } from "../data/topics";
-import { questions as questionsDb } from "../data/questions";
-import { getDiagnostics } from "../services/db";
-import "../styles/results.css";
-import "../styles/layout.css";
+import { useAuth } from "../../context/AuthContext";
+import Header from "../../components/layout/Header";
+import Sidebar from "../../components/layout/Sidebar";
+import { topics } from "../../data/topics";
+import { questions as questionsDb } from "../../data/questions";
+import { getDiagnostics } from "../../services/db";
+import "./results.css";
+import '../../styles/layout.css'
 
 const ChevronRight = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

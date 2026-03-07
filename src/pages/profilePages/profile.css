@@ -15,9 +15,8 @@
 
 /* ══════════════════════════════════════════
    DOT-GRID BACKGROUND
-   Injected via useEffect → body.axioma-profile-bg
-   Lives on body, bypasses all overflow/transform
-   stacking-context issues completely.
+   Full-page coverage — no masking.
+   Applied via useEffect → body.axioma-profile-bg
 ══════════════════════════════════════════ */
 body.axioma-profile-bg::after {
   content: '';
@@ -25,16 +24,8 @@ body.axioma-profile-bg::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image: radial-gradient(circle, rgba(42,143,160,0.15) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(42,143,160,0.13) 1px, transparent 1px);
   background-size: 28px 28px;
-  mask-image:
-    radial-gradient(ellipse 75% 65% at 8% 12%, rgba(0,0,0,0.85) 0%, transparent 65%),
-    radial-gradient(ellipse 55% 50% at 92% 82%, rgba(0,0,0,0.5) 0%, transparent 60%);
-  -webkit-mask-image:
-    radial-gradient(ellipse 75% 65% at 8% 12%, rgba(0,0,0,0.85) 0%, transparent 65%),
-    radial-gradient(ellipse 55% 50% at 92% 82%, rgba(0,0,0,0.5) 0%, transparent 60%);
-  mask-composite: add;
-  -webkit-mask-composite: source-over;
 }
 
 /* ── Page shell ─────────────────────────── */
@@ -228,8 +219,7 @@ body.axioma-profile-bg::after {
 }
 
 /* ══════════════════════════════════════════
-   CHART SECTION — enhanced card
-   (used in both ProgressPage and ProgressSection)
+   CHART SECTION
 ══════════════════════════════════════════ */
 .progress-chart-section {
   background: var(--card-bg);
@@ -240,22 +230,18 @@ body.axioma-profile-bg::after {
   overflow: hidden;
   animation: card-in 0.5s cubic-bezier(0.22,1,0.36,1) 0.1s both;
 }
-/* Top teal accent */
 .progress-chart-section::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, var(--teal), rgba(42,143,160,0.2), transparent);
 }
-/* Ambient glow behind chart area */
 .progress-chart-section::after {
   content: ''; position: absolute;
   bottom: 0; left: 50%; transform: translateX(-50%);
   width: 70%; height: 45%;
-  background: radial-gradient(ellipse at 50% 100%,
-    rgba(42,143,160,0.07) 0%, transparent 70%);
+  background: radial-gradient(ellipse at 50% 100%, rgba(42,143,160,0.07) 0%, transparent 70%);
   pointer-events: none;
 }
 
-/* Chart header */
 .progress-chart-section__header {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 16px; margin-bottom: 18px;
@@ -279,8 +265,6 @@ body.axioma-profile-bg::after {
   font-size: 0.8rem; color: var(--text-light);
   font-family: -apple-system, sans-serif; margin: 0;
 }
-
-/* Live tag */
 .progress-chart-section__tag {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 0.7rem; font-weight: 600; font-family: 'Courier New', monospace;
@@ -294,7 +278,6 @@ body.axioma-profile-bg::after {
   animation: dot-pulse 2.4s ease-in-out infinite;
 }
 
-/* SVG chart wrapper */
 .progress-chart-wrap { display: flex; flex-direction: column; gap: 12px; }
 .progress-chart-legend {
   display: flex; align-items: center; gap: 18px;
@@ -305,19 +288,12 @@ body.axioma-profile-bg::after {
   width: 8px; height: 8px; border-radius: 50%;
   animation: dot-pulse 2.4s ease-in-out infinite;
 }
-.progress-chart-legend__item:last-child .progress-chart-legend__dot {
-  animation-delay: 1.2s;
-}
-.progress-chart-svg-wrap {
-  width: 100%; overflow: hidden;
-}
-.progress-chart-svg {
-  width: 100%; display: block;
-  overflow: visible; /* allow tooltip/dots to bleed */
-}
+.progress-chart-legend__item:last-child .progress-chart-legend__dot { animation-delay: 1.2s; }
+.progress-chart-svg-wrap { width: 100%; overflow: hidden; }
+.progress-chart-svg { width: 100%; display: block; overflow: visible; }
 
 /* ══════════════════════════════════════════
-   HISTORY ROW (profile-internal)
+   HISTORY ROW
 ══════════════════════════════════════════ */
 .progress-history-row--clickable {
   display: flex; align-items: flex-start; gap: 16px;
@@ -337,7 +313,7 @@ body.axioma-profile-bg::after {
 }
 
 /* ══════════════════════════════════════════
-   ANSWER BREAKDOWN (profile-internal)
+   ANSWER BREAKDOWN
 ══════════════════════════════════════════ */
 .results-breakdown {
   border: 1px solid var(--border); border-radius: 12px;
@@ -384,7 +360,7 @@ body.axioma-profile-bg::after {
   font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--text-light); font-family: 'Courier New', monospace;
 }
-.results-breakdown__answer--wrong .results-breakdown__answer-value { color: #c0392b; }
+.results-breakdown__answer--wrong .results-breakdown__answer-value  { color: #c0392b; }
 .results-breakdown__answer--correct .results-breakdown__answer-value { color: #27ae60; }
 .results-breakdown__answer-value { font-size: 0.9rem; font-weight: 700; font-family: -apple-system, sans-serif; }
 
@@ -479,8 +455,8 @@ body.axioma-profile-bg::after {
   border-radius: 8px; font-size: 0.8rem; font-family: -apple-system, sans-serif;
   font-weight: 500; line-height: 1.4;
 }
-.pedit-feedback--error { background: rgba(192,57,43,0.07); border: 1px solid rgba(192,57,43,0.25); color: #c0392b; }
-.pedit-feedback--success { background: rgba(39,174,96,0.07); border: 1px solid rgba(39,174,96,0.25); color: #27ae60; }
+.pedit-feedback--error  { background: rgba(192,57,43,0.07); border: 1px solid rgba(192,57,43,0.25); color: #c0392b; }
+.pedit-feedback--success { background: rgba(39,174,96,0.07);  border: 1px solid rgba(39,174,96,0.25);  color: #27ae60; }
 .pedit-divider { height: 1px; background: var(--border); margin: 2px 0; }
 
 .pedit-modal__footer {

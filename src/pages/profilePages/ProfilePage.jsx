@@ -1,18 +1,19 @@
-// src/pages/ProfilePage.jsx
+// src/pages/profilePages/ProfilePage.jsx
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import { getPractice, getDiagnostics } from "../services/db";
-import { getUserProfile } from "../firebase/auth";
-import ResultsSection  from "../components/sections/ResultsSection";
-import ProgressSection from "../components/sections/ProgressSections";
-import ProfileEditModal from "../components/profile/ProfileEditModal";
-import "../styles/profile.css";
-import "../styles/progress.css";
-import "../styles/results.css";
-import "../styles/layout.css";
+import { useAuth } from "../../context/AuthContext";
+import Header from "../../components/layout/Header";
+import Sidebar from "../../components/layout/Sidebar";
+import { getPractice, getDiagnostics, getAllTopicNotes } from "../../services/db";
+import { getUserProfile } from "../../firebase/auth";
+import ResultsSection  from "../../components/sections/ResultsSection";
+import ProgressSection from "../../components/sections/ProgressSections";
+import NotesSection    from "../../components/sections/NotesSection";
+import ProfileEditModal from "../../components/profile/ProfileEditModal";
+import "./profile.css";
+import "../progressPages/progress.css";
+import '../resultsPages/results.css';
+import "../../styles/layout.css";
 
 // ── XP / level helpers ────────────────────────────────────────────────────────
 const XP_PER_LEVEL = 200;
@@ -158,11 +159,11 @@ const ProfilePage = () => {
   const [diagnostics, setDiagnostics] = useState([]);
   const [practice,    setPractice]    = useState([]);
   const [profile,     setProfile]     = useState(null);
+  const [topicNotes,  setTopicNotes]  = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [resultIdx,   setResultIdx]   = useState(0);
 
   // ── Dot-grid background on body ──────────────────────────────────────────
-  // This bypasses overflow/transform stacking-context issues in page-main.
   useEffect(() => {
     document.body.classList.add("axioma-profile-bg");
     return () => {
@@ -176,10 +177,12 @@ const ProfilePage = () => {
       getDiagnostics(user.uid),
       getPractice(user.uid),
       getUserProfile(user.uid),
-    ]).then(([diags, pracs, prof]) => {
-      setDiagnostics(diags ?? []);
-      setPractice(pracs    ?? []);
+      getAllTopicNotes(user.uid),
+    ]).then(([diags, pracs, prof, notes]) => {
+      setDiagnostics(diags  ?? []);
+      setPractice(pracs     ?? []);
       setProfile(prof);
+      setTopicNotes(notes   ?? []);
       setLoading(false);
     });
   }, [user]);
@@ -190,9 +193,17 @@ const ProfilePage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Called by NotesSection after a successful save to keep local state in sync.
+  const handleNoteUpdated = (topicId, newContent) => {
+    setTopicNotes((prev) =>
+      prev.map((n) => (n.topicId === topicId ? { ...n, content: newContent } : n))
+    );
+  };
+
   const TABS = [
     { id: "progress", label: "Progress" },
-    { id: "results",  label: "Results", badge: diagnostics.length || null },
+    { id: "results",  label: "Results",  badge: diagnostics.length || null },
+    { id: "notes",    label: "Notes",    badge: topicNotes.length  || null },
   ];
 
   return (
@@ -257,6 +268,13 @@ const ProfilePage = () => {
                   <ResultsSection
                     sessions={diagnostics}
                     initialIdx={resultIdx}
+                  />
+                )}
+                {activeTab === "notes" && (
+                  <NotesSection
+                    notes={topicNotes}
+                    uid={user?.uid}
+                    onNoteUpdated={handleNoteUpdated}
                   />
                 )}
               </div>

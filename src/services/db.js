@@ -292,5 +292,62 @@ export const saveHomeworkResult = async (uid, topicId, payload) => {
   );
 };
 
+/* ─────────────────────────────────────────────
+   Topic Notes
+   Firestore structure:
+   users/{uid}/topicNotes/{topicId}
+   {
+     topicId:    string,
+     topicTitle: string,
+     content:    string,   ← HTML from rich editor
+     createdAt:  Timestamp,
+     updatedAt:  Timestamp,
+   }
+───────────────────────────────────────────── */
 
+/**
+ * Load the saved note for a single topic.
+ * Returns null if no note exists yet.
+ */
+export const getTopicNote = async (uid, topicId) => {
+  const ref = doc(db, "users", uid, "topicNotes", topicId);
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
 
+/**
+ * Create or update the note for a topic.
+ * Skips write if content is empty and no document exists yet.
+ */
+export const saveTopicNote = async (uid, topicId, { topicTitle, content }) => {
+  const ref = doc(db, "users", uid, "topicNotes", topicId);
+  const snap = await getDoc(ref);
+  const isNew = !snap.exists();
+
+  // Don't create a doc for an empty note
+  if (isNew && (!content || !content.trim())) return;
+
+  await setDoc(
+    ref,
+    {
+      topicId,
+      topicTitle: topicTitle || topicId,
+      content,
+      updatedAt: serverTimestamp(),
+      ...(isNew ? { createdAt: serverTimestamp() } : {}),
+    },
+    { merge: true }
+  );
+};
+
+/**
+ * Fetch all topic notes for a user that have non-empty content.
+ * Used by ProfilePage to populate the Notes section.
+ */
+export const getAllTopicNotes = async (uid) => {
+  const colRef = collection(db, "users", uid, "topicNotes");
+  const snap = await getDocs(colRef);
+  return snap.docs
+    .map((d) => d.data())
+    .filter((n) => n.content && n.content.trim());
+};

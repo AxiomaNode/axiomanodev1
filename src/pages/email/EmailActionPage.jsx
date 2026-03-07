@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { applyActionCode } from "firebase/auth";
-import { auth } from "../firebase/firebaseConfig";
+import { auth } from "../../firebase/firebaseConfig";
 
 const EmailActionPage = () => {
   const [searchParams] = useSearchParams();

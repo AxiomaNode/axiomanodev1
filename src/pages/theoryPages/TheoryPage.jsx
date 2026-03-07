@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import { theory, theoryTopics } from "../data/theory";
-import { useAuth } from "../context/AuthContext";
-import { tasks as taskBank } from "../data/tasks";
-import { getTheoryProgress, saveTheoryProgress } from "../services/db";
-import { getUserProfile } from "../firebase/auth";
+import Header from "../../components/layout/Header";
+import Sidebar from "../../components/layout/Sidebar";
+import NotesPanel from "../../components/NotesPanel";
+import { theory, theoryTopics } from "../../data/theory";
+import { useAuth } from "../../context/AuthContext";
+import { tasks as taskBank } from "../../data/tasks";
+import { getTheoryProgress, saveTheoryProgress, getTopicNote, saveTopicNote } from "../../services/db";
+import { getUserProfile } from "../../firebase/auth";
 
-import "../styles/theory.css";
-import "../styles/layout.css";
+import "./theory.css";
+import '../../styles/layout.css'
+import '../../styles/diag-shell.css'
 
 /* ── Icons ─────────────────────────────── */
 const ChevronRight = () => (
@@ -25,12 +27,6 @@ const ChevronLeft = () => (
 const CheckIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
     <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-const LockIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
   </svg>
 );
 const InfoIcon = () => (
@@ -57,7 +53,6 @@ const Chalkboard = ({ scene, revealKey }) => {
   const rafRef = useRef(null);
   const DPR = typeof window !== "undefined" ? Math.min(2, window.devicePixelRatio || 1) : 1;
 
-  /* ── Drawing helpers ── */
   const chalkStyle = (ctx, alpha = 0.88) => {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -66,8 +61,6 @@ const Chalkboard = ({ scene, revealKey }) => {
     ctx.globalAlpha = alpha;
   };
 
-  // ── SPLIT into two passes ──────────────────────────────
-  // Pass 1: only the axis LINES — drawn BEFORE the curve
   const drawAxesLines = (ctx, ox, oy, w, h, scaleX, xMin, xMax) => {
     ctx.save();
     ctx.strokeStyle = "rgba(255,255,255,0.45)";
@@ -81,12 +74,8 @@ const Chalkboard = ({ scene, revealKey }) => {
     ctx.restore();
   };
 
-  // Pass 2: arrows + ticks + numbers — drawn AFTER the curve
-  // Each number gets a small dark background rect so it stays readable
   const drawAxesLabels = (ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax) => {
     ctx.save();
-
-    // Arrow heads
     ctx.fillStyle = "rgba(255,255,255,0.45)";
     const ax = ox + xMax * scaleX;
     ctx.beginPath();
@@ -95,57 +84,37 @@ const Chalkboard = ({ scene, revealKey }) => {
     ctx.beginPath();
     ctx.moveTo(ox, 20); ctx.lineTo(ox - 4, 28); ctx.lineTo(ox + 4, 28);
     ctx.fill();
-
-    // Axis letter labels
     ctx.font = "italic 600 13px Georgia, serif";
     ctx.fillStyle = "rgba(255,255,255,0.4)";
     ctx.fillText("x", ax + 6, oy + 5);
     ctx.fillText("y", ox + 6, 18);
-
-    // Tick marks + numbers
     ctx.lineWidth = 1;
     ctx.strokeStyle = "rgba(255,255,255,0.2)";
     ctx.font = "600 11px 'Courier New', monospace";
-
     for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
       if (x === 0) continue;
       const px = ox + x * scaleX;
-
-      // tick stroke
       ctx.beginPath();
       ctx.moveTo(px, oy - 4);
       ctx.lineTo(px, oy + 4);
       ctx.stroke();
-
-      // dark background behind the number so the curve doesn't bleed through
       const label = String(x);
       const tw = ctx.measureText(label).width;
-      const bgX = px - tw / 2 - 2;
-      const bgY = oy + 5;
-      const bgW = tw + 4;
-      const bgH = 14;
       ctx.fillStyle = "rgba(13,17,23,0.78)";
-      ctx.fillRect(bgX, bgY, bgW, bgH);
-
-      // number text
+      ctx.fillRect(px - tw / 2 - 2, oy + 5, tw + 4, 14);
       ctx.fillStyle = "rgba(255,255,255,0.5)";
       ctx.fillText(label, px - tw / 2, oy + 17);
     }
-
     ctx.restore();
   };
 
-  /* ── Scene: parabola_single ── */
   const renderParabolaSingle = (ctx, w, h, t, scene) => {
     const { a = 1, b = -1, c = -6, roots = [-2, 3], xRange = [-3.5, 4.5] } = scene;
-
     const padL = 52, padR = 28, padT = 28, padB = 44;
     const cw = w - padL - padR;
     const ch = h - padT - padB;
-
     const xMin = xRange[0], xMax = xRange[1];
     const scaleX = cw / (xMax - xMin);
-
     let yMin = Infinity, yMax = -Infinity;
     for (let xi = xMin; xi <= xMax; xi += 0.1) {
       const y = a * xi * xi + b * xi + c;
@@ -155,16 +124,10 @@ const Chalkboard = ({ scene, revealKey }) => {
     yMin = Math.floor(yMin) - 1;
     yMax = Math.ceil(yMax) + 1;
     const scaleY = ch / (yMax - yMin);
-
     const ox = padL + (-xMin) * scaleX;
     const oy = padT + (yMax) * scaleY;
-
     const toC = (x, y) => [ox + x * scaleX, oy - y * scaleY];
-
-    // ── LAYER 1: axis lines (below curve) ──
     drawAxesLines(ctx, ox, oy, w, h, scaleX, xMin, xMax);
-
-    // ── LAYER 2: the curve ──
     const SAMPLES = 120;
     const curveEnd = Math.floor(SAMPLES * Math.min(1, t / 0.65));
     if (curveEnd > 1) {
@@ -185,17 +148,13 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.stroke();
       ctx.restore();
     }
-
-    // ── LAYER 3: axis arrows + tick labels (above curve) ──
+    drawAxesLines(ctx, ox, oy, w, h, scaleX, xMin, xMax);
     drawAxesLabels(ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax);
-
-    // ── LAYER 4: root dots ──
     if (t > 0.65) {
       const dotT = Math.min(1, (t - 0.65) / 0.17);
       roots.forEach((rx) => {
         const [px, py] = toC(rx, 0);
         const r = 5 * dotT;
-
         ctx.save();
         ctx.globalAlpha = 0.25 * dotT;
         const grad = ctx.createRadialGradient(px, py, 0, px, py, 14);
@@ -204,7 +163,6 @@ const Chalkboard = ({ scene, revealKey }) => {
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
-
         ctx.save();
         ctx.globalAlpha = dotT;
         ctx.fillStyle = "rgba(42, 213, 180, 0.95)";
@@ -214,8 +172,6 @@ const Chalkboard = ({ scene, revealKey }) => {
         ctx.restore();
       });
     }
-
-    // ── LAYER 5: root labels with dark background pills ──
     if (t > 0.82) {
       const labelT = Math.min(1, (t - 0.82) / 0.18);
       roots.forEach((rx, idx) => {
@@ -224,12 +180,9 @@ const Chalkboard = ({ scene, revealKey }) => {
         const offsetX = rx < 0 ? -52 : 10;
         const lx = px + offsetX;
         const ly = py - 16;
-
         ctx.save();
         ctx.globalAlpha = labelT;
         ctx.font = "700 12px 'Courier New', monospace";
-
-        // measure first, then draw background pill
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = "rgba(13,17,23,0.82)";
         const rPad = 4;
@@ -240,15 +193,12 @@ const Chalkboard = ({ scene, revealKey }) => {
         } else {
           ctx.fillRect(lx - rPad, ly - 12, tw + rPad * 2, 16);
         }
-
         ctx.fillStyle = "rgba(42, 213, 180, 0.9)";
         ctx.shadowBlur = 5;
         ctx.shadowColor = "rgba(42,213,180,0.4)";
         ctx.fillText(label, lx, ly);
         ctx.restore();
       });
-
-      // vertex dot
       const vx = -b / (2 * a);
       const vy = a * vx * vx + b * vx + c;
       const [vpx, vpy] = toC(vx, vy);
@@ -260,25 +210,19 @@ const Chalkboard = ({ scene, revealKey }) => {
     }
   };
 
-  /* ── Scene: parabola_D_cases ── */
   const renderDCases = (ctx, w, h, t) => {
-    const cols = 3;
     const pad = 14;
-    const boxW = (w - pad * 2 - 18) / cols;
+    const boxW = (w - pad * 2 - 18) / 3;
     const boxH = h - 18 - pad * 2;
     const top = pad;
-
     const shifts = [
       { shiftY: -1.4, label: "D > 0", hint: "2 real roots",    color: "rgba(42,213,180,0.9)" },
       { shiftY: 0.0,  label: "D = 0", hint: "1 repeated root", color: "rgba(255,210,100,0.9)" },
       { shiftY: 1.4,  label: "D < 0", hint: "no real roots",   color: "rgba(255,100,100,0.9)" },
     ];
-
     for (let i = 0; i < 3; i++) {
       const left = pad + i * (boxW + 9);
       const s = shifts[i];
-
-      // column divider
       ctx.save();
       if (i < 2) {
         ctx.strokeStyle = "rgba(255,255,255,0.06)";
@@ -289,13 +233,10 @@ const Chalkboard = ({ scene, revealKey }) => {
         ctx.stroke();
       }
       ctx.restore();
-
       const ox = left + boxW / 2;
       const oy = top + boxH * 0.58;
       const lw = boxW * 0.8;
       const lh = boxH * 0.65;
-
-      // ── LAYER 1: mini axis lines (before curve) ──
       ctx.save();
       ctx.strokeStyle = "rgba(255,255,255,0.3)";
       ctx.lineWidth = 1.2;
@@ -304,17 +245,12 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.moveTo(ox, top + 10); ctx.lineTo(ox, top + boxH - 12);
       ctx.stroke();
       ctx.restore();
-
-      // ── LAYER 2: parabola curve ──
       const pts = [];
       for (let k = -50; k <= 50; k++) {
         const x = k / 10;
         const y = 0.28 * x * x + s.shiftY;
-        const px = ox + (x / 5) * (lw / 2);
-        const py = oy - (y / 3) * lh;
-        pts.push([px, py]);
+        pts.push([ox + (x / 5) * (lw / 2), oy - (y / 3) * lh]);
       }
-
       const maxPts = Math.floor(pts.length * Math.min(1, t / 0.7));
       ctx.save();
       chalkStyle(ctx, 0.88);
@@ -329,16 +265,11 @@ const Chalkboard = ({ scene, revealKey }) => {
       }
       ctx.stroke();
       ctx.restore();
-
-      // ── LAYER 3: root dots + text labels (above curve) ──
       if (t > 0.7) {
         const tt = Math.min(1, (t - 0.7) / 0.3);
-
         if (s.label === "D > 0") {
           const r = Math.sqrt(Math.abs(s.shiftY) / 0.28);
-          const p1x = ox - (r / 5) * (lw / 2);
-          const p2x = ox + (r / 5) * (lw / 2);
-          [p1x, p2x].forEach(px => {
+          [ox - (r / 5) * (lw / 2), ox + (r / 5) * (lw / 2)].forEach(px => {
             ctx.save();
             ctx.globalAlpha = tt;
             ctx.fillStyle = s.color;
@@ -357,8 +288,6 @@ const Chalkboard = ({ scene, revealKey }) => {
           ctx.beginPath(); ctx.arc(ox, oy, 4, 0, Math.PI * 2); ctx.fill();
           ctx.restore();
         }
-
-        // D-label with dark background
         ctx.save();
         ctx.globalAlpha = tt;
         ctx.font = "800 12px 'Courier New', monospace";
@@ -367,7 +296,6 @@ const Chalkboard = ({ scene, revealKey }) => {
         ctx.fillRect(left + 8, top + 6, dw + 8, 15);
         ctx.fillStyle = s.color;
         ctx.fillText(s.label, left + 12, top + 18);
-
         ctx.font = "500 11px -apple-system, sans-serif";
         const hw = ctx.measureText(s.hint).width;
         ctx.fillStyle = "rgba(13,17,23,0.8)";
@@ -379,7 +307,6 @@ const Chalkboard = ({ scene, revealKey }) => {
     }
   };
 
-  /* ── Main render dispatcher ── */
   const renderScene = (ctx, w, h, t) => {
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = "#0d1117";
@@ -395,18 +322,14 @@ const Chalkboard = ({ scene, revealKey }) => {
     const parent = canvas.parentElement;
     const w = Math.max(320, parent?.clientWidth || 600);
     const h = scene?.type === "parabola_single" ? 260 : 220;
-
     canvas.width = Math.floor(w * DPR);
     canvas.height = Math.floor(h * DPR);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-
     const ctx = canvas.getContext("2d");
     ctx.scale(DPR, DPR);
-
     let start = null;
     const duration = scene?.type === "parabola_single" ? 1200 : 820;
-
     const tick = (ts) => {
       if (!start) start = ts;
       const p = Math.min(1, (ts - start) / duration);
@@ -458,7 +381,6 @@ const MiniCheck = ({ check, isPassed, onPass }) => {
       ? Number(check.correctIndex)
       : options.findIndex((o) => typeof o === "object" && o?.isCorrect);
   const correctIndex = actualCorrectIndex >= 0 ? actualCorrectIndex : 0;
-
   const optText    = (opt) => (typeof opt === "string" ? opt : opt?.label ?? "");
   const optExplain = (opt) => (typeof opt === "object" ? opt?.explanation : "");
 
@@ -482,8 +404,7 @@ const MiniCheck = ({ check, isPassed, onPass }) => {
         {options.map((opt, i) => {
           const sel = selected === i;
           const cls = checked
-            ? i === correctIndex
-              ? "th-opt th-opt--correct"
+            ? i === correctIndex ? "th-opt th-opt--correct"
               : sel ? "th-opt th-opt--wrong" : "th-opt"
             : sel ? "th-opt th-opt--selected" : "th-opt";
           return (
@@ -494,7 +415,6 @@ const MiniCheck = ({ check, isPassed, onPass }) => {
           );
         })}
       </div>
-
       {checked && !isCorrect && selected !== null && (
         <div className="th-check__error">
           <p className="th-p">{optExplain(options[selected]) || "Not quite. Re-read and try again."}</p>
@@ -512,7 +432,7 @@ const MiniCheck = ({ check, isPassed, onPass }) => {
   );
 };
 
-/* ── RevealCard (collapsible "I didn't get it") ── */
+/* ── RevealCard ── */
 const RevealCard = ({ card }) => {
   const [open, setOpen] = useState(false);
   return (
@@ -535,21 +455,18 @@ const RevealCard = ({ card }) => {
 
 /* ── Card renderers ─────────────────────── */
 const CardText       = ({ content }) => <p className="th-text">{content}</p>;
-
 const CardFact       = ({ label, content }) => (
   <div className="th-card th-card--fact">
     <div className="th-card__cap"><span className="th-dot" />{label || "Key idea"}</div>
     <p className="th-p">{content}</p>
   </div>
 );
-
 const CardDefinition = ({ term, content }) => (
   <div className="th-card th-card--def">
     <span className="th-term">{term}</span>
     <p className="th-p">{content}</p>
   </div>
 );
-
 const CardFormula = ({ label, content, note }) => (
   <div className="th-card th-card--formula">
     <div className="th-formula__badge">
@@ -562,7 +479,6 @@ const CardFormula = ({ label, content, note }) => (
     {note && <p className="th-formula__note">{note}</p>}
   </div>
 );
-
 const CardAnalogy = ({ icon, title, content }) => (
   <div className="th-card th-card--analogy">
     <div className="th-analogy__head">
@@ -572,7 +488,6 @@ const CardAnalogy = ({ icon, title, content }) => (
     <p className="th-p">{content}</p>
   </div>
 );
-
 const CardExample    = ({ title, steps }) => (
   <div className="th-card th-card--example">
     <p className="th-smallcap">{title}</p>
@@ -588,7 +503,6 @@ const CardExample    = ({ title, steps }) => (
     </div>
   </div>
 );
-
 const CardInsight    = ({ title, content }) => (
   <div className="th-card th-card--insight">
     <div className="th-insight__head">
@@ -600,7 +514,6 @@ const CardInsight    = ({ title, content }) => (
     <p className="th-p">{content}</p>
   </div>
 );
-
 const CardMethod     = ({ title, example, note, whenLabel, whenValue }) => (
   <div className="th-card th-card--method">
     <h4 className="th-h4">{title}</h4>
@@ -609,7 +522,6 @@ const CardMethod     = ({ title, example, note, whenLabel, whenValue }) => (
     {note && <p className="th-note">↳ {note}</p>}
   </div>
 );
-
 const CardBoard      = ({ scene, revealKey }) => (
   <div className="th-card th-card--board">
     <Chalkboard scene={scene} revealKey={revealKey} />
@@ -638,13 +550,17 @@ const TheoryPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [topicId, setTopicId]         = useState(theoryTopics?.[0]?.id || "quadratic");
-  const [secIdx, setSecIdx]           = useState(0);
-  const [stepIdx, setStepIdx]         = useState(0);
-  const [passedChecks, setPassedChecks] = useState({});
-  const [loading, setLoading]         = useState(true);
-  const [userGrade, setUserGrade]     = useState(null);
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [topicId,       setTopicId]       = useState(theoryTopics?.[0]?.id || "quadratic");
+  const [secIdx,        setSecIdx]        = useState(0);
+  const [stepIdx,       setStepIdx]       = useState(0);
+  const [passedChecks,  setPassedChecks]  = useState({});
+  const [loading,       setLoading]       = useState(true);
+  const [userGrade,     setUserGrade]     = useState(null);
+
+  /* ── Notes state ── */
+  const [noteContent,   setNoteContent]   = useState(null);
+  const [noteLoadedFor, setNoteLoadedFor] = useState(null);
 
   const boardRef = useRef(null);
 
@@ -707,6 +623,31 @@ const TheoryPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topicId, user?.uid]);
 
+  /* ── Load topic note ── */
+  useEffect(() => {
+    setNoteContent(null);
+    setNoteLoadedFor(null);
+    if (!user?.uid) {
+      setNoteContent("");
+      setNoteLoadedFor(topicId);
+      return;
+    }
+    let cancelled = false;
+    getTopicNote(user.uid, topicId).then((note) => {
+      if (cancelled) return;
+      setNoteContent(note?.content ?? "");
+      setNoteLoadedFor(topicId);
+    });
+    return () => { cancelled = true; };
+  }, [topicId, user?.uid]);
+
+  /* ── Save note callback ── */
+  const handleNoteSave = useCallback(async (html) => {
+    if (!user?.uid) return;
+    await saveTopicNote(user.uid, topicId, { topicTitle: tData?.title || topicId, content: html });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, topicId, tData?.title]);
+
   const isPracticeMode = false;
   const currSection    = tData?.sections?.[secIdx] ?? null;
   const stepsCount     = currSection?.steps?.length || 0;
@@ -757,9 +698,7 @@ const TheoryPage = () => {
     await saveProgress(secIdx, stepIdx, neo);
   };
 
-  const handleGoHomework = () => {
-    navigate("/homework", { state: { topicId } });
-  };
+  const handleGoHomework  = () => navigate("/homework", { state: { topicId } });
 
   const handleRestartTheory = async () => {
     setSecIdx(0); setStepIdx(0); setPassedChecks({});
@@ -775,20 +714,23 @@ const TheoryPage = () => {
     );
   }
 
-  const hasCheck       = !!currStep?.check;
-  const isPassed       = !!passedChecks[`${secIdx}-${stepIdx}`];
-  const canGoNext      = !hasCheck || isPassed;
-  const isLastStep     = stepIdx + 1 === stepsCount;
-  const isLastSection  = secIdx + 1 === sectionsCount;
-  const isFinished     = isLastStep && isLastSection;
-  const stepsDots      = currSection?.steps || [];
-  const secProgress    = `${secIdx + 1}/${Math.max(sectionsCount, 1)}`;
+  const hasCheck      = !!currStep?.check;
+  const isPassed      = !!passedChecks[`${secIdx}-${stepIdx}`];
+  const canGoNext     = !hasCheck || isPassed;
+  const isLastStep    = stepIdx + 1 === stepsCount;
+  const isLastSection = secIdx + 1 === sectionsCount;
+  const isFinished    = isLastStep && isLastSection;
+  const stepsDots     = currSection?.steps || [];
+  const secProgress   = `${secIdx + 1}/${Math.max(sectionsCount, 1)}`;
 
-  // ── Keyboard navigation — must be after canGoNext / isFinished ──
+  /* Notes panel always visible on theory page (always studying) */
+  const notesReady = noteLoadedFor === topicId;
+
+  /* ── Keyboard navigation ── */
   useEffect(() => {
     const onKey = (e) => {
       if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
-
+      if (e.target.contentEditable === "true") return;
       if (e.key === "ArrowRight" || e.key === "Enter") {
         e.preventDefault();
         if (isFinished && canGoNext) { handleGoHomework(); return; }
@@ -810,7 +752,8 @@ const TheoryPage = () => {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="page-main th-wrap">
-        {/* Hero */}
+
+        {/* ── Hero ── */}
         <section className="th-hero th-hero--chalk">
           <div className="th-hero__content">
             <div className="th-hero__left">
@@ -863,130 +806,151 @@ const TheoryPage = () => {
           </div>
         </section>
 
-        {/* Layout */}
-        <section className="th-layout">
-          {/* Sidebar */}
-          <aside className="th-side">
-            <div className="th-side__head">
-              <div>
-                <div className="th-side__eyebrow">Topics</div>
-                <div className="th-side__hint">Pick what to study</div>
-              </div>
-              <div className="th-side__badge">{secProgress}</div>
-            </div>
-            <div className="th-side__list">
-              {filteredTopics.map((tp) => (
-                <button
-                  key={tp.id}
-                  className={`th-topic ${tp.id === topicId ? "is-active" : ""}`}
-                  onClick={() => setTopicId(tp.id)}
-                >
-                  <div className="th-topic__txt">
-                    <div className="th-topic__title">{tp.title}</div>
-                    <div className="th-topic__sub">{tp.subtitle}</div>
-                  </div>
-                  <ChevronRight />
-                </button>
-              ))}
-            </div>
-            <div className="th-side__footer">
-              <Link to="/tasks"    className="th-side__link">Go to Tasks    <ChevronRight /></Link>
-              <Link to="/practice" className="th-side__link">Practice mode  <ChevronRight /></Link>
-            </div>
-          </aside>
+        {/* ══════════════════════════════════════════════════════
+            diag-shell: flex row — sidebar+board | notes panel
+            Same pattern as PracticePage.
+        ══════════════════════════════════════════════════════ */}
+        <div className={`diag-shell${notesReady ? " diag-shell--with-notes" : ""}`}>
 
-          {/* Board */}
-          <section className="th-board th-board--chalk" ref={boardRef}>
-            <div className="th-board__top">
-              <div className="th-crumbs">
-                <span className="th-crumbs__topic">{tData.title}</span>
-                <span className="th-crumbs__sep">/</span>
-                <span className="th-crumbs__sec">{currSection?.title}</span>
-              </div>
-              <div className="th-tracker">
-                {stepsDots.map((_, i) => (
-                  <div key={i} className={`th-dotstep ${i === stepIdx ? "active" : i < stepIdx ? "done" : ""}`} />
-                ))}
-              </div>
-            </div>
+          {/* ── Main: 2-col grid (sidebar + board) ── */}
+          <div className="diag-shell__main">
+            <section className="th-layout">
 
-            <div className="th-board__inner th-board__inner--chalk">
-              {loading ? (
-                <div className="th-skeleton">Loading…</div>
-              ) : (
-                <div className="th-flow">
-                  <div className="th-cards">
-                    {(currStep?.cards || []).map((c, i) => renderCard(c, i, revealKey))}
+              {/* Column 1: topic sidebar */}
+              <aside className="th-side">
+                <div className="th-side__head">
+                  <div>
+                    <div className="th-side__eyebrow">Topics</div>
+                    <div className="th-side__hint">Pick what to study</div>
                   </div>
-                  {hasCheck && (
-                    <MiniCheck check={currStep.check} isPassed={isPassed} onPass={handlePassCheck} />
-                  )}
-                  {isFinished && canGoNext && (
-                    <div className="th-complete">
-                      <div className="th-complete__head">
-                        <div className="th-complete__badge">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="th-complete__title">Theory complete</h3>
-                          <p className="th-complete__sub">You have studied all {sectionsCount} sections.</p>
-                        </div>
+                  <div className="th-side__badge">{secProgress}</div>
+                </div>
+                <div className="th-side__list">
+                  {filteredTopics.map((tp) => (
+                    <button
+                      key={tp.id}
+                      className={`th-topic ${tp.id === topicId ? "is-active" : ""}`}
+                      onClick={() => setTopicId(tp.id)}
+                    >
+                      <div className="th-topic__txt">
+                        <div className="th-topic__title">{tp.title}</div>
+                        <div className="th-topic__sub">{tp.subtitle}</div>
                       </div>
-                      <div className="th-complete__actions">
-                        <button className="th-btn th-btn--primary" onClick={handleGoHomework}>
-                          Do homework <ChevronRight />
-                        </button>
-                        <button className="th-btn th-btn--ghost" onClick={handleRestartTheory}>
-                          Restart from beginning
-                        </button>
+                      <ChevronRight />
+                    </button>
+                  ))}
+                </div>
+                <div className="th-side__footer">
+                  <Link to="/tasks"    className="th-side__link">Go to Tasks    <ChevronRight /></Link>
+                  <Link to="/practice" className="th-side__link">Practice mode  <ChevronRight /></Link>
+                </div>
+              </aside>
+
+              {/* Column 2: theory board */}
+              <section className="th-board th-board--chalk" ref={boardRef}>
+                <div className="th-board__top">
+                  <div className="th-crumbs">
+                    <span className="th-crumbs__topic">{tData.title}</span>
+                    <span className="th-crumbs__sep">/</span>
+                    <span className="th-crumbs__sec">{currSection?.title}</span>
+                  </div>
+                  <div className="th-tracker">
+                    {stepsDots.map((_, i) => (
+                      <div key={i} className={`th-dotstep ${i === stepIdx ? "active" : i < stepIdx ? "done" : ""}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="th-board__inner th-board__inner--chalk">
+                  {loading ? (
+                    <div className="th-skeleton">Loading…</div>
+                  ) : (
+                    <div className="th-flow">
+                      <div className="th-cards">
+                        {(currStep?.cards || []).map((c, i) => renderCard(c, i, revealKey))}
                       </div>
+                      {hasCheck && (
+                        <MiniCheck check={currStep.check} isPassed={isPassed} onPass={handlePassCheck} />
+                      )}
+                      {isFinished && canGoNext && (
+                        <div className="th-complete">
+                          <div className="th-complete__head">
+                            <div className="th-complete__badge">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h3 className="th-complete__title">Theory complete</h3>
+                              <p className="th-complete__sub">You have studied all {sectionsCount} sections.</p>
+                            </div>
+                          </div>
+                          <div className="th-complete__actions">
+                            <button className="th-btn th-btn--primary" onClick={handleGoHomework}>
+                              Do homework <ChevronRight />
+                            </button>
+                            <button className="th-btn th-btn--ghost" onClick={handleRestartTheory}>
+                              Restart from beginning
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {!loading && (
-              <div className="th-nav">
-                <button
-                  className="th-navbtn"
-                  onClick={handlePrevStep}
-                  disabled={secIdx === 0 && stepIdx === 0}
-                >
-                  <span className="th-navbtn__ic"><ChevronLeft /></span>
-                  <span>Prev</span>
-                  <kbd className="th-kbd">←</kbd>
-                </button>
+                {!loading && (
+                  <div className="th-nav">
+                    <button
+                      className="th-navbtn"
+                      onClick={handlePrevStep}
+                      disabled={secIdx === 0 && stepIdx === 0}
+                    >
+                      <span className="th-navbtn__ic"><ChevronLeft /></span>
+                      <span>Prev</span>
+                    </button>
 
-                <div className="th-navmid">
-                  <span className="th-navpill">
-                    <strong>{stepIdx + 1}</strong>
-                    <span>/</span>
-                    <strong>{Math.max(stepsCount, 1)}</strong>
-                  </span>
-                </div>
+                    <div className="th-navmid">
+                      <span className="th-navpill">
+                        <strong>{stepIdx + 1}</strong>
+                        <span>/</span>
+                        <strong>{Math.max(stepsCount, 1)}</strong>
+                      </span>
+                    </div>
 
-                <button
-                  className="th-navbtn th-navbtn--primary"
-                  onClick={isFinished && canGoNext ? handleGoHomework : handleNextStep}
-                  disabled={!canGoNext || isFinished}
-                >
-                  <span>{isFinished ? "All done" : "Next"}</span>
-                  <kbd className="th-kbd">{isFinished ? "↵" : "→"}</kbd>
-                  <span className="th-navbtn__ic">
-                    {isFinished ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : <ChevronRight />}
-                  </span>
-                </button>
-              </div>
-            )}
-          </section>
-        </section>
+                    <button
+                      className="th-navbtn th-navbtn--primary"
+                      onClick={isFinished && canGoNext ? handleGoHomework : handleNextStep}
+                      disabled={!canGoNext || isFinished}
+                    >
+                      <span>{isFinished ? "All done" : "Next"}</span>
+                      <span className="th-navbtn__ic">
+                        {isFinished ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : <ChevronRight />}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </section>
+
+            </section>{/* /th-layout */}
+          </div>{/* /diag-shell__main */}
+
+          {/* Notes panel — RIGHT side flex sibling, always present while on Theory */}
+          {notesReady && (
+            <NotesPanel
+              key={topicId}
+              sessionId={topicId}
+              initialContent={noteContent}
+              onSave={handleNoteSave}
+            />
+          )}
+
+        </div>{/* /diag-shell */}
+
       </main>
     </div>
   );

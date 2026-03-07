@@ -1,13 +1,13 @@
 // src/pages/ProgressPage.jsx
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import { topics } from "../data/topics";
-import { getPractice, getDiagnostics } from "../services/db";
-import "../styles/progress.css";
-import "../styles/layout.css";
+import { useAuth } from "../../context/AuthContext";
+import Sidebar from "../../components/layout/Sidebar";
+import Header from "../../components/layout/Header";
+import { topics } from "../../data/topics";
+import { getPractice, getDiagnostics } from "../../services/db";
+import "./progress.css";
+import '../../styles/layout.css';
 
 const ChevronRight = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -302,11 +302,7 @@ const ProgressChart = ({ diagnostics, practice }) => {
                 <rect x={tx} y={ty} width={TW} height={2} rx="1"
                   fill={tooltip.col} opacity="0.6"
                 />
-                <text x={tx + TW / 2} y={ty + 18} textAnchor="middle" fontSize="10"
-                  fill="var(--text-light)" fontFamily="-apple-system, sans-serif"
-                  fontFamily="'Courier New', monospace">
-                  {tooltip.type} · {formatDate(tooltip.date)}
-                </text>
+               
                 <text x={tx + TW / 2} y={ty + 37} textAnchor="middle" fontSize="13"
                   fontWeight="700" fill={tooltip.col} fontFamily="-apple-system, sans-serif">
                   {tooltip.pct}% — {tooltip.label}

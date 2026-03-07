@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import "../styles/home.css";
-import "../styles/layout.css";
-import Logo from "../AxiomaLogo.png";
+import { useAuth } from "../../context/AuthContext";
+import Header from "../../components/layout/Header";
+import Sidebar from "../../components/layout/Sidebar";
+import "./home.css";
+import '../../styles/layout.css'
+import Logo from '../../../src/AxiomaLogo.png'
 
 /* ── Radar Chart ── */
 const RadarChart = () => {

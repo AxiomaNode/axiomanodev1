@@ -1,15 +1,16 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import Header from "../components/layout/Header";
-import Sidebar from "../components/layout/Sidebar";
-import NotesPanel from "../components/NotesPanel";
-import { topics } from "../data/topics";
-import { tasks as taskBank } from "../data/tasks";
-import { savePractice } from "../services/db";
-import { awardPoints } from "../core/scoringEngine";
-import "../styles/practice.css";
-import "../styles/layout.css";
+import { useAuth } from "../../context/AuthContext";
+import Header from "../../components/layout/Header";
+import Sidebar from "../../components/layout/Sidebar";
+import NotesPanel from "../../components/NotesPanel";
+import { topics } from "../../data/topics";
+import { tasks as taskBank } from "../../data/tasks";
+import { savePractice } from "../../services/db";
+import { awardPoints } from "../../core/scoringEngine";
+import "./practice.css";
+import "../../styles/diag-shell.css";
+import "../../styles/layout.css";
 
 const pickBank = (topicId) => {
   const t = taskBank?.[topicId];

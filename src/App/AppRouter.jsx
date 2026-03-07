@@ -11,17 +11,17 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 import AuthPage        from "../pages/authPages/AuthPage";
-import VerifyEmailPage from "../pages/VerifyEmailPage";
-import HomePage        from "../pages/HomePage";
+import VerifyEmailPage from "../pages/email/VerifyEmailPage";
+import ProgressPage from '../pages/progressPages/ProgressPage'
+import HomePage        from "../pages/homePages/HomePage";
 import DiagnosticsPage from "../pages/diagnosticsPages/DiagnosticsPage";
-import PracticePage    from "../pages/PracticePage";
-import ProgressPage    from "../pages/ProgressPage";
-import ResultsPage     from "../pages/ResultsPage";
-import SupportPage     from "../pages/SupportPage";
-import TheoryPage      from "../pages/TheoryPage";
-import EmailActionPage from "../pages/EmailActionPage";
+import PracticePage    from "../pages/PracticePages/PracticePage";
+import ResultsPage from '../pages/resultsPages/ResultsPage';
+import SupportPage from "../pages/supportPages/SupportPage";
+import TheoryPage from "../pages/theoryPages/TheoryPage";
+import EmailActionPage from "../pages/email/EmailActionPage";
 import AboutPage       from "../pages/aboutPages/AboutPage";
-import ProfilePage     from "../pages/ProfilePage";
+import ProfilePage     from "../pages/profilePages/ProfilePage";
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -44,7 +44,7 @@ const AppRouter = () => (
     <Route path="/home"         element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
     <Route path="/diagnostics"  element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
     <Route path="/practice"     element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
-    <Route path="/progress"     element={<ProtectedRoute><ProgressPage /></ProtectedRoute>} />
+    <Route path="/progress"     element={<ProtectedRoute><ProgressPage/></ProtectedRoute>} />
     <Route path="/results"      element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"      element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
     <Route path="/theory"       element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />

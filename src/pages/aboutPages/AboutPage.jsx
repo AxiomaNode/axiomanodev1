@@ -11,6 +11,7 @@ import Header from "../../components/layout/Header";
 import { db } from "../../firebase/firebaseConfig";
 import "./about.css";
 import PerseusLogo from "../../App/PerseusTeamSiteIconBGRemoved.png";
+import "../../components/layout/logo.css"
 
 const ChevronRight = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -413,9 +414,9 @@ function AboutPage() {
             </div>
             <div className="ab-team-card">
               <div className="ab-team-card__left">
-                <img src={PerseusLogo} className="perseus-logo" alt="Perseus Team" />
+                <img src={PerseusLogo} className="perseus-logo" alt="Perseus Team" style={{"width":"124px", "height":"124px"}} />
                 <div>
-                  <h3 className="ab-team-name">Perseus Team</h3>
+                  <h2 className="ab-team-name">Perseus Team</h2>
                   <span className="ab-team-loc">Tashkent · 2025</span>
                 </div>
               </div>

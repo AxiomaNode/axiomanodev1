@@ -25,12 +25,25 @@ const ExpandIcon = () => (
 );
 
 const NoteIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
     <polyline points="14 2 14 8 20 8"/>
     <line x1="16" y1="13" x2="8" y2="13"/>
     <line x1="16" y1="17" x2="8" y2="17"/>
-    <polyline points="10 9 9 9 8 9"/>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+    <polyline points="17 21 17 13 7 13 7 21"/>
+    <polyline points="7 3 7 8 15 8"/>
   </svg>
 );
 
@@ -66,11 +79,9 @@ const ClearConfirmModal = ({ onConfirm, onCancel }) => {
 /* ── Constants ─────────────────────────────────────────────────────────── */
 
 const FONT_STEPS       = [13, 14, 15, 16, 17, 18, 20];
-const DEFAULT_FONT_IDX = 2; // 15px
+const DEFAULT_FONT_IDX = 2;
 const MIN_WIDTH        = 280;
 const MAX_WIDTH_RATIO  = 0.5;
-
-/* ── Math symbols ───────────────────────────────────────────────────────── */
 
 const MATH_SYMBOLS = [
   { sym: "√",  label: "Square root"      },
@@ -87,8 +98,6 @@ const MATH_SYMBOLS = [
   { sym: "Δ",  label: "Delta"            },
 ];
 
-/* ── Highlight colors ───────────────────────────────────────────────────── */
-
 const HIGHLIGHT_COLORS = [
   { id: "aqua",   color: "#0e7490", label: "Aqua"   },
   { id: "red",    color: "#9f1239", label: "Red"     },
@@ -97,28 +106,18 @@ const HIGHLIGHT_COLORS = [
   { id: "purple", color: "#581c87", label: "Purple"  },
 ];
 
-/* ── Heading tag set ────────────────────────────────────────────────────── */
+/* ── Storage helpers ────────────────────────────────────────────────────── */
 
-const HEADING_TAGS = new Set(["H1", "H2", "H3"]);
+const getStorageKey  = (id) => `axioma_notes_${id || "temp"}`;
+const getCollapseKey = (id) => `axioma_notes_col_${id || "temp"}`;
+const getFontKey     = (id) => `axioma_notes_font_${id || "temp"}`;
 
-/* ── Storage key helpers ────────────────────────────────────────────────── */
-
-const getStorageKey  = (sessionId) => `axioma_notes_${sessionId || "temp"}`;
-const getCollapseKey = (sessionId) => `axioma_notes_col_${sessionId || "temp"}`;
-const getFontKey     = (sessionId) => `axioma_notes_font_${sessionId || "temp"}`;
-
-/* ── localStorage safe helpers ─────────────────────────────────────────── */
-
-const lsGet    = (key)        => { try { return localStorage.getItem(key); } catch { return null;  } };
-const lsSet    = (key, value) => { try { localStorage.setItem(key, value); } catch { /* silent */  } };
-const lsRemove = (key)        => { try { localStorage.removeItem(key);     } catch { /* silent */  } };
+const lsGet    = (k)    => { try { return localStorage.getItem(k);  } catch { return null; } };
+const lsSet    = (k, v) => { try { localStorage.setItem(k, v);      } catch { /* */ } };
+const lsRemove = (k)    => { try { localStorage.removeItem(k);      } catch { /* */ } };
 
 /* ── DOM helpers ────────────────────────────────────────────────────────── */
 
-/**
- * Walk up the DOM from `node` until we reach `root` or a block-level element.
- * Returns the block ancestor, or null if we reach the root itself.
- */
 const getBlockAncestor = (node, root) => {
   const BLOCK = new Set(["DIV","P","H1","H2","H3","H4","H5","H6","LI","BLOCKQUOTE","PRE"]);
   let cur = node;
@@ -129,78 +128,111 @@ const getBlockAncestor = (node, root) => {
   return null;
 };
 
-/**
- * Returns the node inside `root` that is a direct child of `root` and
- * contains `node`. Used to find the top-level block when getBlockAncestor
- * returns the root itself.
- */
 const getTopLevelChild = (node, root) => {
   let cur = node;
-  while (cur && cur.parentNode !== root) {
-    cur = cur.parentNode;
-  }
+  while (cur && cur.parentNode !== root) cur = cur.parentNode;
   return cur !== root ? cur : null;
 };
 
-/* ── NotesPanel ─────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   NotesPanel
+   Props:
+     sessionId      {string}    localStorage namespace key (default "")
+     initialContent {string}    HTML loaded from Firestore before mount
+     onSave         {Function}  Called with (html) only when user clicks Save button
+     mode           {string}    "floating" (default) | "embedded"
+══════════════════════════════════════════════════════════════════════════ */
 
-const NotesPanel = ({ sessionId = "" }) => {
+const NotesPanel = ({
+  sessionId      = "",
+  initialContent = undefined,
+  onSave         = null,
+  mode           = "floating",
+}) => {
+  const isEmbedded = mode === "embedded";
+
   const storageKey  = getStorageKey(sessionId);
   const collapseKey = getCollapseKey(sessionId);
   const fontKey     = getFontKey(sessionId);
 
-  const [htmlValue, setHtmlValue]   = useState(() => lsGet(storageKey) ?? "");
-  const [collapsed, setCollapsed]   = useState(() => lsGet(collapseKey) === "true");
-  const [fontIdx, setFontIdx]       = useState(() => {
+  const resolveInitial = () => {
+    if (initialContent !== undefined) return initialContent;
+    return lsGet(storageKey) ?? "";
+  };
+
+  const [htmlValue,   setHtmlValue]   = useState(resolveInitial);
+  const [collapsed,   setCollapsed]   = useState(() =>
+    isEmbedded ? false : lsGet(collapseKey) === "true"
+  );
+  const [fontIdx, setFontIdx] = useState(() => {
     const saved = parseInt(lsGet(fontKey), 10);
     return isNaN(saved) ? DEFAULT_FONT_IDX : Math.max(0, Math.min(FONT_STEPS.length - 1, saved));
   });
-  const [showClear, setShowClear]       = useState(false);
-  const [panelWidth, setPanelWidth]     = useState(300);
-  const [dragging, setDragging]         = useState(false);
-  const [activeHeading, setActiveHeading] = useState(null); // null | "h1" | "h2" | "h3"
+  const [showClear,     setShowClear]     = useState(false);
+  const [panelWidth,    setPanelWidth]    = useState(300);
+  const [dragging,      setDragging]      = useState(false);
+  const [activeHeading, setActiveHeading] = useState(null);
+  // "idle" | "saving" | "saved"
+  const [saveStatus,    setSaveStatus]    = useState("idle");
+  // true when content differs from last profile save
+  const [isDirty,       setIsDirty]       = useState(false);
 
-  const saveTimer     = useRef(null);
-  const dragStartX    = useRef(0);
-  const dragStartW    = useRef(0);
-  const editorRef     = useRef(null);
-  const lastSavedHtml = useRef(htmlValue);
-  const savedRange    = useRef(null);
+  const lsTimer         = useRef(null);
+  const saveStatusTimer = useRef(null);
+  const dragStartX      = useRef(0);
+  const dragStartW      = useRef(0);
+  const editorRef       = useRef(null);
+  const lastHtml        = useRef(htmlValue);
+  const savedRange      = useRef(null);
 
-  /* ── Seed editor DOM on expand ── */
+  /* ── Seed editor on expand ── */
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    if (el.innerHTML !== lastSavedHtml.current) {
-      el.innerHTML = lastSavedHtml.current;
-    }
+    if (el.innerHTML !== lastHtml.current) el.innerHTML = lastHtml.current;
   }, [collapsed]);
 
-  /* ── Sync innerHTML → state + localStorage ── */
+  /* ── Input handler: writes to localStorage only ── */
   const handleInput = useCallback(() => {
     const el = editorRef.current;
     if (!el) return;
     const html = el.innerHTML;
     setHtmlValue(html);
-    lastSavedHtml.current = html;
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => lsSet(storageKey, html), 800);
+    lastHtml.current = html;
+    setIsDirty(true);
+    clearTimeout(lsTimer.current);
+    lsTimer.current = setTimeout(() => lsSet(storageKey, html), 600);
   }, [storageKey]);
 
+  /* ── Manual save to Firestore ── */
+  const handleSaveToProfile = useCallback(async () => {
+    if (!onSave) return;
+    setSaveStatus("saving");
+    try {
+      await onSave(lastHtml.current);
+      setIsDirty(false);
+      setSaveStatus("saved");
+      clearTimeout(saveStatusTimer.current);
+      saveStatusTimer.current = setTimeout(() => setSaveStatus("idle"), 3000);
+    } catch {
+      setSaveStatus("idle");
+    }
+  }, [onSave]);
+
   /* ── Persist collapse + font ── */
-  useEffect(() => { lsSet(collapseKey, collapsed); }, [collapsed, collapseKey]);
-  useEffect(() => { lsSet(fontKey, fontIdx); },      [fontIdx,    fontKey]);
+  useEffect(() => {
+    if (!isEmbedded) lsSet(collapseKey, collapsed);
+  }, [collapsed, collapseKey, isEmbedded]);
+  useEffect(() => { lsSet(fontKey, fontIdx); }, [fontIdx, fontKey]);
 
-  /* ── Resize drag — desktop only ── */
-  const isDesktop = () => window.innerWidth >= 1024;
-
+  /* ── Drag resize — floating only ── */
   const onDragStart = useCallback((e) => {
-    if (!isDesktop()) return;
+    if (isEmbedded || window.innerWidth < 1024) return;
     e.preventDefault();
     dragStartX.current = e.clientX;
     dragStartW.current = panelWidth;
     setDragging(true);
-  }, [panelWidth]);
+  }, [isEmbedded, panelWidth]);
 
   useEffect(() => {
     if (!dragging) return;
@@ -218,257 +250,144 @@ const NotesPanel = ({ sessionId = "" }) => {
     };
   }, [dragging]);
 
-  /* ── Mobile: keep editor visible when soft keyboard opens ── */
-  useEffect(() => {
-    if (collapsed) return;
-    const el = editorRef.current;
-    const vv = window.visualViewport;
-    if (!el || !vv) return;
-    const onVVResize = () => {
-      if (window.innerWidth >= 768) return;
-      if (document.activeElement !== el) return;
-      const rect     = el.getBoundingClientRect();
-      const overflow = rect.bottom - vv.height;
-      if (overflow > 0) el.scrollTop += overflow + 12;
-    };
-    vv.addEventListener("resize", onVVResize);
-    return () => vv.removeEventListener("resize", onVVResize);
-  }, [collapsed]);
-
   /* ── Clear ── */
   const handleClearConfirm = () => {
     const el = editorRef.current;
     if (el) el.innerHTML = "";
     setHtmlValue("");
-    lastSavedHtml.current = "";
+    lastHtml.current = "";
     lsRemove(storageKey);
+    setIsDirty(true);
     setShowClear(false);
   };
 
   /* ── Selection helpers ── */
   const saveSelection = () => {
     const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      savedRange.current = sel.getRangeAt(0).cloneRange();
-    }
+    if (sel?.rangeCount > 0) savedRange.current = sel.getRangeAt(0).cloneRange();
   };
-
   const restoreSelection = () => {
     const sel = window.getSelection();
-    if (sel && savedRange.current) {
-      sel.removeAllRanges();
-      sel.addRange(savedRange.current);
-    }
+    if (sel && savedRange.current) { sel.removeAllRanges(); sel.addRange(savedRange.current); }
   };
 
-  /* ── Highlight — wrap selected text in a span with background-color ───────
-     Uses Range API only. Never touches execCommand for color.
-     Always collapses caret to AFTER the inserted span so no style bleeds
-     into subsequent typing — this is guaranteed in both the normal path
-     (surroundContents) and the cross-boundary fallback path.
-  ── */
+  /* ── Highlight ── */
   const applyHighlight = (color) => {
     const range = savedRange.current;
-    if (!range || range.collapsed) return; // nothing selected → no-op
-
+    if (!range || range.collapsed) return;
     const el = editorRef.current;
     if (!el || !el.contains(range.commonAncestorContainer)) return;
-
     const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-
+    sel.removeAllRanges(); sel.addRange(range);
     const span = document.createElement("span");
-    span.style.backgroundColor = color;
-    span.style.borderRadius    = "2px";
-    span.style.padding         = "0 2px";
-    span.style.color           = "rgba(255,255,255,0.92)";
-
-    try {
-      range.surroundContents(span);
-    } catch {
-      const fragment = range.extractContents();
-      span.appendChild(fragment);
-      range.insertNode(span);
+    span.style.cssText = `background:${color};border-radius:2px;padding:0 2px;color:rgba(255,255,255,0.92)`;
+    try { range.surroundContents(span); }
+    catch {
+      const frag = range.extractContents();
+      span.appendChild(frag); range.insertNode(span);
     }
-
-    // Insert a plain unstyled text node immediately after the span.
-    // This breaks the style inheritance chain — without it Chrome re-uses
-    // the span's computed background-color for any text typed right after.
-    const reset = document.createTextNode("\u200B"); // zero-width space
+    const reset = document.createTextNode("\u200B");
     span.parentNode.insertBefore(reset, span.nextSibling);
-
-    // Place caret inside the reset node (after the zero-width char).
     const after = document.createRange();
-    after.setStart(reset, 1);
-    after.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(after);
+    after.setStart(reset, 1); after.collapse(true);
+    sel.removeAllRanges(); sel.addRange(after);
     savedRange.current = after.cloneRange();
-
     handleInput();
   };
 
-  /* ── Heading — toggle mode ──────────────────────────────────────────────
-     Clicking H1/H2/H3 activates a heading mode stored in `activeHeading`.
-     Clicking the same button again deactivates it (back to normal text).
-     Clicking a different heading switches to that one.
-     The mode is applied when Enter creates a new line, and when the user
-     activates a heading while the current block is empty (wraps it immediately).
-     Existing lines with content are never touched.
-  ── */
+  /* ── Heading ── */
   const applyHeading = (tag) => {
-    const el = editorRef.current;
-
-    // Toggle off if already active
+    const el   = editorRef.current;
     const next = activeHeading === tag ? null : tag;
     setActiveHeading(next);
-
     if (!el) return;
     el.focus({ preventScroll: true });
     restoreSelection();
-
-    // If caret is on an empty block, convert it to the new heading type now
-    // so the user sees the size change immediately before typing.
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
-
-    const anchorNode = sel.getRangeAt(0).startContainer;
-    let block = getBlockAncestor(anchorNode, el) || getTopLevelChild(anchorNode, el);
-
-    // Editor is completely empty — no block elements exist yet.
-    // Create the first block directly inside the editor.
+    const anchor = sel.getRangeAt(0).startContainer;
+    let block = getBlockAncestor(anchor, el) || getTopLevelChild(anchor, el);
     if (!block || block === el) {
-      const targetTag = next ? next.toUpperCase() : "DIV";
-      const firstBlock = document.createElement(targetTag);
-      firstBlock.appendChild(document.createElement("br"));
-      // Clear any bare text nodes that might be in the editor root
-      el.innerHTML = "";
-      el.appendChild(firstBlock);
-      const newRange = document.createRange();
-      newRange.setStart(firstBlock, 0);
-      newRange.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(newRange);
-      savedRange.current = newRange.cloneRange();
-      handleInput();
-      return;
+      const nb = document.createElement(next ? next.toUpperCase() : "DIV");
+      nb.appendChild(document.createElement("br"));
+      el.innerHTML = ""; el.appendChild(nb);
+      const r = document.createRange(); r.setStart(nb, 0); r.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r); savedRange.current = r.cloneRange();
+      handleInput(); return;
     }
-
-    // Only convert if the block is empty (no visible text content)
-    const isEmpty = block.textContent.trim() === "";
-    if (!isEmpty) return; // block has content — leave it, mode applies to next new line
-
-    const targetTag = next ? next.toUpperCase() : "DIV";
-    const replacement = document.createElement(targetTag);
-    // Keep a <br> so the block has height and is focusable
-    replacement.appendChild(document.createElement("br"));
-    block.parentNode.replaceChild(replacement, block);
-
-    // Place caret inside the new block
-    const newRange = document.createRange();
-    newRange.setStart(replacement, 0);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-    savedRange.current = newRange.cloneRange();
-
+    if (block.textContent.trim() !== "") return;
+    const rep = document.createElement(next ? next.toUpperCase() : "DIV");
+    rep.appendChild(document.createElement("br"));
+    block.parentNode.replaceChild(rep, block);
+    const r = document.createRange(); r.setStart(rep, 0); r.collapse(true);
+    sel.removeAllRanges(); sel.addRange(r); savedRange.current = r.cloneRange();
     handleInput();
   };
 
-  /* ── Editor keydown — Enter handling + propagation isolation ───────────
-     stopPropagation on every keydown so DiagnosticsPage / PracticePage
-     global listeners never see keys typed inside the notes editor.
-
-     Enter behaviour:
-     - If activeHeading is set: create a new block of that heading type.
-     - If caret is inside a heading but activeHeading was just turned off,
-       the next Enter creates a plain div (mode already cleared).
-     - Otherwise: let the browser handle it naturally (creates a new div/br).
-  ── */
+  /* ── Editor keydown ── */
   const handleEditorKeyDown = (e) => {
-    e.stopPropagation(); // always — keeps all keys inside the editor
-
+    e.stopPropagation();
     if (e.key !== "Enter") return;
-
-    e.preventDefault(); // we handle Enter ourselves in all cases below
-
-    const editorEl = editorRef.current;
-    const sel      = window.getSelection();
+    e.preventDefault();
+    const edEl = editorRef.current;
+    const sel  = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
-
-    const range      = sel.getRangeAt(0);
-    const anchorNode = range.startContainer;
-    const block      = getBlockAncestor(anchorNode, editorEl) || getTopLevelChild(anchorNode, editorEl);
-
-    // Determine what tag the new line should be
-    // If activeHeading is set, new line inherits that heading.
-    // If we're inside a heading but activeHeading is null, new line is plain div.
-    const newTag = activeHeading ? activeHeading.toUpperCase() : "DIV";
-
-    const newBlock = document.createElement(newTag);
-    newBlock.appendChild(document.createElement("br"));
-
-    if (block && block !== editorEl) {
-      block.parentNode.insertBefore(newBlock, block.nextSibling);
-    } else {
-      editorEl.appendChild(newBlock);
-    }
-
-    const newRange = document.createRange();
-    newRange.setStart(newBlock, 0);
-    newRange.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-    savedRange.current = newRange.cloneRange();
-
+    const anchor = sel.getRangeAt(0).startContainer;
+    const block  = getBlockAncestor(anchor, edEl) || getTopLevelChild(anchor, edEl);
+    const nb     = document.createElement(activeHeading ? activeHeading.toUpperCase() : "DIV");
+    nb.appendChild(document.createElement("br"));
+    if (block && block !== edEl) block.parentNode.insertBefore(nb, block.nextSibling);
+    else edEl.appendChild(nb);
+    const r = document.createRange(); r.setStart(nb, 0); r.collapse(true);
+    sel.removeAllRanges(); sel.addRange(r); savedRange.current = r.cloneRange();
     handleInput();
   };
 
-  /* ── Insert math symbol at current caret position ── */
+  /* ── Insert symbol ── */
   const insertSymbol = (sym) => {
     const el = editorRef.current;
     if (!el) return;
     el.focus({ preventScroll: true });
     restoreSelection();
-
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) {
-      el.innerHTML += sym;
-      handleInput();
-      return;
-    }
-
-    const range    = sel.getRangeAt(0);
+    if (!sel || sel.rangeCount === 0) { el.innerHTML += sym; handleInput(); return; }
+    const range = sel.getRangeAt(0);
     range.deleteContents();
-    const textNode = document.createTextNode(sym);
-    range.insertNode(textNode);
-
-    range.setStartAfter(textNode);
-    range.setEndAfter(textNode);
-    sel.removeAllRanges();
-    sel.addRange(range);
+    const tn = document.createTextNode(sym);
+    range.insertNode(tn); range.setStartAfter(tn); range.setEndAfter(tn);
+    sel.removeAllRanges(); sel.addRange(range);
     savedRange.current = range.cloneRange();
-
     handleInput();
   };
 
   const fontSize = FONT_STEPS[fontIdx];
 
-  /* ── Collapsed state ── */
-  if (collapsed) {
+  /* ─────────────────────────────────────────────────────────────────────────
+     FLOATING COLLAPSED PILL
+  ───────────────────────────────────────────────────────────────────────── */
+  if (!isEmbedded && collapsed) {
     return (
       <div className="notes-collapsed">
         <button className="notes-collapsed__btn" onClick={() => setCollapsed(false)} title="Open notes">
           <NoteIcon />
           <span className="notes-collapsed__label">Notes</span>
+          {isDirty && <span className="notes-collapsed__dot" />}
           <ExpandIcon />
         </button>
       </div>
     );
   }
 
-  /* ── Expanded state ── */
+  /* ─────────────────────────────────────────────────────────────────────────
+     PANEL
+  ───────────────────────────────────────────────────────────────────────── */
+
+  const panelClass = [
+    "notes-panel",
+    isEmbedded ? "notes-panel--embedded" : "notes-panel--floating",
+    dragging   ? "notes-panel--dragging" : "",
+  ].filter(Boolean).join(" ");
+
   return (
     <>
       {showClear && (
@@ -478,87 +397,69 @@ const NotesPanel = ({ sessionId = "" }) => {
         />
       )}
 
-      <div className="notes-backdrop" onClick={() => setCollapsed(true)} />
+      {!isEmbedded && (
+        <div className="notes-backdrop" onClick={() => setCollapsed(true)} />
+      )}
 
-      <aside
-        className={`notes-panel${dragging ? " notes-panel--dragging" : ""}`}
-        style={{ width: panelWidth }}
-      >
+      <aside className={panelClass} style={isEmbedded ? {} : { width: panelWidth }}>
+
         {/* ── Header ── */}
         <div className="notes-panel__header">
           <div className="notes-panel__header-left">
             <span className="notes-panel__header-icon"><NoteIcon /></span>
-            <span className="notes-panel__title">Notes</span>
+            <span className="notes-panel__eyebrow">Study Notes</span>
           </div>
           <div className="notes-panel__header-actions">
-            <div className="notes-font-ctrl" title="Font size">
+            <div className="notes-font-ctrl">
               <button
                 className="notes-font-ctrl__btn"
                 onClick={() => setFontIdx(i => Math.max(0, i - 1))}
                 disabled={fontIdx === 0}
                 title="Decrease font size"
-              >
-                A<span className="notes-font-ctrl__minus">−</span>
-              </button>
+              >A−</button>
               <span className="notes-font-ctrl__val">{fontSize}</span>
               <button
                 className="notes-font-ctrl__btn"
                 onClick={() => setFontIdx(i => Math.min(FONT_STEPS.length - 1, i + 1))}
                 disabled={fontIdx === FONT_STEPS.length - 1}
                 title="Increase font size"
-              >
-                A<span className="notes-font-ctrl__plus">+</span>
-              </button>
+              >A+</button>
             </div>
             <button
               className="notes-icon-btn"
               onClick={() => setShowClear(true)}
               disabled={!htmlValue}
               title="Clear notes"
-            >
-              <TrashIcon />
-            </button>
-            <button
-              className="notes-icon-btn"
-              onClick={() => setCollapsed(true)}
-              title="Close notes"
-            >
-              <CollapseIcon />
-            </button>
+            ><TrashIcon /></button>
+            {!isEmbedded && (
+              <button className="notes-icon-btn" onClick={() => setCollapsed(true)} title="Close">
+                <CollapseIcon />
+              </button>
+            )}
           </div>
         </div>
 
         {/* ── Formatting toolbar ── */}
         <div className="notes-fmt-bar">
           <div className="notes-fmt-bar__group">
-            {["h1", "h2", "h3"].map((tag) => (
+            {["h1","h2","h3"].map((tag) => (
               <button
                 key={tag}
                 className={`notes-fmt-bar__btn${activeHeading === tag ? " notes-fmt-bar__btn--active" : ""}`}
-                onMouseDown={(e) => {
-                  e.preventDefault(); // keep editor focus + selection alive
-                  saveSelection();
-                }}
+                onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
                 onClick={() => applyHeading(tag)}
                 title={`Heading ${tag.slice(1)}`}
-              >
-                {tag.toUpperCase()}
-              </button>
+              >{tag.toUpperCase()}</button>
             ))}
           </div>
-
           <div className="notes-fmt-bar__divider" />
-
           <div className="notes-fmt-bar__group">
             {HIGHLIGHT_COLORS.map(({ id, color, label }) => (
               <button
                 key={id}
                 className="notes-fmt-bar__swatch"
                 style={{ "--swatch-color": color }}
-                onMouseDown={(e) => {
-                  e.preventDefault(); // keep selection alive
-                  saveSelection();
-                }}
+                onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
                 onClick={() => applyHighlight(color)}
                 title={`Highlight: ${label}`}
                 aria-label={`Highlight ${label}`}
@@ -567,26 +468,21 @@ const NotesPanel = ({ sessionId = "" }) => {
           </div>
         </div>
 
-        {/* ── Math symbols toolbar ── */}
+        {/* ── Math symbols ── */}
         <div className="notes-symbols">
           {MATH_SYMBOLS.map(({ sym, label }) => (
             <button
               key={sym}
               className="notes-symbols__btn"
-              onMouseDown={(e) => {
-                e.preventDefault(); // keep caret alive
-                saveSelection();
-              }}
+              onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
               onClick={() => insertSymbol(sym)}
               title={label}
               tabIndex={-1}
-            >
-              {sym}
-            </button>
+            >{sym}</button>
           ))}
         </div>
 
-        {/* ── Rich editor ── */}
+        {/* ── Editor ── */}
         <div className="notes-panel__body">
           <div
             ref={editorRef}
@@ -598,18 +494,42 @@ const NotesPanel = ({ sessionId = "" }) => {
             onBlur={saveSelection}
             onKeyUp={saveSelection}
             onMouseUp={saveSelection}
-            data-placeholder="Write your solution steps here…"
+            data-placeholder="Write your notes here…"
             style={{ fontSize }}
             spellCheck={false}
           />
         </div>
 
-        {/* ── Resize handle ── */}
-        <div
-          className="notes-resize-handle"
-          onMouseDown={onDragStart}
-          title="Drag to resize"
-        />
+        {/* ── Save footer (only when onSave provided) ── */}
+        {onSave && (
+          <div className="notes-panel__footer">
+            <button
+              className={[
+                "notes-save-btn",
+                saveStatus === "saved"  ? "notes-save-btn--saved"  : "",
+                saveStatus === "saving" ? "notes-save-btn--saving" : "",
+              ].filter(Boolean).join(" ")}
+              onClick={handleSaveToProfile}
+              disabled={saveStatus === "saving" || !isDirty}
+            >
+              {saveStatus === "saving" ? (
+                <><span className="notes-save-btn__spinner" />Saving…</>
+              ) : saveStatus === "saved" ? (
+                <><CheckIcon />Saved to profile</>
+              ) : (
+                <><SaveIcon />Save to profile</>
+              )}
+            </button>
+            {isDirty && saveStatus === "idle" && (
+              <span className="notes-unsaved-hint">Unsaved changes</span>
+            )}
+          </div>
+        )}
+
+        {/* Resize handle — floating only */}
+        {!isEmbedded && (
+          <div className="notes-resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
+        )}
       </aside>
     </>
   );

@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { logoutUser, resendVerificationEmail } from "../firebase/auth";
+import { logoutUser, resendVerificationEmail } from "../../firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase/firebaseConfig";
+import { auth } from "../../firebase/firebaseConfig";
 
 const VerifyEmailPage = () => {
   const [resent, setResent] = useState(false);

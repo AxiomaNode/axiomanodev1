@@ -1,0 +1,57 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DIAG-SHELL
+   Flex row that wraps the main content area + the NotesPanel as siblings.
+   Used in PracticePage (and can be reused in DiagnosticsPage if needed).
+
+   Structure:
+     <div class="diag-shell [diag-shell--with-notes]">
+       <div class="diag-shell__main"> ...pr-layout / diag-layout... </div>
+       <NotesPanel />           ← sits here as a flex sibling
+     </div>
+
+   On desktop the panel is position:sticky so it sits next to the content
+   and the resize drag actually pushes .diag-shell__main inward.
+   On tablet/mobile the panel switches to fixed/sheet, so the shell
+   reverts to a single-column layout.
+═══════════════════════════════════════════════════════════════════════════ */
+
+.diag-shell {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  /* Stretch to at least full viewport height so the sticky panel stays tall */
+  min-height: calc(100vh - var(--header-h, 56px));
+  align-items: stretch;
+}
+
+/* Main scrollable region — shrinks when the notes panel expands */
+.diag-shell__main {
+  flex: 1;
+  min-width: 0;          /* critical: allows flex child to shrink below content size */
+  overflow-x: hidden;
+}
+
+/* When notes panel is open, remove the right-side breathing room from the
+   inner layout — the panel border provides the visual separation instead */
+.diag-shell--with-notes .pr-layout,
+.diag-shell--with-notes .diag-layout {
+  max-width: none;
+  margin: 0;
+  padding-right: 16px;
+}
+
+/* ── Tablet + mobile: panel goes fixed, shell stacks ── */
+@media (max-width: 1023px) {
+  .diag-shell {
+    flex-direction: column;
+  }
+
+  /* Restore normal centering when panel is overlaid (not in-flow) */
+  .diag-shell--with-notes .pr-layout,
+  .diag-shell--with-notes .diag-layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-right: 32px;
+  }
+}

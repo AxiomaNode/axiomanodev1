@@ -648,7 +648,6 @@
 .perseus-logo { width: 50px; height: 50px; border-radius: 12px; object-fit: cover; }
 
 .ab-team-name {
-  font-size: 1rem; font-weight: 400;
   color: rgba(255,255,255,0.85);
   margin: 0 0 4px;
   font-family: 'DM Serif Display', Georgia, serif;
