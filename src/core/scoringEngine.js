@@ -163,6 +163,15 @@ const buildAward = (eventType, meta) => {
       };
     }
 
+    case "todo_complete": {
+      const points = meta.xp ?? 10;
+      return {
+        points,
+        statField: null,
+        logEntry: { event: "todo_complete", label: meta.label ?? "Daily todo completed" },
+      };
+    }
+
     default:
       return { points: 0, statField: null, logEntry: null };
   }

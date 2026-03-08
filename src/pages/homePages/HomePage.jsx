@@ -6,6 +6,7 @@ import Sidebar from "../../components/layout/Sidebar";
 import "./home.css";
 import '../../styles/layout.css'
 import Logo from '../../../src/AxiomaLogo.png'
+import DailyTodoPanel from "../../components/DailyTodoPanel";
 
 /* ── Radar Chart ── */
 const RadarChart = () => {
@@ -183,6 +184,9 @@ const HomePage = () => {
                 <div className="home-hero__stat"><strong>50</strong><span>Students Surveyed</span></div>
                 <div className="home-hero__stat-divider" />
                 <div className="home-hero__stat"><strong>21%</strong><span>Block C Avg. Score</span></div>
+              </div>
+              <div className="daily-todo-panel" style={{ marginTop: "32px" }}>
+                <DailyTodoPanel />
               </div>
             </div>
             <div className="home-hero__right">
