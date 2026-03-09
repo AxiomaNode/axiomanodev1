@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════
    profile.css  ·  Axioma
+   All colors via CSS variables — theme-aware
 ═══════════════════════════════════════════ */
 
-/* ── Shared keyframes ────────────────────── */
 @keyframes card-in {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -15,8 +15,6 @@
 
 /* ══════════════════════════════════════════
    DOT-GRID BACKGROUND
-   Full-page coverage — no masking.
-   Applied via useEffect → body.axioma-profile-bg
 ══════════════════════════════════════════ */
 body.axioma-profile-bg::after {
   content: '';
@@ -62,7 +60,7 @@ body.axioma-profile-bg::after {
 }
 .profile-loading__ring {
   width: 24px; height: 24px;
-  border: 2px solid rgba(42,143,160,0.18);
+  border: 2px solid var(--border);
   border-top-color: var(--teal);
   border-radius: 50%;
   animation: profile-spin 0.75s linear infinite;
@@ -149,7 +147,7 @@ body.axioma-profile-bg::after {
 }
 .profile-hero__stats {
   display: flex; align-items: stretch; flex-shrink: 0;
-  background: var(--page-bg, #0d1117); border: 1px solid var(--border);
+  background: var(--card-bg-alt); border: 1px solid var(--border);
   border-radius: 12px; overflow: hidden; align-self: center; position: relative;
 }
 .profile-hero__stats::before {
@@ -183,7 +181,7 @@ body.axioma-profile-bg::after {
 .profile-hero__edit-btn svg { opacity: 0.6; transition: opacity 0.2s; }
 .profile-hero__edit-btn:hover {
   border-color: rgba(42,143,160,0.4); color: var(--teal);
-  background: rgba(42,143,160,0.04);
+  background: var(--teal-light);
 }
 .profile-hero__edit-btn:hover svg { opacity: 1; }
 
@@ -207,7 +205,7 @@ body.axioma-profile-bg::after {
 .profile-tab__badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
-  background: rgba(42,143,160,0.12); color: var(--teal);
+  background: var(--teal-light); color: var(--teal);
   font-size: 0.7rem; font-weight: 700; font-family: 'Courier New', monospace;
 }
 
@@ -302,7 +300,7 @@ body.axioma-profile-bg::after {
   border-bottom: 1px solid var(--border); transition: background 0.13s;
 }
 .progress-history-row--clickable:last-child { border-bottom: none; }
-.progress-history-row--clickable:hover { background: rgba(42,143,160,0.05); }
+.progress-history-row--clickable:hover { background: var(--teal-light); }
 .progress-history-row--clickable:hover .progress-history-row__arrow {
   opacity: 1; transform: translateX(2px);
 }
@@ -332,14 +330,14 @@ body.axioma-profile-bg::after {
   display: flex; flex-direction: column; gap: 9px; transition: background 0.12s;
 }
 .results-breakdown__item:last-child { border-bottom: none; }
-.results-breakdown__item:hover { background: rgba(255,255,255,0.015); }
+.results-breakdown__item:hover { background: var(--card-bg-alt); }
 .results-breakdown__item-header { display: flex; align-items: center; gap: 10px; }
 .results-breakdown__item-num,
 .results-breakdown__item-id { font-size: 0.72rem; color: var(--text-light); font-family: 'Courier New', monospace; }
 .results-breakdown__item-topic {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 0.72rem; color: var(--teal); font-family: -apple-system, sans-serif;
-  background: rgba(42,143,160,0.08); border-radius: 4px; padding: 1px 6px;
+  background: var(--teal-light); border-radius: 4px; padding: 1px 6px;
 }
 .results-breakdown__item-question {
   font-size: 0.85rem; color: var(--text-dark); margin: 0 0 4px;
@@ -379,7 +377,7 @@ body.axioma-profile-bg::after {
   width: 100%; max-width: 420px;
   background: var(--card-bg); border: 1px solid var(--border);
   border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
-  box-shadow: 0 0 0 1px rgba(42,143,160,0.06), 0 32px 64px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-lg);
   animation: pedit-modal-in 0.2s cubic-bezier(0.22,1,0.36,1);
   position: relative;
 }
@@ -409,7 +407,7 @@ body.axioma-profile-bg::after {
 }
 .pedit-modal__close:hover {
   border-color: rgba(42,143,160,0.3); color: var(--text-dark);
-  background: rgba(42,143,160,0.04);
+  background: var(--teal-light);
 }
 .pedit-modal__body { display: flex; flex-direction: column; gap: 20px; padding: 24px; }
 
@@ -427,7 +425,7 @@ body.axioma-profile-bg::after {
 }
 .pedit-field__input {
   width: 100%; box-sizing: border-box;
-  background: rgba(42,143,160,0.03); border: 1px solid var(--border);
+  background: var(--input-bg); border: 1px solid var(--border);
   border-radius: 8px; padding: 10px 14px;
   font-size: 0.875rem; font-family: -apple-system, sans-serif;
   color: var(--text-dark); transition: border-color 0.2s, box-shadow 0.2s;
@@ -441,7 +439,7 @@ body.axioma-profile-bg::after {
 .pedit-field__input--locked,
 .pedit-field__input:disabled { opacity: 0.35; cursor: not-allowed; }
 .pedit-field__readonly {
-  padding: 10px 14px; background: rgba(0,0,0,0.06);
+  padding: 10px 14px; background: var(--card-bg-alt);
   border: 1px solid var(--border); border-radius: 8px;
   font-size: 0.855rem; color: var(--text-light); font-family: 'Courier New', monospace;
 }
@@ -455,8 +453,8 @@ body.axioma-profile-bg::after {
   border-radius: 8px; font-size: 0.8rem; font-family: -apple-system, sans-serif;
   font-weight: 500; line-height: 1.4;
 }
-.pedit-feedback--error  { background: rgba(192,57,43,0.07); border: 1px solid rgba(192,57,43,0.25); color: #c0392b; }
-.pedit-feedback--success { background: rgba(39,174,96,0.07);  border: 1px solid rgba(39,174,96,0.25);  color: #27ae60; }
+.pedit-feedback--error  { background: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text); }
+.pedit-feedback--success { background: rgba(39,174,96,0.07); border: 1px solid rgba(39,174,96,0.25); color: #27ae60; }
 .pedit-divider { height: 1px; background: var(--border); margin: 2px 0; }
 
 .pedit-modal__footer {
@@ -472,7 +470,7 @@ body.axioma-profile-bg::after {
 }
 .pedit-btn--ghost { background: transparent; border-color: var(--border); color: var(--text-light); }
 .pedit-btn--ghost:hover:not(:disabled) {
-  border-color: rgba(42,143,160,0.3); color: var(--text-mid); background: rgba(42,143,160,0.03);
+  border-color: rgba(42,143,160,0.3); color: var(--text-mid); background: var(--teal-light);
 }
 .pedit-btn--primary { background: var(--teal); color: #fff; border-color: var(--teal); }
 .pedit-btn--primary:hover:not(:disabled) { opacity: 0.88; }

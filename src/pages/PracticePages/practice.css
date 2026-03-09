@@ -1,9 +1,8 @@
 /* ════════════════════════════════════════════════════
    PRACTICE PAGE  ·  Axioma
-   Exam mode — no feedback during session
+   All colors via CSS variables — theme-aware
 ════════════════════════════════════════════════════ */
 
-/* ─── Wrap & background ─────────────────────────── */
 .pr-wrap {
   display: flex;
   flex-direction: column;
@@ -153,7 +152,7 @@
   flex-direction: column;
   gap: 3px;
   padding: 9px 14px;
-  background: var(--card-bg-alt, var(--page-bg));
+  background: var(--card-bg-alt);
   border: 1px solid var(--border);
   border-radius: 8px;
   min-width: 62px;
@@ -318,7 +317,6 @@
   min-height: 600px;
 }
 
-/* ── Top bar ────────────────────────────────────── */
 .pr-board__top {
   display: flex;
   align-items: center;
@@ -347,7 +345,6 @@
 .pr-crumbs__sep { color: var(--border); }
 .pr-crumbs__sec { font-weight: 700; color: var(--teal); white-space: nowrap; }
 
-/* ── Timer ──────────────────────────────────────── */
 .pr-timer {
   display: inline-flex;
   align-items: center;
@@ -364,7 +361,6 @@
 }
 .pr-timer svg { color: var(--teal); flex-shrink: 0; }
 
-/* ── Step dots ──────────────────────────────────── */
 .pr-tracker { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .pr-dotstep {
   height: 4px;
@@ -373,7 +369,6 @@
   background: var(--border);
   transition: background 0.15s, width 0.15s, transform 0.15s;
 }
-/* During session: active = current, answered = filled neutral */
 .pr-dotstep.active {
   background: var(--teal);
   width: 22px;
@@ -384,7 +379,6 @@
   background: rgba(42,143,160,0.35);
 }
 
-/* ── Board inner ────────────────────────────────── */
 .pr-board__inner {
   flex: 1;
   display: flex;
@@ -397,7 +391,6 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Empty state ────────────────────────────────── */
 .pr-empty {
   display: flex;
   flex-direction: column;
@@ -431,7 +424,6 @@
   line-height: 1.65;
 }
 
-/* ── Progress bar ───────────────────────────────── */
 .pr-progress {
   display: flex;
   align-items: center;
@@ -483,7 +475,7 @@
   color: var(--teal);
   font-family: 'Courier New', monospace;
   padding-bottom: 11px;
-  border-bottom: 1px solid rgba(42,143,160,0.12);
+  border-bottom: 1px solid var(--border);
 }
 .pr-question {
   font-size: 1rem;
@@ -494,7 +486,7 @@
 }
 
 /* ════════════════════════════════════════════════════
-   OPTIONS — no correct/wrong during session
+   OPTIONS
 ════════════════════════════════════════════════════ */
 .diag-options {
   display: flex;
@@ -509,7 +501,7 @@
   padding: 11px 15px;
   border: 1.5px solid var(--border);
   border-radius: 9px;
-  background: var(--card-bg-alt, var(--page-bg));
+  background: var(--card-bg-alt);
   cursor: pointer;
   text-align: left;
   color: inherit;
@@ -528,7 +520,6 @@
   transform: translateX(3px);
   box-shadow: -3px 0 0 var(--teal);
 }
-/* Results only — shown after finish */
 .diag-option--correct {
   border-color: #27ae60;
   background: rgba(39,174,96,0.06);
@@ -611,7 +602,7 @@
 }
 .pr-navbtn:disabled { opacity: 0.3; cursor: not-allowed; }
 .pr-navbtn--primary {
-  background: var(--navy, #1a2a3a);
+  background: var(--navy);
   color: #fff;
   border-color: transparent;
 }
@@ -619,7 +610,7 @@
 .pr-navbtn--primary:hover:not(:disabled) {
   opacity: 0.88;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-md);
 }
 .pr-navbtn--primary:disabled { opacity: 0.35; transform: none; }
 
@@ -629,7 +620,7 @@
   align-items: center;
   gap: 4px;
   padding: 5px 14px;
-  background: var(--card-bg-alt, var(--page-bg));
+  background: var(--card-bg-alt);
   border: 1px solid var(--border);
   border-radius: 20px;
   font-family: 'Courier New', monospace;
@@ -652,7 +643,6 @@
   animation: pr-in 0.25s ease both;
 }
 
-/* ── Score ring ─────────────────────────────────── */
 .pr-complete__head {
   display: flex;
   align-items: center;
@@ -715,12 +705,11 @@
 }
 .pr-complete__saved { color: #27ae60; font-weight: 600; }
 
-/* ── Stats row ──────────────────────────────────── */
 .pr-complete__stats {
   display: flex;
   align-items: stretch;
   width: 100%;
-  background: var(--card-bg-alt, var(--page-bg));
+  background: var(--card-bg-alt);
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -752,7 +741,6 @@
   white-space: nowrap;
 }
 
-/* ── Answer breakdown ───────────────────────────── */
 .pr-complete__breakdown {
   display: flex;
   flex-direction: column;
@@ -789,7 +777,7 @@
   padding: 10px 13px;
   border-radius: 9px;
   border: 1px solid var(--border);
-  background: var(--card-bg-alt, var(--page-bg));
+  background: var(--card-bg-alt);
 }
 .pr-brow--ok {
   border-color: rgba(39,174,96,0.3);
@@ -799,9 +787,7 @@
   border-color: rgba(231,76,60,0.3);
   background: rgba(231,76,60,0.04);
 }
-.pr-brow--skip {
-  opacity: 0.45;
-}
+.pr-brow--skip { opacity: 0.45; }
 .pr-brow__num {
   font-size: 0.65rem;
   font-weight: 800;
@@ -841,18 +827,9 @@
   gap: 8px;
   margin-top: 2px;
 }
-.pr-brow__yours {
-  font-size: 0.72rem;
-  color: #e74c3c;
-  font-family: 'Courier New', monospace;
-}
-.pr-brow__correct {
-  font-size: 0.72rem;
-  color: #27ae60;
-  font-family: 'Courier New', monospace;
-}
+.pr-brow__yours  { font-size: 0.72rem; color: #e74c3c; font-family: 'Courier New', monospace; }
+.pr-brow__correct { font-size: 0.72rem; color: #27ae60; font-family: 'Courier New', monospace; }
 
-/* ── Complete actions ───────────────────────────── */
 .pr-complete__actions {
   display: flex;
   flex-wrap: wrap;
@@ -874,7 +851,6 @@
   text-align: center;
   animation: pr-in 0.22s ease both;
 }
-
 .pr-start-modal__icon {
   width: 64px; height: 64px;
   border-radius: 16px;
@@ -886,7 +862,6 @@
   color: var(--teal);
   margin-bottom: 4px;
 }
-
 .pr-start-modal__title {
   font-size: 1.5rem;
   font-weight: 700;
@@ -895,14 +870,12 @@
   letter-spacing: -0.02em;
   margin: 0;
 }
-
 .pr-start-modal__sub {
   font-size: 0.87rem;
   color: var(--text-light);
   font-family: -apple-system, sans-serif;
   margin: 0;
 }
-
 .pr-start-modal__meta {
   display: flex;
   align-items: stretch;
@@ -913,7 +886,6 @@
   overflow: hidden;
   margin: 4px 0;
 }
-
 .pr-start-modal__pill {
   display: flex;
   flex-direction: column;
@@ -937,7 +909,6 @@
   color: var(--teal);
   font-family: 'Courier New', monospace;
 }
-
 .pr-start-modal__btn {
   padding: 11px 36px;
   font-size: 0.95rem;
@@ -945,30 +916,8 @@
 }
 
 /* ════════════════════════════════════════════════════
-   RESPONSIVE
+   KEYBOARD HINTS
 ════════════════════════════════════════════════════ */
-@media (max-width: 860px) {
-  .pr-hero { padding: 22px 16px 0; }
-  .pr-hero__content { flex-direction: column; gap: 20px; padding-bottom: 22px; }
-  .pr-hero__card { width: 100%; box-sizing: border-box; }
-  .pr-layout { grid-template-columns: 1fr; padding: 0 16px 60px; }
-  .pr-side {
-    position: static;
-    padding: 20px 0 16px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  .pr-board { padding: 20px 0 0; }
-}
-@media (max-width: 480px) {
-  .pr-title { font-size: 1.45rem; }
-  .pr-complete { padding: 20px 16px; }
-  .pr-complete__actions { flex-direction: column; }
-  .pr-complete__stats { flex-wrap: wrap; }
-  .pr-complete__stat { min-width: 33%; }
-}
-/* ── Keyboard hint badges ── добавь в practice.css ───── */
-
 .pr-kbd {
   display: inline-flex;
   align-items: center;
@@ -979,63 +928,55 @@
   line-height: 1;
   padding: 2px 5px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--border-strong);
+  background: var(--card-bg-alt);
+  color: var(--text-light);
   pointer-events: none;
   user-select: none;
 }
-
-/* На primary-кнопке — акцентный цвет */
 .pr-navbtn--primary .pr-kbd {
-  border-color: rgba(42, 213, 180, 0.3);
-  background: rgba(42, 213, 180, 0.08);
-  color: rgba(42, 213, 180, 0.55);
+  border-color: rgba(42,213,180,0.3);
+  background: rgba(42,213,180,0.08);
+  color: rgba(42,213,180,0.55);
 }
-
-/* Тускнеет вместе с disabled-кнопкой */
-.pr-navbtn:disabled .pr-kbd {
-  opacity: 0.2;
-}
-
-/* Маленький бейдж внутри варианта ответа (A/B/C/D) */
+.pr-navbtn:disabled .pr-kbd { opacity: 0.2; }
 .pr-kbd--option {
   font-size: 9px;
   padding: 1px 3px;
   margin-left: 4px;
   vertical-align: middle;
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.2);
 }
+.diag-option--selected .pr-kbd--option { opacity: 0; }
 
-/* Скрываем букву-подсказку когда вариант выбран (она уже подсвечена) */
-.diag-option--selected .pr-kbd--option {
-  opacity: 0;
-}
-
-/* ── Notes panel integration ── */
-
-/* When notes panel is active, pr-layout no longer needs right padding
-   or centering — it fills diag-shell__main naturally */
-.diag-shell--with-notes .pr-layout {
-  max-width: none;
-  margin: 0;
-  padding-right: 16px;   /* tighter — panel border provides visual separation */
-}
-
-
-/* Prevent hero from looking misaligned when panel is present */
+/* Notes panel integration */
 .diag-shell--with-notes .pr-layout {
   max-width: none;
   margin: 0;
   padding-right: 16px;
 }
-
 @media (max-width: 1023px) {
   .diag-shell--with-notes .pr-layout {
     max-width: 1100px;
     margin: 0 auto;
     padding-right: 32px;
   }
+}
+
+/* ════════════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════════════ */
+@media (max-width: 860px) {
+  .pr-hero { padding: 22px 16px 0; }
+  .pr-hero__content { flex-direction: column; gap: 20px; padding-bottom: 22px; }
+  .pr-hero__card { width: 100%; box-sizing: border-box; }
+  .pr-layout { grid-template-columns: 1fr; padding: 0 16px 60px; }
+  .pr-side { position: static; padding: 20px 0 16px; border-right: none; border-bottom: 1px solid var(--border); }
+  .pr-board { padding: 20px 0 0; }
+}
+@media (max-width: 480px) {
+  .pr-title { font-size: 1.45rem; }
+  .pr-complete { padding: 20px 16px; }
+  .pr-complete__actions { flex-direction: column; }
+  .pr-complete__stats { flex-wrap: wrap; }
+  .pr-complete__stat { min-width: 33%; }
 }

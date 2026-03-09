@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import Logo from "../../AxiomaLogo.png";
 import "./logo.css"
+import LogoLight from "../../Logo-light.png"
 import { logoutUser, getUserProfile } from "../../firebase/auth";
 
 const MenuIcon = ({ open }) => (
@@ -95,7 +96,13 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
         <Link to="/home" className="header__brand">
           <div className="header__logo-wrap">
             <div className="">
-              <img src={Logo} className="axioma-logo" alt="" />
+              {
+                theme === "light" ? (
+                  <img src={Logo} className="axioma-logo" alt="" />
+                ) : (
+                  <img src={LogoLight} className="axioma-logo" alt="" />
+                )
+              }
             </div>
           </div>
           <span className="header__brand-name">Axioma</span>

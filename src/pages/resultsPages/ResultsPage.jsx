@@ -9,6 +9,7 @@ import { questions as questionsDb } from "../../data/questions";
 import { getDiagnostics } from "../../services/db";
 import "./results.css";
 import '../../styles/layout.css'
+import { getRecommendations } from "../../core/recommendationEngine";
 
 const ChevronRight = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -354,14 +355,32 @@ const ResultsPage = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="results-actions">
-                    <Link to="/diagnostics" className="results-btn results-btn--primary">
-                      Retry topic <ChevronRight />
-                    </Link>
-                    <Link to="/practice" className="results-btn results-btn--ghost">
-                      Go to Practice
-                    </Link>
-                  </div>
+
+                  {(() => {
+                    const { hasGaps, nextActions } = getRecommendations(session.gaps);
+                    return (
+                      <div className="results-actions">
+                        <Link to="/diagnostics" className="results-btn results-btn--primary">
+                          Retry topic <ChevronRight />
+                        </Link>
+                        {nextActions.includes("theory") && (
+                          <Link to="/theory" className="results-btn results-btn--ghost">
+                            Review Theory
+                          </Link>
+                        )}
+                        {nextActions.includes("practice") && (
+                          <Link to="/practice" className="results-btn results-btn--ghost">
+                            Go to Practice
+                          </Link>
+                        )}
+                        {nextActions.includes("homework") && (
+                          <Link to="/practice" className="results-btn results-btn--ghost">
+                            Go to Homework
+                          </Link>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                 </div>
               )}

@@ -1,0 +1,1003 @@
+/* ══════════════════════════════════════════════════════
+   homework.css  —  hw- prefix only
+   Design language: matches theory.css exactly
+   Background: radial-pulse rings (new, not square grid)
+   All colors via CSS variables — theme-aware
+══════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────
+   BACKGROUND — radial pulse rings
+   Concentric semi-transparent teal rings
+   that fade outward from the center.
+   Distinct from the theory grid, but same
+   teal-on-dark language.
+────────────────────────────────────────── */
+.page-main:has(.hw-loading),
+.page-main:has(.hw-empty),
+.page-main:has(.hw-intro-wrap),
+.page-main:has(.hw-solve-outer),
+.page-main:has(.hw-results-wrap) {
+  position: relative;
+}
+
+.page-main:has(.hw-loading)::before,
+.page-main:has(.hw-empty)::before,
+.page-main:has(.hw-intro-wrap)::before,
+.page-main:has(.hw-solve-outer)::before,
+.page-main:has(.hw-results-wrap)::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(ellipse 70% 55% at 18% 80%,  rgba(42,143,160,0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 70% at 85% 15%,  rgba(42,143,160,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 80% at 50% 50%, rgba(42,143,160,0.03) 0%, transparent 70%);
+}
+
+/* Dot-constellation overlay — sparse, elegant */
+.page-main:has(.hw-intro-wrap)::after,
+.page-main:has(.hw-solve-outer)::after,
+.page-main:has(.hw-results-wrap)::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(circle, rgba(42,143,160,0.18) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image:
+    radial-gradient(ellipse 60% 50% at 15% 85%, black 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 88% 12%, black 0%, transparent 55%);
+  mask-composite: add;
+  -webkit-mask-image:
+    radial-gradient(ellipse 60% 50% at 15% 85%, black 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 88% 12%, black 0%, transparent 55%);
+  -webkit-mask-composite: source-over;
+}
+
+/* ──────────────────────────────────────────
+   LOADING — matches th-skeleton
+────────────────────────────────────────── */
+.hw-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 60vh;
+  position: relative;
+  z-index: 1;
+}
+
+.hw-loading__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: hw-pulse 1.2s ease-in-out infinite;
+}
+.hw-loading__dot:nth-child(2) { animation-delay: 0.2s; }
+.hw-loading__dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes hw-pulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.75); }
+  40%            { opacity: 1;   transform: scale(1);    }
+}
+
+/* ──────────────────────────────────────────
+   SHARED EYEBROW — matches th-tag / th-card__cap
+────────────────────────────────────────── */
+.hw-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--teal);
+  font-family: 'Courier New', monospace;
+  margin: 0 0 14px;
+  padding: 4px 10px;
+  background: var(--teal-light);
+  border: 1px solid rgba(42,143,160,0.2);
+  border-radius: 6px;
+  width: fit-content;
+}
+/* Pulsing dot before eyebrow — mirrors th-tag::before */
+.hw-eyebrow::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px var(--teal);
+  animation: hw-tagpulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes hw-tagpulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+/* ──────────────────────────────────────────
+   SHARED BUTTONS — matches th-btn system
+────────────────────────────────────────── */
+.hw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 24px;
+  border-radius: 9px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1.5px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.hw-btn--primary {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+  box-shadow: 0 2px 16px rgba(42,143,160,0.3);
+}
+.hw-btn--primary:hover:not(:disabled) {
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(42,143,160,0.4);
+}
+.hw-btn--primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.hw-btn--ghost {
+  background: transparent;
+  color: var(--teal);
+  border-color: rgba(42,143,160,0.35);
+}
+.hw-btn--ghost:hover:not(:disabled) {
+  background: var(--teal-light);
+  border-color: var(--teal);
+}
+.hw-btn--ghost:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ──────────────────────────────────────────
+   EMPTY STATE
+────────────────────────────────────────── */
+.hw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 60vh;
+  text-align: center;
+  padding: 64px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.hw-empty__title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-family: "Georgia", serif;
+  color: var(--text-dark);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.hw-empty__sub {
+  font-size: 0.925rem;
+  color: var(--text-mid);
+  margin: 0 0 8px;
+  max-width: 320px;
+  line-height: 1.65;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* ══════════════════════════════════════════
+   INTRO STATE — matches th-hero layout feel
+══════════════════════════════════════════ */
+.hw-intro-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  padding: 64px 48px;
+  position: relative;
+  z-index: 1;
+}
+
+.hw-intro {
+  max-width: 560px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Breadcrumb — matches th-crumbs */
+.hw-trail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 40px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.76rem;
+}
+.hw-trail__link {
+  font-weight: 600;
+  color: var(--text-mid);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.hw-trail__link:hover { color: var(--teal); }
+.hw-trail__sep {
+  color: var(--border);
+}
+.hw-trail__cur {
+  font-weight: 700;
+  color: var(--teal);
+}
+
+/* Hero block */
+.hw-intro__hero { margin-bottom: 36px; }
+
+/* Title — th-title rhythm */
+.hw-intro__title {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 700;
+  font-family: "Georgia", serif;
+  color: var(--text-dark);
+  margin: 0 0 16px;
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+}
+
+.hw-intro__desc {
+  font-size: 0.925rem;
+  line-height: 1.7;
+  color: var(--text-mid);
+  margin: 0;
+  max-width: 480px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Stats — matches th-stats pill cluster */
+.hw-intro__stats {
+  display: flex;
+  align-items: stretch;
+  width: fit-content;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin: 32px 0 28px;
+}
+
+.hw-intro__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 14px 24px;
+}
+.hw-intro__stat strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--teal);
+  font-family: 'Courier New', monospace;
+  line-height: 1;
+}
+.hw-intro__stat span {
+  font-size: 0.63rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  font-family: -apple-system, sans-serif;
+}
+
+.hw-intro__stat-div {
+  width: 1px;
+  background: var(--border);
+  align-self: stretch;
+}
+
+/* Resume notice — matches th-card--fact style */
+.hw-intro__resume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--teal);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--teal-light);
+  border: 1px solid rgba(42,143,160,0.2);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 8px 8px 0;
+}
+
+.hw-intro__resume-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 6px var(--teal);
+  flex-shrink: 0;
+  animation: hw-tagpulse 2s ease-in-out infinite;
+}
+
+/* Rules — matches th-p list style */
+.hw-intro__rules {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.hw-intro__rules li {
+  font-size: 0.875rem;
+  color: var(--text-mid);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  padding-left: 18px;
+  position: relative;
+  line-height: 1.55;
+}
+.hw-intro__rules li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--teal);
+  font-size: 1.1rem;
+  top: -1px;
+}
+
+/* ══════════════════════════════════════════
+   SOLVING STATE
+══════════════════════════════════════════ */
+.hw-solve-outer {
+  padding: 32px 40px 64px;
+  max-width: 700px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* Document header — matches th-board__top */
+.hw-doc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hw-doc-header__left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.76rem;
+}
+
+.hw-doc-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--text-mid);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.hw-doc-header__back:hover { color: var(--teal); }
+
+.hw-doc-header__sep { color: var(--border); }
+
+.hw-doc-header__topic {
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.hw-doc-header__right {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.hw-doc-header__count {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.hw-doc-header__count em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--text-light);
+}
+.hw-doc-header__count-label {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  font-family: -apple-system, sans-serif;
+}
+
+/* Segment progress — matches th-dotstep system */
+.hw-seg-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+}
+
+.hw-seg {
+  flex: 1;
+  height: 4px;
+  min-width: 6px;
+  border-radius: 2px;
+  background: var(--border);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s;
+}
+.hw-seg:hover {
+  background: rgba(42,143,160,0.35);
+  transform: scaleY(1.5);
+}
+.hw-seg--answered {
+  background: rgba(42,143,160,0.35);
+}
+.hw-seg--current {
+  background: var(--teal);
+  transform: scaleY(1.5);
+  box-shadow: 0 0 8px rgba(42,143,160,0.5);
+}
+
+/* ══════════════════════════════════════════
+   WORKSPACE — matches th-card feel
+   Top accent stripe, card-bg, border, shadow
+══════════════════════════════════════════ */
+.hw-workspace {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 36px 28px;
+  box-shadow: var(--shadow-md);
+  border-top: 2px solid rgba(42,143,160,0.35);
+  border-radius: 0 0 16px 16px;
+  animation: hw-slidein 0.2s ease both;
+}
+
+@keyframes hw-slidein {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Question block ── */
+.hw-question {
+  margin-bottom: 32px;
+}
+
+/* Counter — matches hw-question__num editorial anchor */
+.hw-question__counter {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.hw-question__num {
+  font-family: "Georgia", serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--teal);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.hw-question__total {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-light);
+  padding-bottom: 2px;
+}
+
+/* Question text — Georgia serif, matches th-check__q */
+.hw-question__text {
+  font-family: "Georgia", serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+/* ── Answer options — matches th-opt system ── */
+.hw-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 36px;
+}
+
+.hw-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--page-bg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.13s ease, background 0.13s ease, transform 0.12s, box-shadow 0.13s;
+  width: 100%;
+  overflow: hidden;
+}
+
+.hw-option:hover:not(.hw-option--selected) {
+  border-color: var(--teal);
+  background: var(--teal-light);
+  transform: translateX(3px);
+  box-shadow: -3px 0 0 var(--teal);
+}
+
+.hw-option--selected {
+  border-color: var(--teal);
+  background: var(--teal-light);
+  transform: translateX(3px);
+  box-shadow: -3px 0 0 var(--teal);
+}
+
+/* Letter badge — matches diag-option__letter */
+.hw-option__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+  border-right: 1px solid var(--border);
+  transition: color 0.13s, background 0.13s, border-color 0.13s;
+  padding: 12px 0;
+}
+
+.hw-option--selected .hw-option__badge {
+  color: var(--teal);
+  background: var(--teal-light);
+  border-color: rgba(42,143,160,0.25);
+}
+
+.hw-option__text {
+  flex: 1;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-mid);
+  padding: 13px 16px;
+  transition: color 0.13s;
+}
+
+.hw-option--selected .hw-option__text {
+  color: var(--text-dark);
+}
+
+.hw-option__indicator {
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--teal);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.hw-option--selected .hw-option__indicator {
+  opacity: 1;
+}
+
+/* ── Navigation — matches th-nav system ── */
+.hw-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.hw-nav__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 20px;
+  border-radius: 9px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid rgba(42,143,160,0.35);
+  background: transparent;
+  color: var(--teal);
+  transition: all 0.18s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  white-space: nowrap;
+}
+
+.hw-nav__btn--ghost {
+  border-color: var(--border);
+  color: var(--text-mid);
+}
+.hw-nav__btn--ghost:hover:not(:disabled) {
+  border-color: var(--teal);
+  color: var(--text-dark);
+  background: var(--teal-light);
+}
+.hw-nav__btn--ghost:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.hw-nav__btn--primary {
+  background: var(--teal);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 16px rgba(42,143,160,0.3);
+}
+.hw-nav__btn--primary:hover {
+  background: var(--teal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(42,143,160,0.4);
+}
+
+/* Submit — muted until all answered */
+.hw-nav__btn--submit {
+  background: transparent;
+  color: var(--text-light);
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+.hw-nav__btn--submit.hw-nav__btn--ready {
+  background: var(--teal);
+  color: #fff;
+  border-color: transparent;
+  cursor: pointer;
+  box-shadow: 0 2px 16px rgba(42,143,160,0.3);
+}
+.hw-nav__btn--submit.hw-nav__btn--ready:hover {
+  background: var(--teal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(42,143,160,0.4);
+}
+
+.hw-nav__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Matches th-navpill */
+.hw-nav__fraction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 14px;
+  background: var(--teal-light);
+  border: 1px solid rgba(42,143,160,0.25);
+  border-radius: 20px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.79rem;
+  color: var(--text-mid);
+}
+
+.hw-nav__hint-keys {
+  font-size: 0.68rem;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+}
+
+.hw-nav__remaining {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  margin: 12px 0 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* ══════════════════════════════════════════
+   RESULTS STATE
+══════════════════════════════════════════ */
+.hw-results-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 64px 48px 80px;
+  position: relative;
+  z-index: 1;
+}
+
+.hw-results {
+  max-width: 680px;
+  width: 100%;
+}
+
+/* Score header — matches th-complete pattern */
+.hw-results__header {
+  margin-bottom: 40px;
+  padding: 28px 32px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top accent stripe */
+.hw-results__header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--teal), rgba(42,143,160,0.2), transparent);
+}
+
+.hw-results__score-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  margin-top: 12px;
+}
+
+/* Large Georgia numeral — same logic as hw-question__num */
+.hw-results__pct {
+  font-family: "Georgia", serif;
+  font-size: clamp(52px, 8vw, 72px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  flex-shrink: 0;
+}
+
+.hw-results__score-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.hw-results__tally {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.hw-results__verdict {
+  font-size: 0.875rem;
+  color: var(--text-mid);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.55;
+}
+
+/* Breakdown */
+.hw-breakdown {
+  margin-bottom: 48px;
+}
+
+.hw-breakdown__heading {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-light);
+  margin: 0 0 20px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Result row — matches th-card base */
+.hw-result-row {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.hw-result-row:hover {
+  border-color: rgba(42,143,160,0.2);
+}
+
+.hw-result-row--ok {
+  border-left: 3px solid rgba(42,143,160,0.5);
+  border-radius: 0 12px 12px 0;
+}
+.hw-result-row--wrong {
+  border-left: 3px solid rgba(192,57,43,0.5);
+  border-radius: 0 12px 12px 0;
+}
+
+.hw-result-row__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.hw-result-row__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.hw-result-row--ok    .hw-result-row__icon { color: var(--teal); }
+.hw-result-row--wrong .hw-result-row__icon { color: #c0392b; }
+
+.hw-result-row__num {
+  font-family: 'Courier New', monospace;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+}
+
+/* Question text — Georgia, matches th-check__q */
+.hw-result-row__q {
+  font-family: "Georgia", serif;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-dark);
+  margin: 0 0 14px;
+}
+
+.hw-result-row__answers {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* Answer pill — matches th-status pattern */
+.hw-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.hw-pill--ok {
+  border: 1px solid rgba(42,143,160,0.3);
+  background: var(--teal-light);
+}
+.hw-pill--wrong {
+  border: 1px solid rgba(192,57,43,0.25);
+  background: rgba(192,57,43,0.05);
+}
+
+.hw-pill__label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: 'Courier New', monospace;
+  flex-shrink: 0;
+}
+.hw-pill--ok    .hw-pill__label { color: var(--teal); }
+.hw-pill--wrong .hw-pill__label { color: #c0392b; }
+
+.hw-pill__val {
+  font-size: 0.825rem;
+  color: var(--text-mid);
+}
+
+/* Explanation — matches th-card--fact left-border treatment */
+.hw-result-row__explanation {
+  font-size: 0.825rem;
+  line-height: 1.65;
+  color: var(--text-mid);
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--teal-light);
+  border-left: 2px solid rgba(42,143,160,0.35);
+  border-radius: 0 8px 8px 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Results CTA — matches th-complete__actions */
+.hw-results__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+/* ──────────────────────────────────────────
+   RESPONSIVE
+────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hw-solve-outer {
+    padding: 20px 16px 48px;
+  }
+  .hw-workspace {
+    padding: 24px 18px 20px;
+  }
+  .hw-intro-wrap {
+    padding: 40px 20px;
+    align-items: flex-start;
+    min-height: auto;
+  }
+  .hw-results-wrap {
+    padding: 40px 20px 60px;
+  }
+  .hw-results__header {
+    padding: 20px 18px;
+  }
+  .hw-question__num {
+    font-size: 1.75rem;
+  }
+  .hw-question__text {
+    font-size: 1rem;
+  }
+  .hw-results__score-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .hw-nav__hint-keys {
+    display: none;
+  }
+  .hw-seg-row {
+    display: none;
+  }
+  .hw-intro__stats {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .hw-result-row--ok,
+  .hw-result-row--wrong {
+    padding-left: 14px;
+  }
+  .hw-result-row__answers {
+    flex-direction: column;
+  }
+  .hw-results__actions {
+    flex-direction: column;
+  }
+}

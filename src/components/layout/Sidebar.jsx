@@ -87,6 +87,17 @@ const NAV_SECTIONS = [
         ),
       },
       {
+        to:"/homework",
+        label:"Homework",
+        icon: (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            <line x1="7" y1="7" x2="17" y2="7" />
+            <line x1="7" y1="11" x2="17" y2="11" />
+          </svg>
+        )
+      },
+      {
         to: "/practice",
         label: "Practice",
         icon: (

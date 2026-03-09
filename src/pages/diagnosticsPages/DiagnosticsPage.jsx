@@ -11,6 +11,7 @@ import { questions } from "../../data/questions";
 import "./diagnostics.css";
 import "../../styles/layout.css"
 import { awardPoints } from "../../core/scoringEngine";
+import { buildFullDiagnostic, detectAllGaps } from "../../core/diagnosticEngine";
 // notes-panel.css is imported by NotesPanel.jsx — no need to duplicate here
 
 /* ════════════════════════════════════════════
@@ -41,53 +42,6 @@ const XIcon = () => (
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
-/* ════════════════════════════════════════════
-   CONSTANTS
-════════════════════════════════════════════ */
-const GAP_WRONG_THRESHOLD = 2;
-
-/* ════════════════════════════════════════════
-   DIAGNOSTIC LOGIC
-════════════════════════════════════════════ */
-const buildFullDiagnostic = (selectedTopicIds = null) => {
-  const activeTopics = topics.filter(t => {
-    const hasQ = questions[t.id]?.length > 0;
-    const isSel = selectedTopicIds ? selectedTopicIds.includes(t.id) : true;
-    return hasQ && isSel;
-  });
-  if (!activeTopics.length) return [];
-  const pool = [];
-  activeTopics.forEach(topic => {
-    (questions[topic.id] || []).forEach(q => pool.push({ ...q, topicId: topic.id }));
-  });
-  return pool;
-};
-
-const detectAllGaps = (answers, allQuestions) => {
-  const fullAnswers = {};
-  allQuestions.forEach(q => { fullAnswers[q.id] = answers[q.id] ?? "__skipped__"; });
-  const result = {};
-  topics.forEach(topic => {
-    const topicGaps = gapsDatabase[topic.id];
-    if (!topicGaps) return;
-    const found = [];
-    topicGaps.forEach(gap => {
-      let wrongCount = 0, signalCount = 0;
-      Object.entries(gap.signs).forEach(([qId, wrongAnswers]) => {
-        if (fullAnswers[qId] === undefined) return;
-        signalCount++;
-        const given = fullAnswers[qId];
-        if (given === "__skipped__" || wrongAnswers.includes(given)) wrongCount++;
-      });
-      if (signalCount >= 2 && wrongCount >= GAP_WRONG_THRESHOLD) {
-        found.push({ ...gap, wrongCount, signalCount });
-      }
-    });
-    if (found.length) result[topic.id] = found;
-  });
-  return result;
-};
 
 /* ════════════════════════════════════════════
    CONFIRM MODAL (submit diagnostic)
