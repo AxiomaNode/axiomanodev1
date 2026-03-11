@@ -1,5 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import Logo from "../../AxiomaLogo.png";
+import LogoLight from "../../Logo-Light.png";
+import LogoDark from "../../Logo-Dark.png";
+import { useTheme } from "../../context/ThemeContext";
 
 const NAV_SECTIONS = [
   {
@@ -128,6 +130,7 @@ const NAV_SECTIONS = [
 ];
 
 const Sidebar = ({ open, onClose }) => {
+  const { theme } = useTheme();
   const location = useLocation();
 
   return (
@@ -143,7 +146,11 @@ const Sidebar = ({ open, onClose }) => {
         <div className="sidebar__header">
           <div className="sidebar__brand">
             <div className="">
-              <img src={Logo} className="axioma-logo" alt="" />
+              {theme === "light" ? (
+                <img src={LogoDark} className="axioma-logo" alt="" />
+              ) : (
+                <img src={LogoLight} className="axioma-logo" alt="" />
+              )}
             </div>
             <span className="sidebar__brand-name">Axioma</span>
           </div>

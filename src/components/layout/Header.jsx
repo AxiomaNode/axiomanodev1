@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import Logo from "../../AxiomaLogo.png";
 import "./logo.css"
-import LogoLight from "../../Logo-light.png"
+import LogoLight from "../../Logo-Light.png"
 import { logoutUser, getUserProfile } from "../../firebase/auth";
 
 const MenuIcon = ({ open }) => (
