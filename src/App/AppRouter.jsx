@@ -23,6 +23,7 @@ import EmailActionPage from "../pages/email/EmailActionPage";
 import AboutPage       from "../pages/aboutPages/AboutPage";
 import ProfilePage     from "../pages/profilePages/ProfilePage";
 import HomeworkPage from "../pages/homeWorkPages/HomeworkPage";
+import FeedbackPage from "../pages/feedbackPages/FeedbackPage";
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -48,6 +49,7 @@ const AppRouter = () => (
     <Route path="/progress"     element={<ProtectedRoute><ProgressPage/></ProtectedRoute>} />
     <Route path="/results"      element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"      element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+    <Route path="/feedback"      element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
     <Route path="/homework"      element={<ProtectedRoute><HomeworkPage /></ProtectedRoute>} />
     <Route path="/theory"       element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
     <Route path="/profile"      element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
