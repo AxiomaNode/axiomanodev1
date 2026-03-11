@@ -354,30 +354,36 @@ const ResultsPage = () => {
                     <AnswerBreakdown session={session} />
                   </div>
 
-                  {/* Actions */}
-
+                  {/* ── Actions ── */}
                   {(() => {
                     const { hasGaps, nextActions } = getRecommendations(session.gaps);
                     return (
                       <div className="results-actions">
-                        <Link to="/diagnostics" className="results-btn results-btn--primary">
-                          Retry topic <ChevronRight />
+                        {hasGaps ? (
+                          <>
+                            <Link
+                              to="/theory"
+                              state={{ topicId: session.topicId }}
+                              className="results-btn results-btn--primary"
+                            >
+                              Review Theory <ChevronRight />
+                            </Link>
+                            <Link to="/practice" className="results-btn results-btn--ghost">
+                              Go to Practice
+                            </Link>
+                          </>
+                        ) : (
+                          <Link
+                            to="/homework"
+                            state={{ topicId: session.topicId }}
+                            className="results-btn results-btn--primary"
+                          >
+                            Go to Homework <ChevronRight />
+                          </Link>
+                        )}
+                        <Link to="/diagnostics" className="results-btn results-btn--ghost">
+                          Retry Diagnostic
                         </Link>
-                        {nextActions.includes("theory") && (
-                          <Link to="/theory" className="results-btn results-btn--ghost">
-                            Review Theory
-                          </Link>
-                        )}
-                        {nextActions.includes("practice") && (
-                          <Link to="/practice" className="results-btn results-btn--ghost">
-                            Go to Practice
-                          </Link>
-                        )}
-                        {nextActions.includes("homework") && (
-                          <Link to="/practice" className="results-btn results-btn--ghost">
-                            Go to Homework
-                          </Link>
-                        )}
                       </div>
                     );
                   })()}

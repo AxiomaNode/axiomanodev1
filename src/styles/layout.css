@@ -28,6 +28,7 @@
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 24px;
   gap: 16px;
   z-index: 100;
@@ -130,7 +131,6 @@
 
 /* Right section */
 .header__right {
-  margin-left: auto;
   position: relative;
   flex-shrink: 0;
   display: flex;

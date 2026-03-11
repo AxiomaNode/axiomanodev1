@@ -19,6 +19,6 @@ export const getRecommendations = (gaps = []) => {
 
   return {
     hasGaps: false,
-    nextActions: [],
+    nextActions: ["homework"],
   };
 };

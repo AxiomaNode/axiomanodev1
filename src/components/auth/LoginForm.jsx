@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../firebase/auth";
-import AxiomaLogo from "../../AxiomaLogo.png";
+import LogoDark from "../../Logo-Dark.png";
+import LogoLight from "../../Logo-Light.png";
+import { useTheme } from "../../context/ThemeContext";
 
 const EyeIcon = ({ open }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -41,6 +43,7 @@ const LoginForm = ({ onSwitch }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +63,11 @@ const LoginForm = ({ onSwitch }) => {
     <div className="auth-form">
       <div className="auth-form__header">
         <div className="auth-form__icon">
-          <img src={AxiomaLogo} className="axioma-logo" alt="" />
+          { theme === "light" ? 
+          (<img src={LogoDark} alt="Axioma" className="axioma-logo" />) 
+          :
+          (<img src={LogoLight} alt="Axioma" className="axioma-logo" />)
+          }
         </div>
         <h1 className="auth-form__title">Welcome back</h1>
         <p className="auth-form__subtitle">Continue your reasoning journey</p>

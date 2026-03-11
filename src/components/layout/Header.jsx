@@ -109,14 +109,18 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
         </Link>
       </div>
 
-      <nav className="header__nav">
-        <Link to="/home" className="header__nav-link">Home</Link>
-        <Link to="/diagnostics" className="header__nav-link">Diagnostics</Link>
-        <Link to="/practice" className="header__nav-link">Practice</Link>
-        <Link to="/support" className="header__nav-link">Support</Link>
-        <Link to="/theory" className="header__nav-link">Theory</Link>
-        <Link to="/about" className="header__nav-link">About</Link>
-      </nav>
+      <div className="header-center">
+        <nav className="header__nav">
+          <Link to="/home" className="header__nav-link">Home</Link>
+          <Link to="/diagnostics" className="header__nav-link">Diagnostics</Link>
+          <Link to="/practice" className="header__nav-link">Practice</Link>
+          <Link to="/homework" className="header__nav-link">Homework</Link>
+          <Link to="/support" className="header__nav-link">Support</Link>
+          <Link to="/theory" className="header__nav-link">Theory</Link>
+          <Link to="/about" className="header__nav-link">About</Link>
+        </nav>
+      </div>
+
 
       <div className="header__right">
         <button

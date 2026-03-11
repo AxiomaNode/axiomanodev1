@@ -812,6 +812,8 @@
 /* Breakdown */
 .hw-breakdown {
   margin-bottom: 48px;
+  height: 400px;
+  overflow-y: scroll;
 }
 
 .hw-breakdown__heading {

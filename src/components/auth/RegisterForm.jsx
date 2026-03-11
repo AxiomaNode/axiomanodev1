@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser } from "../../firebase/auth";
-import axiomaLogo from "../../AxiomaLogo.png";
+import LogoDark from "../../Logo-Dark.png";
+import LogoLight from "../../Logo-Light.png";
+import { ThemeProvider, useTheme } from "../../context/ThemeContext";
 
 const EyeIcon = ({ open }) => (
   <svg
@@ -100,7 +102,8 @@ const LANGUAGES = [
   { value: "en", label: "English" },
 ];
 
-const RegisterForm = ({ onSwitch }) => {
+  const RegisterForm = ({ onSwitch }) => {
+  const { theme } = useTheme();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -140,7 +143,11 @@ const RegisterForm = ({ onSwitch }) => {
     <div className="auth-form">
       <div className="auth-form__header">
         <div className="auth-form__icon">
-          <img src={axiomaLogo} alt="" className="axioma-logo" />
+          {theme === "light" ?
+          (<img src={LogoDark} alt="Axioma" className="axioma-logo" />)
+          :
+          (<img src={LogoLight} alt="Axioma" className="axioma-logo" />)
+          }
         </div>
         <h1 className="auth-form__title">Create account</h1>
         <p className="auth-form__subtitle">Map your mathematical thinking</p>

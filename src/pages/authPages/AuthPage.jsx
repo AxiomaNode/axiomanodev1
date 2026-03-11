@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import RegisterForm from "../../components/auth/RegisterForm";
-import "./auth.css";
 import LoginForm from "../../components/auth/LoginForm";
-import AxiomaLogo from '../../AxiomaLogo.png'
+import "./auth.css";
+import LogoLight from '../../Logo-Light.png';
+import LogoDark from '../../Logo-Dark.png';
+import { useTheme } from "../../context/ThemeContext";
 
 const AuthPage = () => {
+  const { theme } = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const { user, loading } = useAuth();
 
@@ -18,7 +21,6 @@ const AuthPage = () => {
     );
   }
 
-  // Already logged in → go home
   if (user) return <Navigate to="/home" replace />;
 
   return (
@@ -26,7 +28,6 @@ const AuthPage = () => {
       {/* Left panel — branding */}
       <div className="auth-panel auth-panel--left">
         <div className="auth-panel__bg-math" aria-hidden="true">
-          {/* SVG math background pattern */}
           <svg className="auth-math-svg" viewBox="0 0 600 700" xmlns="http://www.w3.org/2000/svg">
             {/* Network nodes */}
             <circle cx="80"  cy="120" r="4" fill="rgba(255,255,255,0.25)" />
@@ -72,7 +73,10 @@ const AuthPage = () => {
 
         <div className="auth-panel__content">
           <div className="auth-brand">
-            <img src={AxiomaLogo} style={{width: "48px", height: "48px"}} className="axioma-logo" alt="" />
+            {theme === "light"
+              ? <img src={LogoDark} alt="Axioma" className="axioma-logo" />
+              : <img src={LogoLight} alt="Axioma" className="axioma-logo" />
+            }
             <span className="auth-brand__name">AxiomaNode</span>
           </div>
 
@@ -119,7 +123,6 @@ const AuthPage = () => {
 
       {/* Right panel — form */}
       <div className="auth-panel auth-panel--right">
-        {/* Tab switcher */}
         <div className="auth-tabs">
           <button
             className={`auth-tab ${isLogin ? "auth-tab--active" : ""}`}
