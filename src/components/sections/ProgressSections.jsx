@@ -1,12 +1,13 @@
-// src/components/sections/ProgressSection.jsx
+// src/components/sections/ProgressSections.jsx
 // Content from ProgressPage — no Header / Sidebar / layout shell.
 // Props:
 //   diagnostics       {Array}    from getDiagnostics()
 //   practice          {Array}    from getPractice()
 //   onDiagnosticClick {Function} (idx: number) → switches parent to Results tab
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { topics } from "../../data/topics";
+import DailyTodoPanel from "../DailyTodoPanel";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -38,20 +39,20 @@ const MiniRing = ({ pct, color, size = 48 }) => {
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
       <circle cx="24" cy="24" r={r} fill="none"
-        stroke="rgba(255,255,255,0.07)" strokeWidth="5"/>
+        stroke="var(--border)" strokeWidth="5"/>
       <circle cx="24" cy="24" r={r} fill="none" stroke={color} strokeWidth="5"
         strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
         transform="rotate(-90 24 24)"/>
       <text x="24" y="24" textAnchor="middle" dominantBaseline="middle"
         fontSize="8.5" fontWeight="700" fill={color}
-        fontFamily="'Courier New', monospace">
+        fontFamily="-apple-system, sans-serif">
         {pct}%
       </text>
     </svg>
   );
 };
 
-// ── Chart ─────────────────────────────────────────────────────────────────────
+// ── Animated Chart ────────────────────────────────────────────────────────────
 
 const DIAG_COL = "#2a8fa0";
 const PRAC_COL = "#d35400";
@@ -59,6 +60,14 @@ const PRAC_COL = "#d35400";
 const ProgressChart = ({ diagnostics, practice }) => {
   const svgRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
+  const [drawn, setDrawn] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setDrawn(true));
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   const W = 860, H = 220;
   const PAD = { top: 24, right: 24, bottom: 16, left: 44 };
@@ -68,8 +77,8 @@ const ProgressChart = ({ diagnostics, practice }) => {
   const diagPts = [...diagnostics]
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .map((d) => ({
-      date: d.date,
-      pct:  Math.round((d.score.correct / d.score.total) * 100),
+      date:  d.date,
+      pct:   Math.round((d.score.correct / d.score.total) * 100),
       label: d.topicTitle,
     }));
 
@@ -89,16 +98,44 @@ const ProgressChart = ({ diagnostics, practice }) => {
   if (diagPts.length + pracPts.length < 1) return null;
 
   const xPos  = (pts, i) =>
-    pts.length === 1
-      ? PAD.left + IW / 2
-      : PAD.left + (i / (pts.length - 1)) * IW;
+    pts.length === 1 ? PAD.left + IW / 2 : PAD.left + (i / (pts.length - 1)) * IW;
   const yPos  = (pct) => PAD.top + IH - (pct / 100) * IH;
   const poly  = (pts) =>
     pts.map((p, i) => `${xPos(pts, i).toFixed(1)},${yPos(p.pct).toFixed(1)}`).join(" ");
 
-  const gridY      = [0, 25, 50, 75, 100];
-  const hasD       = diagPts.length > 0;
-  const hasP       = pracPts.length > 0;
+  const gridY  = [0, 25, 50, 75, 100];
+  const hasD   = diagPts.length > 0;
+  const hasP   = pracPts.length > 0;
+
+  const TW = 180, TH = 54;
+  const clampTip = (cx, cy) => {
+    const tx = Math.min(Math.max(cx - TW / 2, PAD.left), PAD.left + IW - TW);
+    const aboveY = cy - TH - 12;
+    const ty = aboveY < PAD.top ? cy + 14 : aboveY;
+    return { tx, ty };
+  };
+
+  const lineStyle = (delay = 0) => ({
+    strokeDasharray: 2000,
+    strokeDashoffset: drawn ? 0 : 2000,
+    transition: drawn
+      ? `stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1) ${delay}ms`
+      : "none",
+  });
+
+  const areaStyle = (delay = 0) => ({
+    opacity: drawn ? 1 : 0,
+    transition: drawn ? `opacity 0.6s ease ${delay + 900}ms` : "none",
+  });
+
+  const dotStyle = (delay = 0) => ({
+    opacity: drawn ? 1 : 0,
+    transform: drawn ? "scale(1)" : "scale(0)",
+    transformOrigin: "center",
+    transition: drawn
+      ? `opacity 0.25s ease ${delay}ms, transform 0.25s cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`
+      : "none",
+  });
 
   return (
     <div className="progress-chart-wrap">
@@ -121,41 +158,82 @@ const ProgressChart = ({ diagnostics, practice }) => {
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="progress-chart-svg"
           onMouseLeave={() => setTooltip(null)}>
 
+          <defs>
+            {hasD && diagPts.length > 1 && (
+              <linearGradient id="psDiagGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={DIAG_COL} stopOpacity="0.18"/>
+                <stop offset="100%" stopColor={DIAG_COL} stopOpacity="0"/>
+              </linearGradient>
+            )}
+            {hasP && pracPts.length > 1 && (
+              <linearGradient id="psPracGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={PRAC_COL} stopOpacity="0.14"/>
+                <stop offset="100%" stopColor={PRAC_COL} stopOpacity="0"/>
+              </linearGradient>
+            )}
+          </defs>
+
           {/* Grid */}
           {gridY.map((y) => (
             <g key={y}>
               <line x1={PAD.left} y1={yPos(y)} x2={PAD.left + IW} y2={yPos(y)}
-                stroke="rgba(255,255,255,0.05)" strokeWidth="1"
+                stroke="var(--border)" strokeWidth="1"
                 strokeDasharray={y === 0 ? "none" : "4 4"}/>
               <text x={PAD.left - 8} y={yPos(y)} textAnchor="end" dominantBaseline="middle"
-                fontSize="9.5" fill="rgba(255,255,255,0.22)"
-                fontFamily="'Courier New', monospace">
+                fontSize="10" fill="var(--text-light)"
+                fontFamily="-apple-system, sans-serif">
                 {y}%
               </text>
             </g>
           ))}
 
-          {/* Lines */}
+          {/* Area fills */}
           {hasD && diagPts.length > 1 && (
-            <polyline points={poly(diagPts)} fill="none" stroke={DIAG_COL}
-              strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
-              opacity="0.8"/>
+            <polygon
+              style={areaStyle(0)}
+              points={[
+                ...diagPts.map((p, i) => `${xPos(diagPts, i).toFixed(1)},${yPos(p.pct).toFixed(1)}`),
+                `${xPos(diagPts, diagPts.length - 1).toFixed(1)},${yPos(0).toFixed(1)}`,
+                `${xPos(diagPts, 0).toFixed(1)},${yPos(0).toFixed(1)}`,
+              ].join(" ")}
+              fill="url(#psDiagGrad)"
+            />
           )}
           {hasP && pracPts.length > 1 && (
-            <polyline points={poly(pracPts)} fill="none" stroke={PRAC_COL}
-              strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
-              opacity="0.8"/>
+            <polygon
+              style={areaStyle(200)}
+              points={[
+                ...pracPts.map((p, i) => `${xPos(pracPts, i).toFixed(1)},${yPos(p.pct).toFixed(1)}`),
+                `${xPos(pracPts, pracPts.length - 1).toFixed(1)},${yPos(0).toFixed(1)}`,
+                `${xPos(pracPts, 0).toFixed(1)},${yPos(0).toFixed(1)}`,
+              ].join(" ")}
+              fill="url(#psPracGrad)"
+            />
           )}
 
-          {/* Dots — diagnostics */}
+          {/* Lines */}
+          {hasD && diagPts.length > 1 && (
+            <polyline style={lineStyle(0)} points={poly(diagPts)}
+              fill="none" stroke={DIAG_COL} strokeWidth="2.5"
+              strokeLinejoin="round" strokeLinecap="round"/>
+          )}
+          {hasP && pracPts.length > 1 && (
+            <polyline style={lineStyle(200)} points={poly(pracPts)}
+              fill="none" stroke={PRAC_COL} strokeWidth="2.5"
+              strokeLinejoin="round" strokeLinecap="round"/>
+          )}
+
+          {/* Diagnostic dots */}
           {hasD && diagPts.map((pt, i) => {
             const cx = xPos(diagPts, i);
             const cy = yPos(pt.pct);
+            const delay = 800 + i * 60;
             return (
-              <g key={i}>
-                <circle cx={cx} cy={cy} r="4.5" fill={DIAG_COL}
-                  stroke="var(--card-bg,#0f1520)" strokeWidth="2"/>
-                <circle cx={cx} cy={cy} r="12" fill="transparent"
+              <g key={`d-${i}`}>
+                <circle cx={cx} cy={cy} r="5" style={dotStyle(delay)}
+                  fill={DIAG_COL} stroke="var(--card-bg)" strokeWidth="2.5"/>
+                <circle cx={cx} cy={cy} r="14" fill="transparent"
+                  style={{ cursor: "crosshair" }}
                   onMouseEnter={() => setTooltip({
                     x: cx, y: cy, label: pt.label, pct: pt.pct,
                     date: pt.date, type: "Diagnostic", col: scoreColor(pt.pct),
@@ -164,15 +242,17 @@ const ProgressChart = ({ diagnostics, practice }) => {
             );
           })}
 
-          {/* Dots — practice */}
+          {/* Practice dots */}
           {hasP && pracPts.map((pt, i) => {
             const cx = xPos(pracPts, i);
             const cy = yPos(pt.pct);
+            const delay = 1000 + i * 60;
             return (
-              <g key={i}>
-                <circle cx={cx} cy={cy} r="4.5" fill={PRAC_COL}
-                  stroke="var(--card-bg,#0f1520)" strokeWidth="2"/>
-                <circle cx={cx} cy={cy} r="12" fill="transparent"
+              <g key={`p-${i}`}>
+                <circle cx={cx} cy={cy} r="5" style={dotStyle(delay)}
+                  fill={PRAC_COL} stroke="var(--card-bg)" strokeWidth="2.5"/>
+                <circle cx={cx} cy={cy} r="14" fill="transparent"
+                  style={{ cursor: "crosshair" }}
                   onMouseEnter={() => setTooltip({
                     x: cx, y: cy, label: pt.label, pct: pt.pct,
                     date: pt.date, type: "Practice", col: scoreColor(pt.pct),
@@ -183,20 +263,22 @@ const ProgressChart = ({ diagnostics, practice }) => {
 
           {/* Tooltip */}
           {tooltip && (() => {
-            const TW = 172, TH = 52;
-            const tx = Math.min(Math.max(tooltip.x - TW / 2, PAD.left), PAD.left + IW - TW);
-            const ty = Math.max(PAD.top, tooltip.y - TH - 14);
+            const { tx, ty } = clampTip(tooltip.x, tooltip.y);
             return (
               <g>
-                <rect x={tx} y={ty} width={TW} height={TH} rx="6"
-                  fill="#0f1520" stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
-                <text x={tx + TW / 2} y={ty + 16} textAnchor="middle" fontSize="9.5"
-                  fill="rgba(255,255,255,0.35)" fontFamily="'Courier New', monospace">
+                <rect x={tx} y={ty} width={TW} height={TH} rx="7"
+                  fill="var(--card-bg)" stroke={tooltip.col} strokeWidth="1"
+                  style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.4))" }}/>
+                {/* Colour accent on top edge */}
+                <rect x={tx} y={ty} width={TW} height={2} rx="1"
+                  fill={tooltip.col} opacity="0.6"/>
+                <text x={tx + TW / 2} y={ty + 18} textAnchor="middle" fontSize="9.5"
+                  fill="var(--text-light)" fontFamily="-apple-system, sans-serif">
                   {tooltip.type} · {formatDate(tooltip.date)}
                 </text>
-                <text x={tx + TW / 2} y={ty + 35} textAnchor="middle" fontSize="12"
+                <text x={tx + TW / 2} y={ty + 37} textAnchor="middle" fontSize="13"
                   fontWeight="700" fill={tooltip.col}
-                  fontFamily="'Courier New', monospace">
+                  fontFamily="-apple-system, sans-serif">
                   {tooltip.pct}% — {tooltip.label}
                 </text>
               </g>
@@ -272,44 +354,93 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
   return (
     <div className="progress-section-inner">
 
+      {/* Today's plan */}
+      <DailyTodoPanel />
+
       {/* Stats row */}
       <div className="progress-stats-row">
-        <div className="progress-stat-card">
-          <p className="progress-stat-card__label">Diagnostic Sessions</p>
-          <strong className="progress-stat-card__num">{totalDiag}</strong>
-          <p className="progress-stat-card__sub">sessions completed</p>
-        </div>
-        <div className="progress-stat-card">
-          <p className="progress-stat-card__label">Practice Sessions</p>
-          <strong className="progress-stat-card__num">{totalPrac}</strong>
-          <p className="progress-stat-card__sub">exercises attempted</p>
-        </div>
-        <div className="progress-stat-card">
-          <p className="progress-stat-card__label">Average Score</p>
-          <strong className="progress-stat-card__num"
-            style={{ color: globalAvg != null ? scoreColor(globalAvg) : undefined }}>
-            {globalAvg != null ? `${globalAvg}%` : "—"}
-          </strong>
-          <p className="progress-stat-card__sub">across all diagnostics</p>
-        </div>
-        <div className="progress-stat-card">
-          <p className="progress-stat-card__label">Gaps Identified</p>
-          <strong className="progress-stat-card__num"
-            style={{ color: totalGaps > 0 ? "#d35400" : undefined }}>
-            {totalGaps}
-          </strong>
-          <p className="progress-stat-card__sub">reasoning gaps found</p>
-        </div>
+        {[
+          {
+            label: "Diagnostic Sessions",
+            num:   totalDiag,
+            sub:   "sessions completed",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            ),
+            color: "var(--teal)",
+          },
+          {
+            label: "Practice Sessions",
+            num:   totalPrac,
+            sub:   "exercises attempted",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/>
+              </svg>
+            ),
+            color: "#d35400",
+          },
+          {
+            label: "Average Score",
+            num:   globalAvg !== null ? `${globalAvg}%` : "—",
+            sub:   "across all diagnostics",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+            ),
+            color: globalAvg ? scoreColor(globalAvg) : "var(--teal)",
+          },
+          {
+            label: "Gaps Identified",
+            num:   totalGaps,
+            sub:   "reasoning gaps found",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8"  x2="12"    y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            ),
+            color: totalGaps > 0 ? "#d35400" : "var(--teal)",
+          },
+        ].map(({ label, num, sub, icon, color }, idx) => (
+          <div key={label} className="progress-stat-card"
+            style={{ animationDelay: `${idx * 0.07}s` }}>
+            <div className="progress-stat-card__icon" style={{ color }}>{icon}</div>
+            <p className="progress-stat-card__label">{label}</p>
+            <strong className="progress-stat-card__num" style={{ color }}>{num}</strong>
+            <p className="progress-stat-card__sub">{sub}</p>
+          </div>
+        ))}
       </div>
 
       {/* Chart */}
       {showChart && (
         <div className="progress-chart-section">
-          <h3 className="progress-chart-section__title">Score History</h3>
-          <p className="progress-chart-section__sub">
-            Diagnostic and practice scores over time. Hover a point for details.
-          </p>
-          <ProgressChart diagnostics={diagnostics} practice={practice} />
+          <div className="progress-chart-section__header">
+            <div>
+              <div className="progress-chart-section__eyebrow">
+                <span className="progress-chart-section__eyebrow-dot"/>
+                Score History
+              </div>
+              <h3 className="progress-chart-section__title">Performance Over Time</h3>
+              <p className="progress-chart-section__sub">
+                Diagnostic and practice scores over time. Hover a point for details.
+              </p>
+            </div>
+            <span className="progress-chart-section__tag">
+              <span className="progress-chart-section__tag-dot"/>
+              Live data
+            </span>
+          </div>
+          <ProgressChart diagnostics={diagnostics} practice={practice}/>
         </div>
       )}
 
@@ -320,6 +451,12 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
             className={`progress-tab ${activeTab === tab ? "progress-tab--active" : ""}`}
             onClick={() => setActiveTab(tab)}>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === "diagnostics" && totalDiag > 0 && (
+              <span className="progress-tab__count">{totalDiag}</span>
+            )}
+            {tab === "practice" && totalPrac > 0 && (
+              <span className="progress-tab__count">{totalPrac}</span>
+            )}
           </button>
         ))}
       </div>
@@ -394,8 +531,9 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
                 return (
                   <button key={i} type="button"
                     className="progress-history-row progress-history-row--clickable"
-                    onClick={() => onDiagnosticClick?.(i)}>
-                    <MiniRing pct={pct} color={scoreColor(pct)} size={46} />
+                    onClick={() => onDiagnosticClick?.(i)}
+                    style={{ animationDelay: `${i * 0.05}s` }}>
+                    <MiniRing pct={pct} color={scoreColor(pct)} size={46}/>
                     <div className="progress-history-row__info">
                       <div className="progress-history-row__top">
                         <h4 className="progress-history-row__title">{d.topicTitle}</h4>
@@ -410,10 +548,10 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
                               stroke="currentColor" strokeWidth="2">
                               <circle cx="12" cy="12" r="10"/>
-                              <line x1="12" y1="8"  x2="12" y2="12"/>
+                              <line x1="12" y1="8"  x2="12"    y2="12"/>
                               <line x1="12" y1="16" x2="12.01" y2="16"/>
                             </svg>
-                            {d.gaps.length} gap{d.gaps.length !== 1 ? "s" : ""}
+                            {d.gaps.length} gap{d.gaps.length !== 1 ? "s" : ""} found
                           </span>
                         )}
                       </div>
@@ -425,7 +563,7 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
                         </div>
                       )}
                     </div>
-                    <span className="progress-history-row__arrow"><ChevronRight /></span>
+                    <span className="progress-history-row__arrow"><ChevronRight/></span>
                   </button>
                 );
               })}
@@ -451,8 +589,9 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
                 const pct     = total > 0 ? Math.round((correct / total) * 100) : 0;
                 const topic   = topics.find((t) => t.id === p.topicId);
                 return (
-                  <div key={i} className="progress-history-row">
-                    <MiniRing pct={pct} color={scoreColor(pct)} size={46} />
+                  <div key={i} className="progress-history-row"
+                    style={{ animationDelay: `${i * 0.05}s` }}>
+                    <MiniRing pct={pct} color={scoreColor(pct)} size={46}/>
                     <div className="progress-history-row__info">
                       <div className="progress-history-row__top">
                         <h4 className="progress-history-row__title">

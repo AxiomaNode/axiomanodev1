@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import NotesPanel from "../../components/NotesPanel";   // ← standalone component
+import NotesPanel from "../../components/NotesPanel";
 import { topics } from "../../data/topics";
 import { saveDiagnostic } from "../../services/db";
 import { gapsDatabase } from "../../data/gaps";
@@ -12,7 +12,7 @@ import "./diagnostics.css";
 import "../../styles/layout.css"
 import { awardPoints } from "../../core/scoringEngine";
 import { buildFullDiagnostic, detectAllGaps } from "../../core/diagnosticEngine";
-// notes-panel.css is imported by NotesPanel.jsx — no need to duplicate here
+import { getRecommendations } from "../../core/recommendationEngine";
 
 /* ════════════════════════════════════════════
    ICONS
@@ -434,6 +434,13 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
   const correctCount   = allQuestions.length - wrongQuestions.length;
   const accuracy       = Math.round((correctCount / allQuestions.length) * 100);
 
+  // Derive whether this was a single-topic run
+  const topicIds      = [...new Set(allQuestions.map(q => q.topicId))];
+  const isSingleTopic = topicIds.length === 1;
+  const singleTopicId = isSingleTopic ? topicIds[0] : null;
+
+  const { hasGaps, nextActions } = getRecommendations(Object.values(gapsByTopic).flat());
+
   return (
     <div className="diag-step">
       <div className="diag-results">
@@ -559,9 +566,9 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
           </div>
         )}
 
-        {/* CTA */}
+        {/* ── CTA ── */}
         <div className="diag-results__cta-block">
-          {totalGaps > 0 && (
+          {hasGaps && (
             <div className="diag-results__cta-hint">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -570,11 +577,31 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
             </div>
           )}
           <div className="diag-results__actions">
-            <button className="diag-btn diag-btn--ghost" onClick={onRetry}>Run again</button>
-            {totalGaps > 0 && (
-              <Link to="/theory" className="diag-btn diag-btn--primary">Study the gaps <ChevronRight /></Link>
-            )}
-            <Link to="/practice" className="diag-btn diag-btn--ghost">Targeted practice</Link>
+            {hasGaps ? (
+              <>
+                <Link
+                  to="/theory"
+                  state={isSingleTopic ? { topicId: singleTopicId } : undefined}
+                  className="diag-btn diag-btn--primary"
+                >
+                  Review Theory <ChevronRight />
+                </Link>
+                <Link to="/practice" className="diag-btn diag-btn--ghost">
+                  Go to Practice
+                </Link>
+              </>
+            ) : isSingleTopic ? (
+              <Link
+                to="/homework"
+                state={{ topicId: singleTopicId }}
+                className="diag-btn diag-btn--primary"
+              >
+                Go to Homework <ChevronRight />
+              </Link>
+            ) : null}
+            <button className="diag-btn diag-btn--ghost" onClick={onRetry}>
+              Retry Diagnostic
+            </button>
           </div>
         </div>
 
@@ -637,27 +664,16 @@ const DiagnosticsPage = () => {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="page-main">
-        {/*
-          Two-column shell:
-            LEFT  → diag-shell__main  (flex: 1, main content)
-            RIGHT → NotesPanel        (sticky, fixed width, only during questions)
-
-          NotesPanel is rendered AFTER main so it sits on the right naturally
-          in the flex row — no CSS order tricks needed.
-        */}
         <div className={`diag-shell${isQuestionStep ? " diag-shell--with-notes" : ""}`}>
 
-          {/* Main content column */}
           <div className="diag-shell__main">
             <div className="diag-page">
-              {/* breadcrumb */}
               <div className="diag-breadcrumb">
                 <Link to="/home" className="diag-breadcrumb__item">Home</Link>
                 <ChevronRight />
                 <span className="diag-breadcrumb__item diag-breadcrumb__item--active">Diagnostics</span>
               </div>
 
-              {/* page header */}
               <div className="diag-header">
                 <div className="diag-header__icon">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -677,7 +693,6 @@ const DiagnosticsPage = () => {
             </div>
           </div>
 
-          {/* Notes panel — RIGHT side, only during question step */}
           {isQuestionStep && <NotesPanel sessionId={sessionId} />}
 
         </div>

@@ -1,53 +1,88 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getDailyPlan } from "../services/systemTodos";
 import "./daily-todo-panel.css";
 
-/* ── progress circle ── */
-const ProgressCircle = ({ completed }) => {
-  const size = 36;
-  const cx = size / 2, cy = size / 2, r = 13;
+// ── Ring — mirrors ScoreRing from ResultsPage, teal only ─────────────────────
+const TodoRing = ({ progress, target }) => {
+  const pct  = target > 0 ? Math.round((progress / target) * 100) : 0;
+  const r    = 52;
   const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+
   return (
-    <svg className="plan-card__circle" width={size} height={size}
-      viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-      <circle cx={cx} cy={cy} r={r} fill="none"
-        stroke="rgba(42,143,160,0.15)" strokeWidth="2" />
-      <circle cx={cx} cy={cy} r={r} fill="none"
-        stroke="#2a8fa0" strokeWidth="2" strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={completed ? 0 : circ}
-        transform={`rotate(-90 ${cx} ${cy})`}
-        style={{ transition: "stroke-dashoffset 0.55s cubic-bezier(0.4,0,0.2,1)" }}
-      />
-      {completed
-        ? <text x={cx} y={cy + 4.5} textAnchor="middle" fontSize="11"
-            fill="#2a8fa0" fontFamily="-apple-system, sans-serif">✓</text>
-        : <circle cx={cx} cy={cy} r="3" fill="rgba(42,143,160,0.3)" />
-      }
-    </svg>
+    <div className="todo-ring-wrap">
+      <svg viewBox="0 0 130 130" className="todo-ring-svg">
+        <defs>
+          <filter id="todo-ring-glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        {/* track */}
+        <circle cx="65" cy="65" r={r} fill="none"
+          stroke="var(--border)" strokeWidth="9"/>
+        {/* glow layer */}
+        {pct > 0 && (
+          <circle cx="65" cy="65" r={r} fill="none"
+            stroke="var(--teal)" strokeWidth="9"
+            strokeDasharray={`${dash} ${circ}`}
+            strokeLinecap="round"
+            transform="rotate(-90 65 65)"
+            opacity="0.25"
+            filter="url(#todo-ring-glow)"
+          />
+        )}
+        {/* main arc */}
+        <circle cx="65" cy="65" r={r} fill="none"
+          stroke="var(--teal)" strokeWidth="9"
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+          transform="rotate(-90 65 65)"
+          style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)" }}
+        />
+      </svg>
+      <div className="todo-ring-center">
+        <strong>{pct}%</strong>
+        <span>{progress}/{target}</span>
+      </div>
+    </div>
   );
 };
 
-/* ── single card ── */
-const PlanCard = ({ item }) => (
-  <div className={`plan-card${item.completed ? " plan-card--done" : ""}`}>
-    <ProgressCircle completed={item.completed} />
-    <div className="plan-card__body">
-      <span className="plan-card__type">
+// ── Single card ───────────────────────────────────────────────────────────────
+const PlanCard = ({ item }) => {
+  const navigate = useNavigate();
+  const progress = item.progress ?? (item.completed ? item.target : 0);
+  const target   = item.target   ?? 1;
+  const dest     = item.type === "diagnostic" ? "/diagnostics" : "/practice";
+
+  return (
+    <button
+      className={`todo-card${item.completed ? " todo-card--done" : ""}`}
+      onClick={() => !item.completed && navigate(dest)}
+      disabled={item.completed}
+    >
+      <div className="todo-card__accent" />
+      <TodoRing progress={progress} target={target} />
+      <span className="todo-card__type">
         {item.type === "diagnostic" ? "Diagnostic" : "Practice"}
       </span>
-      <p className="plan-card__title">{item.title}</p>
-      <span className={`plan-card__xp${item.completed ? " plan-card__xp--earned" : ""}`}>
+      <p className="todo-card__title">{item.title}</p>
+      <span className={`todo-card__xp${item.completed ? " todo-card__xp--earned" : ""}`}>
         {item.completed ? `+${item.xp} XP earned` : `+${item.xp} XP`}
       </span>
-    </div>
-  </div>
-);
+    </button>
+  );
+};
 
-/* ── panel ── */
+// ── Panel ─────────────────────────────────────────────────────────────────────
 const DailyTodoPanel = () => {
-  const { user } = useAuth();
+  const { user }              = useAuth();
   const [plan, setPlan]       = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,18 +94,22 @@ const DailyTodoPanel = () => {
       .finally(() => setLoading(false));
   }, [user?.uid]);
 
-  return (
-    <div className="plan-strip">
-      {/* connector label */}
-      <div className="plan-strip__label">
-        <span className="plan-strip__line" />
-        <span className="plan-strip__text">Today's plan</span>
-      </div>
+  const allDone = plan.length > 0 && plan.every((i) => i.completed);
 
-      {/* cards */}
-      <div className="plan-strip__cards">
+  return (
+    <div className="todo-panel">
+      <div className="todo-panel__header">
+        <div className="todo-panel__eyebrow">
+          <span className="todo-panel__eyebrow-dot" />
+          Today's Plan
+        </div>
+        {!loading && allDone && (
+          <span className="todo-panel__done-badge">All done ✓</span>
+        )}
+      </div>
+      <div className="todo-panel__cards">
         {loading
-          ? [1, 2].map((i) => <div key={i} className="plan-card plan-card--skeleton" />)
+          ? [1, 2].map((i) => <div key={i} className="todo-card todo-card--skeleton" />)
           : plan.map((item) => <PlanCard key={item.id} item={item} />)
         }
       </div>

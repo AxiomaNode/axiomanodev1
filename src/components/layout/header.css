@@ -455,3 +455,75 @@
   .hdr       { padding: 0 16px; height: 56px; }
   .hdr__brand-name { display: none; }
 }
+
+/* ── Daily progress ring ─────────────────────────────────────────────────────
+   Append these rules to your existing header.css
+──────────────────────────────────────────────────────────────────────────── */
+
+.header__daily-ring-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.header__daily-ring-wrap:hover {
+  background: rgba(42, 143, 160, 0.08);
+}
+
+.header__daily-ring {
+  display: block;
+}
+
+/* pulse animation when all tasks are done */
+.header__daily-ring--done circle:last-of-type {
+  animation: ring-done-pulse 2.2s ease-in-out infinite;
+}
+@keyframes ring-done-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+/* tooltip */
+.header__daily-ring-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 100;
+}
+/* small caret */
+.header__daily-ring-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: var(--border);
+}
+.header__daily-ring-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% - 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: var(--card-bg);
+}

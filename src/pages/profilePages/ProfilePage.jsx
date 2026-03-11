@@ -1,6 +1,6 @@
 // src/pages/profilePages/ProfilePage.jsx
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
@@ -150,20 +150,44 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) 
 };
 
 // ── ProfilePage ───────────────────────────────────────────────────────────────
+const VALID_TABS = ["progress", "results", "notes"];
+
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user }   = useAuth();
+  const location   = useLocation();
+
+  // Initialise tab and result index from navigation state (e.g. redirects from
+  // /progress or /results, or sidebar links that pass state={{ tab: "..." }}).
+  const initialTab = VALID_TABS.includes(location.state?.tab)
+    ? location.state.tab
+    : "progress";
+  const initialIdx = location.state?.selectedIdx ?? 0;
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab,   setActiveTab]   = useState("progress");
+  const [activeTab,   setActiveTab]   = useState(initialTab);
   const [editOpen,    setEditOpen]    = useState(false);
+
+  // Re-sync tab when navigating to /profile from elsewhere (e.g. header links)
+  // while the component is already mounted — useState initialiser won't re-run.
+  useEffect(() => {
+    const tab = location.state?.tab;
+    if (tab && VALID_TABS.includes(tab)) {
+      setActiveTab(tab);
+    }
+    if (location.state?.selectedIdx != null) {
+      setResultIdx(location.state.selectedIdx);
+    }
+  }, [location.state]);
+
+  const [resultIdx,   setResultIdx]   = useState(initialIdx);
 
   const [diagnostics, setDiagnostics] = useState([]);
   const [practice,    setPractice]    = useState([]);
   const [profile,     setProfile]     = useState(null);
   const [topicNotes,  setTopicNotes]  = useState([]);
   const [loading,     setLoading]     = useState(true);
-  const [resultIdx,   setResultIdx]   = useState(0);
 
-  // ── Dot-grid background on body ──────────────────────────────────────────
+  // Dot-grid background on body
   useEffect(() => {
     document.body.classList.add("axioma-profile-bg");
     return () => {
@@ -193,7 +217,6 @@ const ProfilePage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Called by NotesSection after a successful save to keep local state in sync.
   const handleNoteUpdated = (topicId, newContent) => {
     setTopicNotes((prev) =>
       prev.map((n) => (n.topicId === topicId ? { ...n, content: newContent } : n))

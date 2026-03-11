@@ -29,13 +29,13 @@ const NAV_SECTIONS = [
         badge: "Start here",
       },
       {
-        to:"/profile",
-        label:"Profile",
-        icon:(
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-person" viewBox="0 0 16 16">
+        to: "/profile",
+        label: "Profile",
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
             <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
           </svg>
-        )
+        ),
       },
       {
         to: "/practice",
@@ -50,10 +50,11 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    label: "Progress",
+    label: "User hub",
     items: [
       {
-        to: "/progress",
+        to: "/profile",
+        state: { tab: "progress" },
         label: "My Progress",
         icon: (
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -62,7 +63,8 @@ const NAV_SECTIONS = [
         ),
       },
       {
-        to: "/results",
+        to: "/profile",
+        state: { tab: "results" },
         label: "Results",
         icon: (
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -70,6 +72,20 @@ const NAV_SECTIONS = [
             <line x1="8" y1="12" x2="16" y2="12" />
             <line x1="8" y1="8"  x2="16" y2="8" />
             <line x1="8" y1="16" x2="12" y2="16" />
+          </svg>
+        ),
+      },
+      {
+        to: "/profile",
+        state: { tab: "notes" },
+        label: "Notes",
+        icon: (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
           </svg>
         ),
       },
@@ -89,15 +105,15 @@ const NAV_SECTIONS = [
         ),
       },
       {
-        to:"/homework",
-        label:"Homework",
+        to: "/homework",
+        label: "Homework",
         icon: (
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             <line x1="7" y1="7" x2="17" y2="7" />
             <line x1="7" y1="11" x2="17" y2="11" />
           </svg>
-        )
+        ),
       },
       {
         to: "/practice",
@@ -133,6 +149,14 @@ const Sidebar = ({ open, onClose }) => {
   const { theme } = useTheme();
   const location = useLocation();
 
+  // An item is "active" if the path matches AND either there's no state
+  // requirement on the item, or the current location state tab matches.
+  const isActive = (item) => {
+    if (location.pathname !== item.to) return false;
+    if (!item.state?.tab) return true;
+    return location.state?.tab === item.state.tab;
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -166,23 +190,21 @@ const Sidebar = ({ open, onClose }) => {
           {NAV_SECTIONS.map((section) => (
             <div key={section.label} className="sidebar__section">
               <p className="sidebar__section-label">{section.label}</p>
-              {section.items.map((item) => {
-                const active = location.pathname === item.to;
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={`sidebar__item ${active ? "sidebar__item--active" : ""}`}
-                    onClick={onClose}
-                  >
-                    <span className="sidebar__item-icon">{item.icon}</span>
-                    <span className="sidebar__item-label">{item.label}</span>
-                    {item.badge && (
-                      <span className="sidebar__item-badge">{item.badge}</span>
-                    )}
-                  </Link>
-                );
-              })}
+              {section.items.map((item, i) => (
+                <Link
+                  key={`${item.to}-${item.state?.tab ?? i}`}
+                  to={item.to}
+                  state={item.state}
+                  className={`sidebar__item ${isActive(item) ? "sidebar__item--active" : ""}`}
+                  onClick={onClose}
+                >
+                  <span className="sidebar__item-icon">{item.icon}</span>
+                  <span className="sidebar__item-label">{item.label}</span>
+                  {item.badge && (
+                    <span className="sidebar__item-badge">{item.badge}</span>
+                  )}
+                </Link>
+              ))}
             </div>
           ))}
         </nav>

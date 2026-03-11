@@ -112,12 +112,12 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
       <div className="header-center">
         <nav className="header__nav">
           <Link to="/home" className="header__nav-link">Home</Link>
+          <Link to="/profile" className="header__nav-link">Profile</Link>
           <Link to="/diagnostics" className="header__nav-link">Diagnostics</Link>
           <Link to="/practice" className="header__nav-link">Practice</Link>
-          <Link to="/homework" className="header__nav-link">Homework</Link>
-          <Link to="/support" className="header__nav-link">Support</Link>
           <Link to="/theory" className="header__nav-link">Theory</Link>
           <Link to="/about" className="header__nav-link">About</Link>
+          <Link to="/support" className="header__nav-link">Contact Us</Link>
         </nav>
       </div>
 
@@ -167,15 +167,16 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
               </Link>
               
               <div className="header__user-menu-divider" />
+              
 
-              <Link to="/progress" className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
+              <Link to="/profile" state={{ tab: "progress" }} replace className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                 </svg>
                 My Progress
               </Link>
 
-              <Link to="/results" className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
+              <Link to="/profile" state={{ tab: "results" }} replace className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
                   <line x1="8" y1="12" x2="16" y2="12" />

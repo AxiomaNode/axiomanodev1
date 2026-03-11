@@ -56,10 +56,10 @@ export const getDailyPlan = async (uid) => {
 
   const resolved = await Promise.all(
     plan.map(async (item) => {
-      const completed =
-        item.type === "diagnostic"
-          ? todayDiagCount >= item.target
-          : todayPractCount >= item.target;
+      const rawProgress =
+        item.type === "diagnostic" ? todayDiagCount : todayPractCount;
+      const progress  = Math.min(rawProgress, item.target);
+      const completed = progress >= item.target;
 
       if (completed && !item.xpAwarded) {
         await awardPoints(uid, "todo_complete", {
@@ -67,10 +67,10 @@ export const getDailyPlan = async (uid) => {
           label: `Daily todo: ${item.title}`,
         });
         await markPlanItemXpAwarded(uid, item.id);
-        return { ...item, completed: true, xpAwarded: true };
+        return { ...item, completed: true, xpAwarded: true, progress, target: item.target };
       }
 
-      return { ...item, completed };
+      return { ...item, completed, progress, target: item.target };
     })
   );
 
