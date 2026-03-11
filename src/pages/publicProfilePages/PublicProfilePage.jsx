@@ -1,9 +1,7 @@
 // src/pages/publicProfilePages/PublicProfilePage.jsx
-//
 // Route: /profile/:uid
 // Public read-only snapshot: name, initials avatar, XP/level, tier,
 // join date, sessions, avg diagnostic score, their feedback review.
-//
 // ⚠️  Requires Firestore rule:
 //     match /users/{uid} { allow read: if request.auth != null; ... }
 
