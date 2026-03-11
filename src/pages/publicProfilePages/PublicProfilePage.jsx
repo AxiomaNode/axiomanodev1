@@ -1,9 +1,3 @@
-// src/pages/publicProfilePages/PublicProfilePage.jsx
-//
-// Route: /profile/:uid
-// Shows a read-only public snapshot of any user:
-//   avatar (initials), name, tier, XP bar, level, join date,
-//   sessions total, avg diagnostic score, and their Feedback review.
 
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
