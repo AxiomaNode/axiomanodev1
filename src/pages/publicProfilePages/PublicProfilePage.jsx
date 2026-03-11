@@ -1,15 +1,26 @@
+// src/pages/publicProfilePages/PublicProfilePage.jsx
+//
+// Route: /profile/:uid
+// Public read-only snapshot: name, initials avatar, XP/level, tier,
+// join date, sessions, avg diagnostic score, their feedback review.
+//
+// ⚠️  Requires Firestore rule:
+//     match /users/{uid} { allow read: if request.auth != null; ... }
 
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, collection, getDocs, query, orderBy } from "firebase/firestore";
+import {
+  doc, getDoc,
+  collection, getDocs, query, orderBy,
+} from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import "./public-profile.css";
+import "./publicProfile.css";
 import "../../styles/layout.css";
 
-// ── Constants / helpers ───────────────────────────────────────────────────────
+// ── XP / level helpers (mirror ProfilePage) ───────────────────────────────────
 const XP_PER_LEVEL = 200;
 const getLevel    = (xp) => Math.floor((xp || 0) / XP_PER_LEVEL) + 1;
 const getLevelXp  = (xp) => (xp || 0) % XP_PER_LEVEL;
@@ -22,13 +33,14 @@ const getTier = (level) => {
   return               { label: "Beginner", color: "rgba(120,140,160,0.9)" };
 };
 
-const initials = (name) =>
-  (name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+const initials = (name = "?") =>
+  name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-const formatJoinDate = (str) => {
+const formatJoin = (str) => {
   if (!str) return "Unknown";
   const d = new Date(str);
-  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  return isNaN(d) ? "Unknown"
+    : d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 };
 
 const formatReviewDate = (ts) => {
@@ -45,8 +57,10 @@ const Stars = ({ rating, size = 15 }) => (
     {[1, 2, 3, 4, 5].map((n) => (
       <svg key={n} width={size} height={size} viewBox="0 0 24 24"
         className={`pub-star ${n <= rating ? "pub-star--on" : "pub-star--off"}`}>
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-          strokeWidth="1.5" strokeLinejoin="round"/>
+        <polygon
+          points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+          strokeWidth="1.5" strokeLinejoin="round"
+        />
       </svg>
     ))}
   </div>
@@ -54,67 +68,80 @@ const Stars = ({ rating, size = 15 }) => (
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 const PublicProfilePage = () => {
-  const { uid }   = useParams();
-  const { user }  = useAuth();
-  const navigate  = useNavigate();
+  const { uid }  = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading,     setLoading]     = useState(true);
-  const [profile,     setProfile]     = useState(null);     // users/{uid} doc
-  const [review,      setReview]      = useState(null);     // feedback/{uid} doc
+  const [notFound,    setNotFound]    = useState(false);
+  const [profile,     setProfile]     = useState(null);
+  const [review,      setReview]      = useState(null);
   const [diagCount,   setDiagCount]   = useState(0);
   const [practCount,  setPractCount]  = useState(0);
   const [avgScore,    setAvgScore]    = useState(null);
-  const [notFound,    setNotFound]    = useState(false);
 
-  // If the viewer is looking at their own profile, redirect to full profile
+  // Redirect to own full profile page if viewing self
   useEffect(() => {
     if (user && uid === user.uid) {
       navigate("/profile", { replace: true });
     }
-  }, [uid, user]);
+  }, [uid, user, navigate]);
 
   useEffect(() => {
     if (!uid) return;
 
     const load = async () => {
+      setLoading(true);
+      setNotFound(false);
+
       try {
-        // 1. User doc
+        // 1 ── User profile doc (needs rule: allow read if auth != null)
         const profSnap = await getDoc(doc(db, "users", uid));
-        if (!profSnap.exists()) { setNotFound(true); setLoading(false); return; }
+        if (!profSnap.exists()) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
         setProfile(profSnap.data());
 
-        // 2. Feedback / review
+        // 2 ── Feedback review (already public to authed users)
         const revSnap = await getDoc(doc(db, "feedback", uid));
         if (revSnap.exists()) setReview(revSnap.data());
 
-        // 3. Diagnostic sessions (for count + avg score)
-        const diagQ = query(
-          collection(db, "users", uid, "diagnostic_sessions"),
-          orderBy("date", "desc")
-        );
-        const diagSnap = await getDocs(diagQ);
-        const diags = diagSnap.docs.map((d) => d.data());
-        setDiagCount(diags.length);
-
-        if (diags.length > 0) {
-          const avg = Math.round(
-            diags.reduce((s, d) => {
-              const total = d.score?.total || 1;
-              const correct = d.score?.correct ?? 0;
-              return s + (correct / total) * 100;
-            }, 0) / diags.length
+        // 3 ── Diagnostic sessions — count + avg score
+        //       These are private subcollections; only available if rules allow.
+        //       Gracefully skip if permission denied.
+        try {
+          const diagSnap = await getDocs(
+            query(collection(db, "users", uid, "diagnostic_sessions"), orderBy("date", "desc"))
           );
-          setAvgScore(avg);
+          const diags = diagSnap.docs.map((d) => d.data());
+          setDiagCount(diags.length);
+
+          if (diags.length > 0) {
+            const avg = Math.round(
+              diags.reduce((s, d) => {
+                const total   = d.score?.total   || 1;
+                const correct = d.score?.correct ?? 0;
+                return s + (correct / total) * 100;
+              }, 0) / diags.length
+            );
+            setAvgScore(avg);
+          }
+        } catch {
+          // subcollection not readable — leave diagCount 0
         }
 
-        // 4. Practice sessions (for count)
-        const practQ = query(
-          collection(db, "users", uid, "practice_sessions"),
-          orderBy("date", "desc")
-        );
-        const practSnap = await getDocs(practQ);
-        setPractCount(practSnap.docs.length);
+        // 4 ── Practice sessions — count only
+        try {
+          const practSnap = await getDocs(
+            query(collection(db, "users", uid, "practice_sessions"), orderBy("date", "desc"))
+          );
+          setPractCount(practSnap.docs.length);
+        } catch {
+          // subcollection not readable — leave practCount 0
+        }
 
       } catch (err) {
         console.error("PublicProfile load error:", err);
@@ -127,12 +154,12 @@ const PublicProfilePage = () => {
     load();
   }, [uid]);
 
-  // ── Derived ──
-  const xp       = profile?.ratingPoints || 0;
-  const level    = getLevel(xp);
-  const levelXp  = getLevelXp(xp);
-  const levelPct = getLevelPct(xp);
-  const tier     = getTier(level);
+  // ── Derived ──────────────────────────────────────────────────────────────────
+  const xp            = profile?.ratingPoints || 0;
+  const level         = getLevel(xp);
+  const levelXp       = getLevelXp(xp);
+  const levelPct      = getLevelPct(xp);
+  const tier          = getTier(level);
   const totalSessions = diagCount + practCount;
   const displayName   = profile?.displayName || "Unknown";
 
@@ -147,17 +174,17 @@ const PublicProfilePage = () => {
           {/* Breadcrumb */}
           <nav className="pub-breadcrumb" aria-label="breadcrumb">
             <Link to="/home" className="pub-breadcrumb__item">Home</Link>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
             <Link to="/feedback" className="pub-breadcrumb__item">Feedback</Link>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
             <span className="pub-breadcrumb__item pub-breadcrumb__item--active">
-              {loading ? "…" : displayName}
+              {loading ? "…" : notFound ? "Not found" : displayName}
             </span>
           </nav>
 
@@ -179,93 +206,87 @@ const PublicProfilePage = () => {
               </svg>
               <h3>Profile not found</h3>
               <p>This user doesn't exist or may have been removed.</p>
-              <Link to="/feedback" style={{
-                marginTop: 8, fontSize: "0.8rem",
-                color: "var(--teal)", fontFamily: "'Courier New', monospace"
-              }}>← Back to Feedback</Link>
+              <Link to="/feedback" className="pub-not-found__back">← Back to Feedback</Link>
             </div>
           )}
 
-          {/* ── Profile card ── */}
+          {/* ── Main content ── */}
           {!loading && !notFound && profile && (
             <>
-              <div className="pub-card">
-                <div className="pub-card__stripe" />
-                <div className="pub-card__body">
+              {/* Hero card */}
+              <div className="pub-hero">
+                <div className="pub-avatar-wrap">
+                  <div className="pub-avatar">{initials(displayName)}</div>
+                  <div className="pub-avatar__lvl">{level}</div>
+                </div>
 
-                  {/* Identity */}
-                  <div className="pub-identity">
-                    <div className="pub-avatar-wrap">
-                      <div className="pub-avatar">{initials(displayName)}</div>
-                      <div className="pub-avatar__lvl">{level}</div>
-                    </div>
-                    <div className="pub-identity__info">
-                      <div className="pub-name-row">
-                        <h1 className="pub-name">{displayName}</h1>
-                        <span className="pub-tier"
-                          style={{
-                            color: tier.color,
-                            borderColor: tier.color + "35",
-                            background: tier.color + "12",
-                          }}>
-                          {tier.label}
-                        </span>
-                      </div>
-                      <span className="pub-join">
-                        Joined {formatJoinDate(profile.createdAt)}
-                      </span>
-                    </div>
+                <div className="pub-identity">
+                  <div className="pub-name-row">
+                    <h1 className="pub-name">{displayName}</h1>
+                    <span className="pub-tier" style={{
+                      color: tier.color,
+                      borderColor: tier.color + "35",
+                      background:  tier.color + "0e",
+                    }}>
+                      {tier.label}
+                    </span>
                   </div>
+
+                  <p className="pub-join">Joined {formatJoin(profile.createdAt)}</p>
 
                   {/* XP bar */}
                   <div className="pub-xp">
-                    <div className="pub-xp__track">
-                      <div className="pub-xp__fill" style={{ width: `${levelPct}%` }} />
+                    <div className="pub-xp__bar-outer">
+                      <div className="pub-xp__bar-inner" style={{ width: `${levelPct}%` }} />
                     </div>
                     <div className="pub-xp__meta">
-                      <span className="pub-xp__label">
+                      <span className="pub-xp__total">
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
                           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                         </svg>
-                        {xp} XP total
+                        {xp} xp
                       </span>
                       <span className="pub-xp__next">
-                        {levelXp} / {XP_PER_LEVEL} → level {level + 1}
+                        {levelXp} / {XP_PER_LEVEL} to level {level + 1}
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="pub-stats">
-                    <div className="pub-stat">
-                      <span className="pub-stat__val">{level}</span>
-                      <span className="pub-stat__key">Level</span>
-                    </div>
-                    <div className="pub-stat">
-                      <span className="pub-stat__val">{totalSessions}</span>
-                      <span className="pub-stat__key">Sessions</span>
-                    </div>
-                    <div className="pub-stat">
-                      <span className="pub-stat__val"
-                        style={{ color: avgScore != null ? scoreColor(avgScore) : undefined }}>
-                        {avgScore != null ? `${avgScore}%` : "—"}
-                      </span>
-                      <span className="pub-stat__key">Avg score</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* ── Their review ── */}
-              <div className="pub-section-head">
-                <div className="pub-section-head__line" />
-                <span className="pub-section-head__text">Their review</span>
-                <div className="pub-section-head__line" />
+              {/* Stats row */}
+              <div className="pub-stats">
+                <div className="pub-stat">
+                  <span className="pub-stat__val">{level}</span>
+                  <span className="pub-stat__key">Level</span>
+                </div>
+                <div className="pub-stat">
+                  <span className="pub-stat__val">{xp}</span>
+                  <span className="pub-stat__key">XP</span>
+                </div>
+                <div className="pub-stat">
+                  <span className="pub-stat__val">{totalSessions || "—"}</span>
+                  <span className="pub-stat__key">Sessions</span>
+                </div>
+                <div className="pub-stat">
+                  <span className="pub-stat__val"
+                    style={{ color: avgScore != null ? scoreColor(avgScore) : undefined }}>
+                    {avgScore != null ? `${avgScore}%` : "—"}
+                  </span>
+                  <span className="pub-stat__key">Avg score</span>
+                </div>
+              </div>
+
+              {/* Review section */}
+              <div className="pub-section-divider">
+                <div className="pub-section-divider__line" />
+                <span className="pub-section-divider__text">Their review</span>
+                <div className="pub-section-divider__line" />
               </div>
 
               {review ? (
                 <div className="pub-review">
-                  <div className="pub-review__stars-row">
+                  <div className="pub-review__top">
                     <Stars rating={review.rating} size={15} />
                     <span className="pub-review__date">{formatReviewDate(review.createdAt)}</span>
                   </div>

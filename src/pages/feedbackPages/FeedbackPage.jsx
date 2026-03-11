@@ -28,11 +28,11 @@ const formatDate = (ts) => {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 };
 
-const initials = (name) =>
-  (name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+const initials = (name = "?") =>
+  name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
-// ── Star display ──────────────────────────────────────────────────────────────
-const Stars = ({ rating, size = 14 }) => (
+// ── Stars ─────────────────────────────────────────────────────────────────────
+const Stars = ({ rating, size = 13 }) => (
   <div className="fb-stars">
     {[1, 2, 3, 4, 5].map((n) => (
       <svg key={n} width={size} height={size} viewBox="0 0 24 24"
@@ -44,12 +44,11 @@ const Stars = ({ rating, size = 14 }) => (
   </div>
 );
 
-// ── Interactive star picker ───────────────────────────────────────────────────
+// ── Star picker ───────────────────────────────────────────────────────────────
 const StarPicker = ({ value, onChange }) => {
   const [hover, setHover] = useState(0);
   const active = hover || value;
   const labels = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
-
   return (
     <div className="fb-picker">
       <div className="fb-picker__stars">
@@ -60,7 +59,7 @@ const StarPicker = ({ value, onChange }) => {
             onMouseLeave={() => setHover(0)}
             onClick={() => onChange(n)}
             aria-label={`${n} star${n > 1 ? "s" : ""}`}>
-            <svg viewBox="0 0 24 24" width="32" height="32">
+            <svg viewBox="0 0 24 24" width="30" height="30">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                 strokeWidth="1.5" strokeLinejoin="round"/>
             </svg>
@@ -72,13 +71,12 @@ const StarPicker = ({ value, onChange }) => {
   );
 };
 
-// ── Character-limited textarea ────────────────────────────────────────────────
+// ── Limited textarea ──────────────────────────────────────────────────────────
 const LimitedTextarea = ({ label, labelColor, value, onChange, max, placeholder, required }) => (
   <div className="fb-field">
     <div className="fb-field__top">
       <label className="fb-field__label" style={{ color: labelColor }}>
-        {label}
-        {required && <span className="fb-field__req">*</span>}
+        {label}{required && <span className="fb-field__req">*</span>}
       </label>
       <span className={`fb-field__count ${value.length >= max ? "fb-field__count--over" : ""}`}>
         {value.length}/{max}
@@ -94,7 +92,7 @@ const LimitedTextarea = ({ label, labelColor, value, onChange, max, placeholder,
   </div>
 );
 
-// ── Submission modal ──────────────────────────────────────────────────────────
+// ── Modal ─────────────────────────────────────────────────────────────────────
 const FeedbackModal = ({ onClose, onSubmitted, existingReview }) => {
   const { user } = useAuth();
   const [rating,      setRating]      = useState(existingReview?.rating      ?? 0);
@@ -130,7 +128,7 @@ const FeedbackModal = ({ onClose, onSubmitted, existingReview }) => {
 
       onSubmitted();
       onClose();
-    } catch (e) {
+    } catch {
       setError("Something went wrong. Please try again.");
       setSubmitting(false);
     }
@@ -146,34 +144,26 @@ const FeedbackModal = ({ onClose, onSubmitted, existingReview }) => {
             <h2 className="fb-modal__title">Leave a Review</h2>
           </div>
           <button className="fb-modal__close" onClick={onClose} aria-label="Close">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6"  x2="6"  y2="18"/>
-              <line x1="6"  y1="6"  x2="18" y2="18"/>
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
-
         <div className="fb-modal__body">
           <StarPicker value={rating} onChange={setRating} />
-          <LimitedTextarea
-            label="Strong sides" labelColor="#27ae60"
+          <LimitedTextarea label="Strong sides" labelColor="#27ae60"
             value={strongSides} onChange={setStrongSides}
-            max={300} placeholder="What does Axioma do well?"
-          />
-          <LimitedTextarea
-            label="Weak sides" labelColor="#d35400"
+            max={300} placeholder="What does Axioma do well?" />
+          <LimitedTextarea label="Weak sides" labelColor="#d35400"
             value={weakSides} onChange={setWeakSides}
-            max={300} placeholder="What could be improved?"
-          />
-          <LimitedTextarea
-            label="General comment" labelColor="var(--text-light)"
+            max={300} placeholder="What could be improved?" />
+          <LimitedTextarea label="General comment" labelColor="var(--text-light)"
             value={comment} onChange={setComment}
-            max={500} placeholder="Anything else you'd like to say…"
-          />
+            max={500} placeholder="Anything else you'd like to say…" />
           {error && <p className="fb-modal__error">{error}</p>}
         </div>
-
         <div className="fb-modal__footer">
           <button className="fb-btn fb-btn--ghost" onClick={onClose}>Cancel</button>
           <button className="fb-btn fb-btn--primary" onClick={handleSubmit} disabled={!canSubmit}>
@@ -188,32 +178,29 @@ const FeedbackModal = ({ onClose, onSubmitted, existingReview }) => {
   );
 };
 
-// ── Single feedback card ──────────────────────────────────────────────────────
+// ── Card ──────────────────────────────────────────────────────────────────────
 const FeedbackCard = ({ item, isOwn }) => (
   <div className={`fb-card${isOwn ? " fb-card--own" : ""}`}>
     <div className="fb-card__head">
-      {/* Clickable avatar → public profile */}
       <Link to={`/profile/${item.uid}`} className="fb-card__avatar-link">
         <div className="fb-card__avatar">{initials(item.displayName)}</div>
       </Link>
-
       <div className="fb-card__meta">
         <div className="fb-card__name-row">
           <Link to={`/profile/${item.uid}`} className="fb-card__name-link">
             <span className="fb-card__name">{item.displayName}</span>
           </Link>
           {isOwn && <span className="fb-card__you">you</span>}
-          <span className="fb-card__tier"
-            style={{
-              color: item.tierColor,
-              borderColor: item.tierColor + "35",
-              background: item.tierColor + "12",
-            }}>
+          <span className="fb-card__tier" style={{
+            color: item.tierColor,
+            borderColor: item.tierColor + "35",
+            background:  item.tierColor + "0e",
+          }}>
             {item.tier}
           </span>
         </div>
         <div className="fb-card__bottom-row">
-          <Stars rating={item.rating} size={12}/>
+          <Stars rating={item.rating} size={12} />
           <span className="fb-card__date">{formatDate(item.createdAt)}</span>
         </div>
       </div>
@@ -244,22 +231,20 @@ const FeedbackCard = ({ item, isOwn }) => (
   </div>
 );
 
-// ── Aggregate score display ───────────────────────────────────────────────────
+// ── Aggregate score ───────────────────────────────────────────────────────────
 const AggregateScore = ({ items }) => {
-  if (items.length === 0) return null;
-  const avg     = items.reduce((s, i) => s + i.rating, 0) / items.length;
-  const rounded = avg.toFixed(1);
-  const dist    = [5, 4, 3, 2, 1].map((star) => ({
+  if (!items.length) return null;
+  const avg  = items.reduce((s, i) => s + i.rating, 0) / items.length;
+  const dist = [5, 4, 3, 2, 1].map((star) => ({
     star,
     count: items.filter((i) => i.rating === star).length,
     pct:   Math.round((items.filter((i) => i.rating === star).length / items.length) * 100),
   }));
-
   return (
     <div className="fb-aggregate">
       <div className="fb-aggregate__score">
-        <strong className="fb-aggregate__num">{rounded}</strong>
-        <Stars rating={Math.round(avg)} size={16}/>
+        <strong className="fb-aggregate__num">{avg.toFixed(1)}</strong>
+        <Stars rating={Math.round(avg)} size={14} />
         <span className="fb-aggregate__count">{items.length} review{items.length !== 1 ? "s" : ""}</span>
       </div>
       <div className="fb-aggregate__bars">
@@ -280,8 +265,8 @@ const AggregateScore = ({ items }) => {
 // ── Page ──────────────────────────────────────────────────────────────────────
 const SORT_OPTIONS = [
   { key: "recent",  label: "Recent" },
-  { key: "top",     label: "Top rated" },
-  { key: "lowest",  label: "Critical" },
+  { key: "top",     label: "Top" },
+  { key: "critical",label: "Critical" },
 ];
 
 const FeedbackPage = () => {
@@ -294,8 +279,9 @@ const FeedbackPage = () => {
   const [sort,        setSort]        = useState("recent");
 
   const loadFeedback = async () => {
-    const q    = query(collection(db, "feedback"), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
+    const snap = await getDocs(
+      query(collection(db, "feedback"), orderBy("createdAt", "desc"))
+    );
     const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     setItems(data);
     setOwnReview(data.find((i) => i.uid === user?.uid) || null);
@@ -304,14 +290,11 @@ const FeedbackPage = () => {
 
   useEffect(() => { loadFeedback(); }, [user?.uid]);
 
-  // Sort derived list — own review always first
   const sorted = [...items].sort((a, b) => {
-    // own review pinned to top
     if (a.uid === user?.uid) return -1;
-    if (b.uid === user?.uid) return 1;
-    if (sort === "top")    return b.rating - a.rating;
-    if (sort === "lowest") return a.rating - b.rating;
-    // default: recent (already sorted from Firestore)
+    if (b.uid === user?.uid) return  1;
+    if (sort === "top")      return b.rating - a.rating;
+    if (sort === "critical") return a.rating - b.rating;
     return 0;
   });
 
@@ -323,13 +306,13 @@ const FeedbackPage = () => {
       <main className="page-main">
         <div className="fb-page">
 
-          {/* ── Hero band ── */}
+          {/* Hero band */}
           <div className="fb-hero-band">
             <div className="fb-hero-inner">
               <div className="fb-hero__left">
                 <nav className="fb-breadcrumb">
                   <Link to="/home" className="fb-breadcrumb__item">Home</Link>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <polyline points="9 18 15 12 9 6"/>
                   </svg>
@@ -370,26 +353,20 @@ const FeedbackPage = () => {
                 </button>
               </div>
 
-              {/* Aggregate */}
-              {!loading && items.length > 0 && (
-                <AggregateScore items={items} />
-              )}
+              {!loading && items.length > 0 && <AggregateScore items={items} />}
             </div>
           </div>
 
-          {/* ── Feed ── */}
+          {/* Feed */}
           <div className="fb-feed">
-            {/* Toolbar */}
             {!loading && items.length > 0 && (
               <div className="fb-toolbar">
-                <div className="fb-toolbar__left">
-                  <span className="fb-toolbar__count">
-                    {items.length} review{items.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
+                <span className="fb-toolbar__count">
+                  {items.length} review{items.length !== 1 ? "s" : ""}
+                </span>
                 <div className="fb-toolbar__sort">
                   <span className="fb-toolbar__sort-label">Sort:</span>
-                  {SORT_OPTIONS.map(o => (
+                  {SORT_OPTIONS.map((o) => (
                     <button key={o.key}
                       className={`fb-toolbar__sort-btn ${sort === o.key ? "fb-toolbar__sort-btn--active" : ""}`}
                       onClick={() => setSort(o.key)}>
@@ -409,7 +386,7 @@ const FeedbackPage = () => {
             ) : items.length === 0 ? (
               <div className="fb-empty">
                 <div className="fb-empty__icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="1.3">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                   </svg>
