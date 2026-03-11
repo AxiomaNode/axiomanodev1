@@ -6,7 +6,7 @@ import { db } from "../../firebase/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import "./publicProfile.css";
+import "./public-profile.css";
 import "../../styles/layout.css";
 
 // ── Constants / helpers ───────────────────────────────────────────────────────
