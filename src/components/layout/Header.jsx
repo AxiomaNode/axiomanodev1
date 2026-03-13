@@ -115,6 +115,7 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
           <Link to="/profile" className="header__nav-link">Profile</Link>
           <Link to="/diagnostics" className="header__nav-link">Diagnostics</Link>
           <Link to="/practice" className="header__nav-link">Practice</Link>
+          <Link to="/puzzles" className="header__nav-link">Puzzles</Link>
           <Link to="/theory" className="header__nav-link">Theory</Link>
           <Link to="/about" className="header__nav-link">About</Link>
           <Link to="/support" className="header__nav-link">Contact Us</Link>
@@ -184,6 +185,17 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
                   <line x1="8" y1="16" x2="12" y2="16" />
                 </svg>
                 Results
+              </Link>
+
+              <Link to="/profile" state={{ tab: "notes" }} replace className="header__user-menu-item" onClick={() => setUserMenuOpen(false)}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                Notes
               </Link>
 
               <div className="header__user-menu-divider" />

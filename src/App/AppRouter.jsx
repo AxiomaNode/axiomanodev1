@@ -25,6 +25,7 @@ import ProfilePage     from "../pages/profilePages/ProfilePage";
 import HomeworkPage from "../pages/homeWorkPages/HomeworkPage";
 import FeedbackPage from "../pages/feedbackPages/FeedbackPage";
 import PublicProfilePage from "../pages/publicProfilePages/PublicProfilePage";
+import PuzzlesPage from "../pages/puzzlesPages/PuzzlesPage";
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -47,6 +48,7 @@ const AppRouter = () => (
     <Route path="/home"         element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
     <Route path="/diagnostics"  element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
     <Route path="/practice"     element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
+    <Route path="/puzzles"     element={<ProtectedRoute><PuzzlesPage /></ProtectedRoute>} />
     <Route path="/profile/:uid" element={<PublicProfilePage />} />
     <Route path="/progress"     element={<ProtectedRoute><ProgressPage/></ProtectedRoute>} />
     <Route path="/results"      element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />

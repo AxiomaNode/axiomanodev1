@@ -353,9 +353,29 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
 
   return (
     <div className="progress-section-inner">
+        {/* Chart */}
+         {showChart && (
+        <div className="progress-chart-section">
+          <div className="progress-chart-section__header">
+            <div>
+              <div className="progress-chart-section__eyebrow">
+                <span className="progress-chart-section__eyebrow-dot"/>
+                Score History
+              </div>
+              <h3 className="progress-chart-section__title">Performance Over Time</h3>
+              <p className="progress-chart-section__sub">
+                Diagnostic and practice scores over time. Hover a point for details.
+              </p>
+            </div>
+            <span className="progress-chart-section__tag">
+              <span className="progress-chart-section__tag-dot"/>
+              Live data
+            </span>
+          </div>
+          <ProgressChart diagnostics={diagnostics} practice={practice}/>
+        </div>
+      )}
 
-      {/* Today's plan */}
-      <DailyTodoPanel />
 
       {/* Stats row */}
       <div className="progress-stats-row">
@@ -421,28 +441,9 @@ const ProgressSection = ({ diagnostics = [], practice = [], onDiagnosticClick })
         ))}
       </div>
 
-      {/* Chart */}
-      {showChart && (
-        <div className="progress-chart-section">
-          <div className="progress-chart-section__header">
-            <div>
-              <div className="progress-chart-section__eyebrow">
-                <span className="progress-chart-section__eyebrow-dot"/>
-                Score History
-              </div>
-              <h3 className="progress-chart-section__title">Performance Over Time</h3>
-              <p className="progress-chart-section__sub">
-                Diagnostic and practice scores over time. Hover a point for details.
-              </p>
-            </div>
-            <span className="progress-chart-section__tag">
-              <span className="progress-chart-section__tag-dot"/>
-              Live data
-            </span>
-          </div>
-          <ProgressChart diagnostics={diagnostics} practice={practice}/>
-        </div>
-      )}
+      {/* Today's plan */}
+      <DailyTodoPanel />
+
 
       {/* Sub-tabs */}
       <div className="progress-tabs">
