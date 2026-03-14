@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { updateProfile } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase/firebaseConfig";
+import { auth, db } from "../../firebase/firebaseConfig";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -36,17 +36,31 @@ const ProfileEditModal = ({ user, profile, onClose, onSaved }) => {
     setError("");
     setSaving(true);
     try {
-      await updateProfile(user, { displayName: name.trim() });
+      const trimmed = name.trim();
+
+      // 1. Update Firebase Auth
+      await updateProfile(user, { displayName: trimmed });
+
+      // 2. Update users/{uid} in Firestore
       const userRef = doc(db, "users", user.uid);
       await setDoc(
         userRef,
         {
-          displayName: name.trim(),
+          displayName: trimmed,
           updatedAt: new Date().toISOString(),
           profileMeta: { lastNameChange: new Date().toISOString() },
         },
         { merge: true }
       );
+
+      // 3. Sync displayName in feedback/{uid} if a review exists
+      const feedbackRef = doc(db, "feedback", user.uid);
+      const feedbackSnap = await getDoc(feedbackRef);
+      if (feedbackSnap.exists()) {
+        await setDoc(feedbackRef, { displayName: trimmed }, { merge: true });
+      }
+
+      // 4. Return updated profile to parent
       const snap = await getDoc(userRef);
       const updated = snap.exists() ? snap.data() : null;
       setSuccess(true);
