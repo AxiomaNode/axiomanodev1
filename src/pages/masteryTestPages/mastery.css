@@ -1003,3 +1003,91 @@
     flex-direction: column;
   }
 }
+/* ════════════════════════════════════════════════════
+   MASTERY TEST — additions only
+   Import after homework.css or append to it.
+   All new classes use ms- prefix.
+════════════════════════════════════════════════════ */
+
+/* ── Timer pill in doc header ── */
+.ms-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: 'Courier New', monospace;
+  color: var(--text-mid);
+  padding: 3px 9px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  margin-right: 8px;
+}
+
+.ms-timer svg { color: var(--teal); flex-shrink: 0; }
+
+/* ── Time in results header ── */
+.ms-result-time {
+  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+/* ── Threshold CTA block ── */
+.ms-result-cta {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  margin-top: 20px;
+  border: 1px solid var(--border);
+}
+
+.ms-result-cta--success {
+  background: var(--teal-light);
+  border-color: rgba(42,143,160,0.3);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 10px 10px 0;
+}
+
+.ms-result-cta--nudge {
+  background: rgba(240,165,0,0.06);
+  border-color: rgba(240,165,0,0.3);
+  border-left: 3px solid #f0a500;
+  border-radius: 0 10px 10px 0;
+}
+
+.ms-result-cta--warn {
+  background: rgba(192,57,43,0.05);
+  border-color: rgba(192,57,43,0.25);
+  border-left: 3px solid #c0392b;
+  border-radius: 0 10px 10px 0;
+}
+
+.ms-result-cta__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ms-result-cta--success .ms-result-cta__icon { color: var(--teal); }
+.ms-result-cta--nudge   .ms-result-cta__icon { color: #f0a500; }
+.ms-result-cta--warn    .ms-result-cta__icon { color: #c0392b; }
+
+.ms-result-cta__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: -apple-system, sans-serif;
+  margin: 0 0 3px;
+}
+
+.ms-result-cta__sub {
+  font-size: 0.8rem;
+  color: var(--text-mid);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.5;
+  margin: 0;
+}

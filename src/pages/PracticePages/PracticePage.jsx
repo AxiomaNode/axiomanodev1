@@ -6,7 +6,7 @@ import Sidebar from "../../components/layout/Sidebar";
 import NotesPanel from "../../components/NotesPanel";
 import { topics } from "../../data/topics";
 import { tasks as taskBank } from "../../data/tasks";
-import { savePractice } from "../../services/db";
+import { savePractice, getActiveGaps } from "../../services/db"; // CHANGED: added getActiveGaps
 import { awardPoints } from "../../core/scoringEngine";
 import "./practice.css";
 import "../../styles/diag-shell.css";
@@ -17,6 +17,16 @@ const pickBank = (topicId) => {
   return t?.practice?.length ? t.practice : (t?.homework?.length ? t.homework : []);
 };
 
+// CHANGED: filter bank by gap practice tags
+const pickGapBank = (topicId, gaps) => {
+  const all = pickBank(topicId);
+  if (!gaps?.length) return all;
+  const tags = new Set(gaps.map((g) => g.recommendation?.practiceTag).filter(Boolean));
+  if (!tags.size) return all;
+  const filtered = all.filter((t) => t.gapTag && tags.has(t.gapTag));
+  return filtered.length > 0 ? filtered : all; // fallback to full bank if no tagged tasks
+};
+
 const formatTime = (secs) => {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -25,6 +35,46 @@ const formatTime = (secs) => {
 
 const scoreColor = (pct) =>
   pct >= 70 ? "#27ae60" : pct >= 40 ? "#d35400" : "#c0392b";
+
+/* ════════════════════════════════════════
+   NEW: Gap mode toggle banner
+════════════════════════════════════════ */
+const GapModeBanner = ({ gaps, practiceMode, onSwitch }) => {
+  if (!gaps?.length) return null;
+  const isGapMode = practiceMode === "gap";
+  return (
+    <div className="pr-gap-banner">
+      <div className="pr-gap-banner__left">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
+        {isGapMode
+          ? <span><strong>{gaps.length} gap{gaps.length !== 1 ? "s" : ""}</strong> detected — practicing targeted tasks</span>
+          : <span>You have <strong>{gaps.length} active gap{gaps.length !== 1 ? "s" : ""}</strong> — switch to gap practice?</span>
+        }
+      </div>
+      <button className="pr-gap-banner__btn" onClick={onSwitch}>
+        {isGapMode ? "Switch to free practice" : "Switch to gap practice"}
+      </button>
+    </div>
+  );
+};
+
+/* ════════════════════════════════════════
+   NEW: Active gap context pill (above question)
+════════════════════════════════════════ */
+const GapContextPill = ({ gaps, taskGapTag }) => {
+  if (!gaps?.length || !taskGapTag) return null;
+  const gap = gaps.find((g) => g.recommendation?.practiceTag === taskGapTag);
+  if (!gap) return null;
+  return (
+    <div className="pr-gap-pill">
+      <span className="pr-gap-pill__label">Gap focus</span>
+      <span className="pr-gap-pill__title">{gap.title}</span>
+    </div>
+  );
+};
 
 const PracticePage = () => {
   const { user } = useAuth();
@@ -39,6 +89,10 @@ const PracticePage = () => {
   const [saved, setSaved]       = useState(false);
   const [started, setStarted]   = useState(false);
 
+  // CHANGED: gap state
+  const [activeGaps,   setActiveGaps]   = useState([]);
+  const [practiceMode, setPracticeMode] = useState("free"); // "free" | "gap"
+
   /* ── Notes session key — new key per practice session ── */
   const [sessionId, setSessionId] = useState(() => `pr_${Date.now()}`);
 
@@ -51,7 +105,16 @@ const PracticePage = () => {
     () => topics.filter((t) => pickBank(t.id).length > 0),
     []
   );
-  const bank    = useMemo(() => (topicId ? pickBank(topicId) : []), [topicId]);
+
+  // CHANGED: bank depends on practiceMode and activeGaps
+  const bank    = useMemo(() => {
+    if (!topicId) return [];
+    if (practiceMode === "gap" && activeGaps.length > 0) {
+      return pickGapBank(topicId, activeGaps);
+    }
+    return pickBank(topicId);
+  }, [topicId, practiceMode, activeGaps]);
+
   const current = bank[idx];
 
   /* ── Timer control ─────────────────────────────── */
@@ -64,6 +127,19 @@ const PracticePage = () => {
 
   useEffect(() => () => clearInterval(timerRef.current), []);
 
+  // CHANGED: fetch active gaps when topicId or user changes
+  useEffect(() => {
+    if (!user?.uid || !topicId) { setActiveGaps([]); setPracticeMode("free"); return; }
+    let cancelled = false;
+    getActiveGaps(user.uid, topicId).then((gaps) => {
+      if (cancelled) return;
+      setActiveGaps(gaps);
+      // auto-switch to gap mode if gaps exist and session hasn't started
+      if (gaps.length > 0 && !started) setPracticeMode("gap");
+    });
+    return () => { cancelled = true; };
+  }, [topicId, user?.uid]); // eslint-disable-line
+
   /* ── Topic selection ───────────────────────────── */
   const selectTopic = (id) => {
     stopTimer();
@@ -74,12 +150,22 @@ const PracticePage = () => {
     setSaved(false);
     setStarted(false);
     setElapsed(0);
-    setSessionId(`pr_${Date.now()}`);   // fresh notes per topic session
+    setActiveGaps([]);
+    setPracticeMode("free");
+    setSessionId(`pr_${Date.now()}`);
   };
 
   const handleStart = () => {
     setStarted(true);
     setTimeout(startTimer, 50);
+  };
+
+  // CHANGED: toggle between gap and free mode
+  const handleSwitchMode = () => {
+    if (started) return; // don't switch mid-session
+    setPracticeMode((m) => m === "gap" ? "free" : "gap");
+    setIdx(0);
+    setAnswers({});
   };
 
   /* ── Answer (no feedback — just record) ────────── */
@@ -114,6 +200,7 @@ const PracticePage = () => {
         topicTitle: topics.find((t) => t.id === topicId)?.title ?? topicId,
         correct, wrong, total, percent, answers,
         timeSecs: elapsed,
+        practiceMode, // CHANGED: record which mode was used
       });
       await awardPoints(user.uid, "practice_complete", { percent });
       setSaved(true);
@@ -137,7 +224,6 @@ const PracticePage = () => {
   /* ── Keyboard navigation ───────────────────────── */
   useEffect(() => {
     const onKey = (e) => {
-      // Don't intercept keys while typing in notes or any input
       if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
 
       if (!started && topicId && bank.length > 0 && !done) {
@@ -177,8 +263,8 @@ const PracticePage = () => {
   const correctCount  = bank.filter((t) => answers[t.id] === t.correct).length;
   const wrongCount    = bank.length - correctCount;
   const percent       = bank.length ? Math.round((correctCount / bank.length) * 100) : 0;
+  const hasGaps       = activeGaps.length > 0;
 
-  /* Notes panel visible only while actively solving questions */
   const showNotes = started && !done;
 
   return (
@@ -195,7 +281,8 @@ const PracticePage = () => {
               <div className="pr-hero__left">
                 <div className="pr-tag">
                   <span className="pr-dot" />
-                  Practice Mode
+                  {/* CHANGED: tag reflects mode */}
+                  {practiceMode === "gap" && hasGaps ? "Gap Practice" : "Practice Mode"}
                 </div>
                 <h1 className="pr-title">Solve &amp; Reinforce</h1>
                 <p className="pr-sub">
@@ -222,7 +309,6 @@ const PracticePage = () => {
                 </div>
               </div>
 
-              {/* Session status card */}
               <div className="pr-hero__card">
                 <p className="pr-hero__cardcap">Current session</p>
                 <div className="pr-hero__pills">
@@ -238,20 +324,19 @@ const PracticePage = () => {
                     <span>Time</span>
                     <strong>{topicId && !done ? formatTime(elapsed) : "—"}</strong>
                   </div>
+                  {/* CHANGED: show mode pill when topic selected */}
+                  {topicId && (
+                    <div className="pr-hero__pill">
+                      <span>Mode</span>
+                      <strong>{practiceMode === "gap" && hasGaps ? "Gap" : "Free"}</strong>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ══ TWO-COLUMN + NOTES ══════════════════════ */}
-          {/*
-            Outer shell mirrors DiagnosticsPage:
-              diag-shell / diag-shell--with-notes
-            The NotesPanel renders AFTER pr-layout so it sits on the right.
-          */}
           <div className={`diag-shell${showNotes ? " diag-shell--with-notes" : ""}`}>
-
-            {/* ── Main content (sidebar + board) ────── */}
             <div className="diag-shell__main">
               <div className="pr-layout">
 
@@ -291,7 +376,6 @@ const PracticePage = () => {
                 {/* ── Board ────────────────────────── */}
                 <div className="pr-board">
 
-                  {/* Top bar */}
                   <div className="pr-board__top">
                     <div className="pr-crumbs">
                       <span className="pr-crumbs__topic">
@@ -351,6 +435,15 @@ const PracticePage = () => {
                     </div>
                   )}
 
+                  {/* CHANGED: gap mode banner above start modal */}
+                  {topicId && !done && bank.length > 0 && !started && hasGaps && (
+                    <GapModeBanner
+                      gaps={activeGaps}
+                      practiceMode={practiceMode}
+                      onSwitch={handleSwitchMode}
+                    />
+                  )}
+
                   {/* Start modal */}
                   {topicId && !done && bank.length > 0 && !started && (
                     <div className="pr-start-modal">
@@ -364,6 +457,8 @@ const PracticePage = () => {
                       <h2 className="pr-start-modal__title">{activeTopic?.title}</h2>
                       <p className="pr-start-modal__sub">
                         {bank.length} questions · timer starts on begin
+                        {/* CHANGED: show gap context in subtitle */}
+                        {practiceMode === "gap" && hasGaps && " · gap-targeted"}
                       </p>
                       <div className="pr-start-modal__meta">
                         <div className="pr-start-modal__pill">
@@ -397,6 +492,11 @@ const PracticePage = () => {
                           {answeredCount}/{bank.length} answered
                         </span>
                       </div>
+
+                      {/* CHANGED: show gap context pill above question if in gap mode */}
+                      {practiceMode === "gap" && (
+                        <GapContextPill gaps={activeGaps} taskGapTag={current.gapTag} />
+                      )}
 
                       <div className="pr-card pr-card--question">
                         <div className="pr-smallcap">Question {idx + 1} of {bank.length}</div>
@@ -459,6 +559,8 @@ const PracticePage = () => {
                             </h2>
                             <p className="pr-complete__sub">
                               {activeTopic?.title} · {formatTime(elapsed)}
+                              {/* CHANGED: show mode in results */}
+                              {practiceMode === "gap" && hasGaps && " · gap practice"}
                               {saved && <span className="pr-complete__saved"> · Saved ✓</span>}
                             </p>
                           </div>
@@ -550,7 +652,6 @@ const PracticePage = () => {
               </div>{/* /pr-layout */}
             </div>{/* /diag-shell__main */}
 
-            {/* Notes panel — RIGHT side, only while solving questions */}
             {showNotes && <NotesPanel sessionId={sessionId} />}
 
           </div>{/* /diag-shell */}

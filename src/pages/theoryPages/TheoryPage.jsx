@@ -6,7 +6,8 @@ import NotesPanel from "../../components/NotesPanel";
 import { theory, theoryTopics } from "../../data/theory";
 import { useAuth } from "../../context/AuthContext";
 import { tasks as taskBank } from "../../data/tasks";
-import { getTheoryProgress, saveTheoryProgress, getTopicNote, saveTopicNote } from "../../services/db";
+// CHANGED: added getActiveGaps
+import { getTheoryProgress, saveTheoryProgress, getTopicNote, saveTopicNote, getActiveGaps } from "../../services/db";
 import { getUserProfile } from "../../firebase/auth";
 
 import "./theory.css";
@@ -544,6 +545,72 @@ const renderCard = (c, i, revealKey) => {
 };
 
 /* ════════════════════════════════════════
+   NEW: Gap Recommendation Banner
+════════════════════════════════════════ */
+const StrengthPip = ({ strength }) => {
+  const map = {
+    moderate: { label: "moderate", color: "var(--warning, #f0a500)" },
+    strong:   { label: "strong",   color: "var(--error,   #e05c5c)" },
+    critical: { label: "critical", color: "var(--error,   #e05c5c)" },
+  };
+  const s = map[strength];
+  if (!s) return null;
+  return <span className="th-gap-rec__pip" style={{ color: s.color }}>{s.label}</span>;
+};
+
+const GapRecommendationBanner = ({ gaps }) => {
+  const [open, setOpen] = useState(true);
+  if (!gaps?.length) return null;
+
+  return (
+    <div className={`th-gap-rec${open ? "" : " th-gap-rec--collapsed"}`}>
+      <div className="th-gap-rec__header">
+        <div className="th-gap-rec__header-left">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          <span className="th-gap-rec__label">Recommended for you</span>
+          <span className="th-gap-rec__count">{gaps.length} gap{gaps.length !== 1 ? "s" : ""} detected</span>
+        </div>
+        <button
+          className="th-gap-rec__toggle"
+          onClick={() => setOpen(v => !v)}
+          aria-label={open ? "Collapse" : "Expand"}
+        >
+          <svg
+            width="13" height="13" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"
+            style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s" }}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className="th-gap-rec__body">
+          <p className="th-gap-rec__intro">
+            Your last diagnostic found reasoning gaps in this topic. Pay close attention to the sections below.
+          </p>
+          <div className="th-gap-rec__list">
+            {gaps.map((gap) => (
+              <div key={gap.id} className="th-gap-rec__item">
+                <div className="th-gap-rec__item-head">
+                  <span className="th-gap-rec__item-title">{gap.title}</span>
+                  <StrengthPip strength={gap.strength} />
+                </div>
+                <p className="th-gap-rec__item-rec">{gap.recommendationText}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ════════════════════════════════════════
    PAGE COMPONENT
 ════════════════════════════════════════ */
 const TheoryPage = () => {
@@ -561,6 +628,10 @@ const TheoryPage = () => {
   /* ── Notes state ── */
   const [noteContent,   setNoteContent]   = useState(null);
   const [noteLoadedFor, setNoteLoadedFor] = useState(null);
+
+  // CHANGED: added active gaps state
+  const [activeGaps,        setActiveGaps]        = useState([]);
+  const [activeGapsLoading, setActiveGapsLoading] = useState(false);
 
   const boardRef = useRef(null);
 
@@ -637,6 +708,19 @@ const TheoryPage = () => {
       if (cancelled) return;
       setNoteContent(note?.content ?? "");
       setNoteLoadedFor(topicId);
+    });
+    return () => { cancelled = true; };
+  }, [topicId, user?.uid]);
+
+  // CHANGED: fetch active gaps when topic or user changes
+  useEffect(() => {
+    if (!user?.uid) { setActiveGaps([]); return; }
+    let cancelled = false;
+    setActiveGapsLoading(true);
+    getActiveGaps(user.uid, topicId).then((gaps) => {
+      if (cancelled) return;
+      setActiveGaps(gaps);
+      setActiveGapsLoading(false);
     });
     return () => { cancelled = true; };
   }, [topicId, user?.uid]);
@@ -723,8 +807,10 @@ const TheoryPage = () => {
   const stepsDots     = currSection?.steps || [];
   const secProgress   = `${secIdx + 1}/${Math.max(sectionsCount, 1)}`;
 
-  /* Notes panel always visible on theory page (always studying) */
   const notesReady = noteLoadedFor === topicId;
+
+  // CHANGED: banner shows only on first step of first section — entry point only
+  const showGapBanner = !activeGapsLoading && activeGaps.length > 0 && secIdx === 0 && stepIdx === 0;
 
   /* ── Keyboard navigation ── */
   useEffect(() => {
@@ -806,13 +892,7 @@ const TheoryPage = () => {
           </div>
         </section>
 
-        {/* ══════════════════════════════════════════════════════
-            diag-shell: flex row — sidebar+board | notes panel
-            Same pattern as PracticePage.
-        ══════════════════════════════════════════════════════ */}
         <div className={`diag-shell${notesReady ? " diag-shell--with-notes" : ""}`}>
-
-          {/* ── Main: 2-col grid (sidebar + board) ── */}
           <div className="diag-shell__main">
             <section className="th-layout">
 
@@ -866,6 +946,9 @@ const TheoryPage = () => {
                     <div className="th-skeleton">Loading…</div>
                   ) : (
                     <div className="th-flow">
+                      {/* CHANGED: gap banner inserted here, entry point only */}
+                      {showGapBanner && <GapRecommendationBanner gaps={activeGaps} />}
+
                       <div className="th-cards">
                         {(currStep?.cards || []).map((c, i) => renderCard(c, i, revealKey))}
                       </div>
@@ -936,10 +1019,9 @@ const TheoryPage = () => {
                 )}
               </section>
 
-            </section>{/* /th-layout */}
-          </div>{/* /diag-shell__main */}
+            </section>
+          </div>
 
-          {/* Notes panel — RIGHT side flex sibling, always present while on Theory */}
           {notesReady && (
             <NotesPanel
               key={topicId}
@@ -949,7 +1031,7 @@ const TheoryPage = () => {
             />
           )}
 
-        </div>{/* /diag-shell */}
+        </div>
 
       </main>
     </div>

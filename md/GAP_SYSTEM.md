@@ -1,311 +1,307 @@
-GAP_SYSTEM.md
-Purpose
+# GAP_SYSTEM.md
+
+## Purpose
 
 This document defines the reasoning-gap model for Axioma v1.
 
-Axioma does not diagnose only correctness. It diagnoses where reasoning breaks.
+Axioma does not diagnose only correctness.  
+It diagnoses **where reasoning breaks**.
 
-The gap system must therefore be:
+The gap system must be:
 
-human-readable
+- human-readable
+- topic-aware
+- stable across modules
+- useful for recommendations
 
-topic-aware
+---
 
-stable across modules
+## 1. Two-Layer Model
 
-useful for recommendations
+Axioma uses exactly two layers.
 
-1. Gap Model Overview
+```
+Core Gap (5 total, stable)
+  └── Topic Gap (per topic, maps to one core gap)
+        └── Sub-Gap (internal signals only, never shown to user)
+```
 
-Axioma uses a two-layer gap system.
+**Layer 1 — Core Gaps**  
+Global reasoning failure categories. Stable. Product-level.  
+Shown in results, profile, and recommendations.
 
-Layer 1 — Core Gaps
+**Layer 2 — Topic Gaps**  
+Concrete manifestations of core gaps inside a specific topic.  
+These are the unit of detection. Diagnostic questions are built around them.
 
-These are global reasoning failure categories.
+**Sub-gaps**  
+Internal detection signals. They live inside the diagnostic engine.  
+They determine confidence level (moderate vs strong).  
+They are never shown to the user directly.
 
-Layer 2 — Topic Gaps
+---
 
-These are concrete manifestations of those failures inside a topic.
+## 2. Core Gaps
 
-This structure is required.
+Canonical v1 set. Do not modify without a deliberate product decision.
 
-2. Core Gaps
-
-Canonical v1 set:
-
+```js
 [
   {
-    id: "concept",
-    title: "Concept misunderstanding",
-    meaning: "The learner does not understand what an object, quantity, or rule means."
-  },
-  {
-    id: "method",
+    id: "strategic",
     title: "Method selection error",
-    meaning: "The learner chooses an inappropriate strategy or formula for the task."
+    meaning: "The learner chooses an inappropriate strategy or formula for the problem.",
+    userFacingLabel: "You often choose the wrong method here.",
+    surveyBlock: "C"  // weakest block in research: 21/100
   },
   {
-    id: "procedure",
-    title: "Procedural or formal error",
-    meaning: "The learner starts in the right direction but performs transformations incorrectly."
+    id: "procedural",
+    title: "Procedural breakdown",
+    meaning: "The learner identifies the right approach but executes it incorrectly.",
+    userFacingLabel: "Your reasoning starts correctly but breaks during execution.",
+    surveyBlock: "B"  // 40/150
   },
   {
-    id: "interpretation",
+    id: "interpretive",
     title: "Interpretation error",
-    meaning: "The learner obtains or reads a result incorrectly and does not interpret what it means."
+    meaning: "The learner misreads what the problem asks or what a result means.",
+    userFacingLabel: "You compute correctly but misread what the result tells you.",
+    surveyBlock: "A"
   },
   {
-    id: "representation",
-    title: "Representation or visual connection gap",
-    meaning: "The learner fails to connect symbolic, verbal, graphical, or geometric forms."
+    id: "adaptive",
+    title: "Adaptive reasoning gap",
+    meaning: "The learner collapses when the problem is non-standard.",
+    userFacingLabel: "You struggle when the problem doesn't match a familiar pattern.",
+    surveyBlock: "E"  // 34/100
+  },
+  {
+    id: "relational",
+    title: "Representation connection gap",
+    meaning: "The learner fails to connect symbolic, verbal, graphical, or geometric forms.",
+    userFacingLabel: "You lose the thread when the same idea appears in a different form.",
+    surveyBlock: "D"  // 75/100 — strong in v1, included for future topics
   }
 ]
+```
 
-Rules:
+**Rules:**
+- Keep this list small and stable.
+- Survey block references are for internal calibration only.
+- `relational` and `adaptive` are not heavily represented in v1 quadratic topic gaps.  
+  They exist for future topics (functions, geometry, non-standard problems).
+- Multiple topic gaps can map to the same core gap. That is expected and correct.
 
-Keep this list small and stable.
+---
 
-These are the product-level categories shown in results, recommendations, and progress.
+## 3. Topic Gaps
 
-3. Topic Gaps
+Topic gaps are concrete reasoning failures inside a specific topic.
 
-Topic gaps are topic-specific reasoning failures.
+Each topic gap must:
+- map to **exactly one** coreGapId
+- carry a severity level (1, 2, or 3)
+- define 4 signal tasks
+- define 2–3 sub-gaps for internal detection confidence
 
-For quadratic, example set:
+### v1 Quadratic Topic Gaps
 
-[
-  {
-    id: "q-discriminant",
-    coreGapId: "interpretation",
-    severity: 2,
-    title: "Misreading what the discriminant tells you"
-  },
-  {
-    id: "q-double-root",
-    coreGapId: "concept",
-    severity: 2,
-    title: "Missing the second square-root outcome"
-  },
-  {
-    id: "q-div-by-var",
-    coreGapId: "procedure",
-    severity: 2,
-    title: "Dividing by an expression containing x"
-  },
-  {
-    id: "q-factoring",
-    coreGapId: "procedure",
-    severity: 2,
-    title: "Confusing factoring patterns"
-  },
-  {
-    id: "q-vieta",
-    coreGapId: "method",
-    severity: 2,
-    title: "Misapplying Vieta's formulas"
-  }
-]
+| id | coreGapId | severity | title |
+|----|-----------|----------|-------|
+| q-discriminant | interpretive | 1 | Misreading what the discriminant tells you |
+| q-double-root  | interpretive | 2 | Missing the second square-root outcome |
+| q-div-by-var   | procedural   | 1 | Dividing by an expression containing x |
+| q-factoring    | procedural   | 2 | Confusing factoring patterns |
+| q-vieta        | strategic    | 2 | Misapplying Vieta's formulas |
 
-Rules:
+**Severity rationale:**
 
-Topic gaps must always map to exactly one core gap.
+`q-discriminant` → severity 1  
+Misreading D blocks all downstream reasoning about solution sets.
 
-Topic gaps are the main unit of diagnostic detection in v1.
+`q-div-by-var` → severity 1  
+Dividing by x silently removes solutions. The student doesn't notice anything is wrong.  
+This pattern recurs across topics beyond quadratics.
 
-Diagnostic questions are built around topic gaps.
+All others → severity 2  
+Important and topic-specific, but more contained in scope.
 
-4. Severity Levels
+---
 
-Axioma uses lightweight severity levels.
+## 4. Severity Levels
 
-1 = primary / high-value gap
-2 = topic-specific important gap
-3 = technical issue / minor issue
-
-Interpretation:
-
-Severity 1: broad reasoning weakness that matters across many tasks
-
-Severity 2: meaningful topic-specific gap
-
-Severity 3: technical mistake category that should be corrected but not overemphasized
+| level | meaning |
+|-------|---------|
+| 1 | Primary / high-value gap — broad reasoning weakness, blocking |
+| 2 | Important topic-specific gap |
+| 3 | Technical issue — minor, often from haste |
 
 Examples of severity 3:
+- sign slips
+- notation confusion
+- skipped case from carelessness
 
-sign slips
+**UI rules:**
+- Severity 1 and 2 are shown in results and profile.
+- Severity 3 may be grouped under "technical issues" with lower visual weight.
 
-notation confusion
+---
 
-skipped case from haste
+## 5. Sub-Gaps
 
-careless formal omission
+Sub-gaps are internal only.
 
-Rules:
+They exist to:
+- increase detection confidence
+- distinguish moderate from strong gap signals
+- eventually power more precise recommendations
 
-v1 UI should focus attention on severity 1 and 2.
+They are defined in `gaps.js` under the `subGaps` array on each topic gap.  
+They must never be used as user-facing labels or shown in UI.
 
-severity 3 may be grouped visually under technical issues.
+Example (internal):
+```js
+subGaps: [
+  { id: "sq-disc-zero",     description: "Confuses D=0 with D>0 when counting roots" },
+  { id: "sq-disc-negative", description: "Treats D<0 as still producing real solutions" },
+  { id: "sq-disc-miscount", description: "Computes D correctly but selects wrong root count" }
+]
+```
 
-5. Detection Logic
+---
 
-For v1, each topic gap is tested by 4 tasks.
+## 6. Detection Logic
 
-Detection rule:
+Each topic gap is tested by exactly 4 signal tasks.
 
-If the learner fails 2 or more of 4 tasks linked to the same topic gap,
-mark that topic gap as detected.
+```
+2 / 4 wrong → moderate (gap detected)
+3 / 4 wrong → strong (gap confirmed)
+4 / 4 wrong → critical (strong + flag for priority)
+```
 
-
-If the learner fails 3 or more of 4,
-mark it as strong.
-
-Recommended stored status:
-
+Stored status per user per topic gap:
+```js
 {
   topicGapId: "q-vieta",
   detected: true,
-  strength: "moderate" | "strong"
+  strength: "moderate" | "strong" | "critical"
 }
+```
 
-Why this is better than a rigid 3/4-only rule:
+**Why not 3/4 as the only threshold:**  
+2/4 catches emerging weakness earlier and enables earlier recommendations.  
+3/4 distinguishes a confirmed breakdown from a possible one.  
+The threshold config lives in each gap's `masteryRule` object — never hardcoded in the engine.
 
-2/4 catches emerging weakness earlier
+---
 
-3/4 distinguishes strong breakdown
+## 7. Data Contract
 
-recommendations can be prioritized better
+Full topic gap shape:
 
-If you want stricter behavior, use this variant:
+```js
+{
+  id: string,                          // "q-vieta"
+  topicId: string,                     // "quadratic"
+  coreGapId: string,                   // must match a coreGaps.js id
+  severity: 1 | 2 | 3,
+  title: string,
+  description: string,                 // user-facing, plain language
+  recommendationText: string,          // user-facing, actionable
+  masteryRule: {
+    totalSignals: number,              // always 4 in v1
+    moderateThreshold: number,         // always 2 in v1
+    strongThreshold: number,           // always 3 in v1
+  },
+  signals: [
+    {
+      taskId: string,                  // matches question id in questions.js
+      expectedFailurePattern: string,  // internal description of wrong-answer pattern
+    }
+  ],
+  subGaps: [
+    {
+      id: string,                      // "sq-vieta-sum-sign"
+      description: string,             // internal only
+    }
+  ],
+  recommendation: {
+    theorySectionIds: string[],        // maps to theory content section IDs
+    practiceMode: "gap_targeted" | "free",
+    practiceTag: string,
+  }
+}
+```
 
-2/4 = watch
+---
 
-3/4 = detected
+## 8. What the User Sees
 
-4/4 = critical
+The user sees:
+- detected topic gap title and description
+- recommendation text
+- which questions they failed that revealed the gap
+- core gap category (e.g. "Interpretation error")
 
-Both models are valid. Use one shared config only.
-
-6. What the User Should See
-
-The user should not see raw internal taxonomy everywhere.
+The user does **not** see:
+- sub-gap IDs
+- signal task IDs
+- internal confidence scores
+- expectedFailurePattern values
 
 Preferred user-facing language:
+> "You compute the discriminant correctly, but misread what it means."  
+> "Your reasoning starts right but breaks when you try to simplify."  
+> "You reach for the wrong method when the problem changes shape."
 
-You often choose the wrong method here.
+---
 
-You compute the discriminant, but misread what it means.
+## 9. Stable Areas
 
-Your symbolic result is weak when the task becomes visual.
+Axioma tracks not only what breaks, but what is already solid.
 
-Results page should show:
+This matters because:
+- progress feels like progress, not just a list of failures
+- accurate reasoning maps include strengths
+- recommendations can build on what already works
 
-detected topic gaps
-
-short explanation
-
-short recommendation
-
-related theory recommendation
-
-Profile / Progress should show:
-
-active gaps
-
-resolved gaps later
-
-strongest stable areas too
-
-Do not show only weaknesses.
-
-7. Stable Areas
-
-Axioma should track not only what breaks, but what is already stable.
-
-Reason:
-
-useful learning feedback
-
-better progress experience
-
-avoids profile feeling like a list of failures
-
-Example:
-
+Example stored shape:
+```js
 {
   stableAreas: [
     "Basic discriminant recognition",
     "Reading root count from D"
   ]
 }
+```
 
-This is not empty praise. It is part of an accurate reasoning map.
+---
 
-8. Recommendation Mapping
+## 10. Recommendation Mapping
 
-Every topic gap should map to a recovery route.
+Every detected gap must produce an action. No dead-end diagnostics.
 
-Contract:
+Gap → theory sections → practice mode + tag → cycle continues.
 
-{
-  id: "q-vieta",
-  coreGapId: "method",
-  severity: 2,
-  title: "Misapplying Vieta's formulas",
-  recommendation: {
-    theorySectionIds: ["quadratic-vieta-1", "quadratic-vieta-2"],
-    practiceMode: "gap_targeted",
-    practiceTag: "vieta"
-  }
-}
+Theory section IDs in `recommendation.theorySectionIds` are defined by the theory content system.  
+The diagnostic engine does not construct recommendation text dynamically —  
+it reads `recommendationText` from the gap definition directly.
 
-Rules:
+---
 
-A detected gap must always produce an action.
+## 11. Rules for AI Assistants and Developers
 
-No dead-end diagnostics.
+**Must:**
+- Preserve the two-layer model (core + topic)
+- Keep sub-gaps internal — never expose them in UI
+- Map every topic gap to exactly one coreGapId
+- Read masteryRule from gap data — never hardcode thresholds
+- Ask before changing thresholds globally
 
-9. Gap Data Contract
-
-Recommended topic gap definition:
-
-{
-  id: string,
-  topicId: string,
-  coreGapId: "concept" | "method" | "procedure" | "interpretation" | "representation",
-  severity: 1 | 2 | 3,
-  title: string,
-  description: string,
-  recommendationText: string,
-  masteryRule: {
-    totalSignals: number,
-    moderateThreshold: number,
-    strongThreshold: number
-  },
-  signals: [
-    {
-      taskId: string,
-      expectedFailurePattern: string
-    }
-  ]
-}
-10. AI Assistant Rules for Gap Work
-
-AI assistants must:
-
-preserve the two-layer model
-
-never introduce many new core gaps casually
-
-keep topic gaps precise and teachable
-
-avoid mixing UI labels with internal IDs
-
-ask before changing thresholds globally
-
-AI assistants must not:
-
-collapse the system into correctness-only scoring
-
-replace topic gaps with vague analytics language
-
-invent recommendation logic in the UI layer
+**Must not:**
+- Add new core gaps casually
+- Collapse the system into correctness-only scoring
+- Use sub-gap IDs as user-facing labels
+- Invent recommendation logic in the UI layer
+- Mix internal IDs with display strings
