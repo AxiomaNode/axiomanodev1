@@ -596,22 +596,24 @@ const FeedbackPage = () => {
   const [tierFilter,  setTierFilter]  = useState("All");
 
 const loadFeedback = useCallback(async () => {
-  const [snap, prof] = await Promise.all([
-    getDocs(query(collection(db, "feedback"), orderBy("createdAt", "desc"))),
-    getUserProfile(user?.uid),
-  ]);
-  const data = snap.docs.map((d) => {
-    const item = { id: d.id, ...d.data() };
-    // Always show the freshest displayName for own review
-    if (item.uid === user?.uid && prof?.displayName) {
-      item.displayName = prof.displayName;
-    }
-    return item;
-  });
+  const snap = await getDocs(
+    query(collection(db, "feedback"), orderBy("createdAt", "desc"))
+  );
+  const data = await Promise.all(
+    snap.docs.map(async (d) => {
+      const item = { id: d.id, ...d.data() };
+      try {
+        const prof = await getUserProfile(item.uid);
+        if (prof?.displayName) item.displayName = prof.displayName;
+      } catch { /* non-critical */ }
+      return item;
+    })
+  );
   setItems(data);
   setOwnReview(data.find((i) => i.uid === user?.uid) || null);
   setLoading(false);
 }, [user?.uid]);
+
   useEffect(() => { loadFeedback(); }, [loadFeedback]);
 
   const handleDelete = async () => {
