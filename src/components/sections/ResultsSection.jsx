@@ -289,11 +289,18 @@ const ResultsSection = ({ sessions = [], initialIdx = 0 }) => {
                       </div>
                       <p className="results-gap-card__desc">{gap.description}</p>
                       <div className="results-gap-card__rec">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"                     
                           stroke="currentColor" strokeWidth="2">
                           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
-                        <p>{gap.recommendation}</p>
+                        {typeof gap.recommendation === "string" ? (                     
+                         <p>{gap.recommendation}</p>
+                        ) : (
+                          <p>
+                            Practice mode: <strong>{gap.recommendation.practiceMode}</strong>
+                            {gap.recommendation.practiceTag && ` · ${gap.recommendation.practiceTag}`}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
