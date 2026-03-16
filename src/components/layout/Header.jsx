@@ -7,6 +7,19 @@ import "./logo.css"
 import LogoLight from "../../Logo-Light.png"
 import { logoutUser, getUserProfile } from "../../firebase/auth";
 
+const HeaderAvatar = ({ photoURL, initials, className = "" }) => {
+  if (photoURL) {
+    return (
+      <img
+        src={photoURL}
+        alt="avatar"
+        className={`header__avatar header__avatar--photo ${className}`}
+      />
+    );
+  }
+  return <div className={`header__avatar ${className}`}>{initials}</div>;
+};
+
 const MenuIcon = ({ open }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     {open ? (
@@ -78,10 +91,10 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
     navigate("/auth");
   };
 
-  const initials = user?.displayName
-    ? user.displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-    : user?.email?.[0]?.toUpperCase() ?? "U";
-
+const displayName = profile?.displayName || user?.displayName;
+const initials = displayName
+  ? displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+  : user?.email?.[0]?.toUpperCase() ?? "U";
   return (
     <header className="header">
       <div className="header__left">
@@ -134,10 +147,10 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
         </button>
 
         <div className="header__user" onClick={() => setUserMenuOpen(v => !v)}>
-          <div className="header__avatar">{initials}</div>
+          <HeaderAvatar photoURL={user?.photoURL} initials={initials} />
           <span className="header__username">
-            {user?.displayName?.split(" ")[0] ?? "Account"}
-          </span>
+  {(profile?.displayName || user?.displayName)?.split(" ")[0] ?? "Account"}
+</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
             style={{ transform: userMenuOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
             <polyline points="6 9 12 15 18 9" />
@@ -151,10 +164,10 @@ const Header = ({ sidebarOpen, onToggleSidebar }) => {
               
               <Link to="/profile">
                 <div className="header__user-menu-info">
-                <div className="header__avatar header__avatar--lg">{initials}</div>
+                <HeaderAvatar photoURL={user?.photoURL} initials={initials} className="header__avatar--lg" />
 
                 <div className="header__user-menu-text">
-                  <p className="header__user-menu-name">{user?.displayName ?? "—"}</p>
+                  <p className="header__user-menu-name">{profile?.displayName || user?.displayName || "—"}</p>
                   <p className="header__user-menu-email">{user?.email}</p>
 
                   <div className="rating-row">

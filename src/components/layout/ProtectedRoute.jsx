@@ -1,6 +1,9 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
+// CHANGED: removed emailVerified redirect
+// Google users are always verified. Email users get through
+// and can verify at their own pace via a banner elsewhere.
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
@@ -13,7 +16,6 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user) return <Navigate to="/auth" replace />;
-  if (!user.emailVerified) return <Navigate to="/verify-email" replace />;
 
   return children;
 };

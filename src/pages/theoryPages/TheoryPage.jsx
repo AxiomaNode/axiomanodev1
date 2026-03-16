@@ -6,7 +6,6 @@ import NotesPanel from "../../components/NotesPanel";
 import { theory, theoryTopics } from "../../data/theory";
 import { useAuth } from "../../context/AuthContext";
 import { tasks as taskBank } from "../../data/tasks";
-// CHANGED: added getActiveGaps
 import { getTheoryProgress, saveTheoryProgress, getTopicNote, saveTopicNote, getActiveGaps } from "../../services/db";
 import { getUserProfile } from "../../firebase/auth";
 
@@ -308,7 +307,9 @@ const Chalkboard = ({ scene, revealKey }) => {
     }
   };
 
-  // ── renderVertexForm — added from patch ───────────────────────────────────
+  // ── Vertex form scene (§6 Completing the Square) ──────────────────────────
+  // Animates: curve → amber vertex dot + glow → dashed drop lines → (h,k) label
+  // Uses amber colour to distinguish vertex from root dots (teal).
   const renderVertexForm = (ctx, w, h, t, scene) => {
     const {
       a = 1, b = -4, c = 7,
@@ -319,7 +320,6 @@ const Chalkboard = ({ scene, revealKey }) => {
     const padL = 52, padR = 28, padT = 28, padB = 44;
     const cw = w - padL - padR;
     const ch = h - padT - padB;
-
     const xMin = xRange[0], xMax = xRange[1];
     const scaleX = cw / (xMax - xMin);
 
@@ -332,7 +332,6 @@ const Chalkboard = ({ scene, revealKey }) => {
     yMin = Math.floor(yMin) - 1;
     yMax = Math.ceil(yMax) + 2;
     const scaleY = ch / (yMax - yMin);
-
     const ox = padL + (-xMin) * scaleX;
     const oy = padT + yMax * scaleY;
     const toC = (x, y) => [ox + x * scaleX, oy - y * scaleY];
@@ -364,84 +363,62 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.restore();
     }
 
-    // Vertex dot (0.6 → 0.75)
+    // Vertex dot + glow (0.6 → 0.75)
     if (t > 0.6) {
       const dotT = Math.min(1, (t - 0.6) / 0.15);
       const [vpx, vpy] = toC(vh, vk);
-
       ctx.save();
       ctx.globalAlpha = 0.22 * dotT;
       const grad = ctx.createRadialGradient(vpx, vpy, 0, vpx, vpy, 18);
       grad.addColorStop(0, "rgba(255, 210, 100, 0.9)");
       grad.addColorStop(1, "rgba(255, 180, 50, 0)");
       ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(vpx, vpy, 18, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(vpx, vpy, 18, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
-
       ctx.save();
       ctx.globalAlpha = dotT;
       ctx.fillStyle = "rgba(255, 210, 100, 0.95)";
       ctx.shadowBlur = 8;
       ctx.shadowColor = "rgba(255, 210, 100, 0.6)";
-      ctx.beginPath();
-      ctx.arc(vpx, vpy, 5 * dotT, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(vpx, vpy, 5 * dotT, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
 
-    // Dashed drop lines (0.75 → 0.88)
+    // Dashed drop lines to axes (0.75 → 0.88)
     if (t > 0.75) {
       const lineT = Math.min(1, (t - 0.75) / 0.13);
       const [vpx, vpy] = toC(vh, vk);
-
       ctx.save();
       ctx.globalAlpha = 0.35 * lineT;
       ctx.strokeStyle = "rgba(255, 210, 100, 0.7)";
       ctx.lineWidth = 1.2;
       ctx.setLineDash([4, 4]);
-
-      ctx.beginPath();
-      ctx.moveTo(vpx, vpy);
-      ctx.lineTo(vpx, oy);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(vpx, vpy);
-      ctx.lineTo(ox, vpy);
-      ctx.stroke();
-
+      ctx.beginPath(); ctx.moveTo(vpx, vpy); ctx.lineTo(vpx, oy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(vpx, vpy); ctx.lineTo(ox, vpy); ctx.stroke();
       ctx.restore();
     }
 
-    // Labels (0.88 → 1.0)
+    // Coordinate label + "vertex" sublabel (0.88 → 1.0)
     if (t > 0.88) {
       const labelT = Math.min(1, (t - 0.88) / 0.12);
       const [vpx, vpy] = toC(vh, vk);
-
       ctx.save();
       ctx.globalAlpha = labelT;
-
       const coordLabel = `(${vh}, ${vk})`;
       ctx.font = "700 12px 'Courier New', monospace";
-      const coordW = ctx.measureText(coordLabel).width;
+      const tw = ctx.measureText(coordLabel).width;
       const lx = vpx + 10;
       const ly = vpy - 14;
-
       ctx.fillStyle = "rgba(13, 17, 23, 0.85)";
       if (ctx.roundRect) {
-        ctx.beginPath();
-        ctx.roundRect(lx - 3, ly - 12, coordW + 6, 16, 3);
-        ctx.fill();
+        ctx.beginPath(); ctx.roundRect(lx - 3, ly - 12, tw + 6, 16, 3); ctx.fill();
       } else {
-        ctx.fillRect(lx - 3, ly - 12, coordW + 6, 16);
+        ctx.fillRect(lx - 3, ly - 12, tw + 6, 16);
       }
       ctx.fillStyle = "rgba(255, 210, 100, 0.95)";
       ctx.shadowBlur = 4;
       ctx.shadowColor = "rgba(255, 210, 100, 0.4)";
       ctx.fillText(coordLabel, lx, ly);
-
       ctx.font = "500 10px -apple-system, sans-serif";
       const vLabel = "vertex";
       const vw = ctx.measureText(vLabel).width;
@@ -450,11 +427,9 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.fillStyle = "rgba(180, 210, 205, 0.65)";
       ctx.shadowBlur = 0;
       ctx.fillText(vLabel, lx, ly + 14);
-
       ctx.restore();
     }
   };
-  // ── end renderVertexForm ──────────────────────────────────────────────────
 
   const renderScene = (ctx, w, h, t) => {
     ctx.clearRect(0, 0, w, h);
@@ -471,7 +446,7 @@ const Chalkboard = ({ scene, revealKey }) => {
     if (!canvas) return;
     const parent = canvas.parentElement;
     const w = Math.max(320, parent?.clientWidth || 600);
-    const h = scene?.type === "parabola_single" ? 260 : 220;
+    const h = scene?.type === "parabola_single" || scene?.type === "vertex_form" ? 260 : 220;
     canvas.width = Math.floor(w * DPR);
     canvas.height = Math.floor(h * DPR);
     canvas.style.width = `${w}px`;
@@ -479,7 +454,7 @@ const Chalkboard = ({ scene, revealKey }) => {
     const ctx = canvas.getContext("2d");
     ctx.scale(DPR, DPR);
     let start = null;
-    const duration = scene?.type === "parabola_single" ? 1200 : 820;
+    const duration = scene?.type === "parabola_single" || scene?.type === "vertex_form" ? 1200 : 820;
     const tick = (ts) => {
       if (!start) start = ts;
       const p = Math.min(1, (ts - start) / duration);
@@ -694,7 +669,10 @@ const renderCard = (c, i, revealKey) => {
 };
 
 /* ════════════════════════════════════════
-   NEW: Gap Recommendation Banner
+   Gap Recommendation Banner
+   open/onToggle controlled from TheoryPage so the collapse state
+   survives step navigation and only resets when new gaps arrive.
+   Falls back to internal state if props omitted (tests/isolation).
 ════════════════════════════════════════ */
 const StrengthPip = ({ strength }) => {
   const map = {
@@ -707,24 +685,57 @@ const StrengthPip = ({ strength }) => {
   return <span className="th-gap-rec__pip" style={{ color: s.color }}>{s.label}</span>;
 };
 
-const GapRecommendationBanner = ({ gap }) => {
-  if (!gap) return null;
-  const strengthColor = {
-    moderate: "#f0a500",
-    strong:   "#e05c5c",
-    critical: "#e05c5c",
-  }[gap.strength] || "var(--teal)";
+const GapRecommendationBanner = ({ gaps, open: openProp, onToggle }) => {
+  const [openInternal, setOpenInternal] = useState(true);
+  const open   = openProp  !== undefined ? openProp  : openInternal;
+  const toggle = onToggle  !== undefined ? onToggle  : () => setOpenInternal((v) => !v);
+
+  if (!gaps?.length) return null;
 
   return (
-    <div className="th-gap-rec" style={{ borderLeftColor: strengthColor }}>
+    <div className={`th-gap-rec${open ? "" : " th-gap-rec--collapsed"}`}>
       <div className="th-gap-rec__header">
-        <span className="th-gap-rec__label">Recommended for you</span>
-        <span className="th-gap-rec__pip" style={{ color: strengthColor }}>
-          {gap.strength}
-        </span>
+        <div className="th-gap-rec__header-left">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          <span className="th-gap-rec__label">Recommended for you</span>
+          <span className="th-gap-rec__count">{gaps.length} gap{gaps.length !== 1 ? "s" : ""} detected</span>
+        </div>
+        <button
+          className="th-gap-rec__toggle"
+          onClick={toggle}
+          aria-label={open ? "Collapse" : "Expand"}
+        >
+          <svg
+            width="13" height="13" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"
+            style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s" }}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
       </div>
-      <p className="th-gap-rec__title">{gap.title}</p>
-      <p className="th-gap-rec__item-rec">{gap.recommendationText}</p>
+
+      {open && (
+        <div className="th-gap-rec__body">
+          <p className="th-gap-rec__intro">
+            Your last diagnostic found reasoning gaps in this topic. Pay close attention to the sections below.
+          </p>
+          <div className="th-gap-rec__list">
+            {gaps.map((gap) => (
+              <div key={gap.id} className="th-gap-rec__item">
+                <div className="th-gap-rec__item-head">
+                  <span className="th-gap-rec__item-title">{gap.title}</span>
+                  <StrengthPip strength={gap.strength} />
+                </div>
+                <p className="th-gap-rec__item-rec">{gap.recommendationText}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -748,9 +759,10 @@ const TheoryPage = () => {
   const [noteContent,   setNoteContent]   = useState(null);
   const [noteLoadedFor, setNoteLoadedFor] = useState(null);
 
-  // CHANGED: added active gaps state
+  /* ── Active gaps state ── */
   const [activeGaps,        setActiveGaps]        = useState([]);
   const [activeGapsLoading, setActiveGapsLoading] = useState(false);
+  const [gapBannerOpen,     setGapBannerOpen]     = useState(true);
 
   const boardRef = useRef(null);
 
@@ -831,7 +843,7 @@ const TheoryPage = () => {
     return () => { cancelled = true; };
   }, [topicId, user?.uid]);
 
-  // CHANGED: fetch active gaps when topic or user changes
+  /* ── Fetch active gaps when topic or user changes ── */
   useEffect(() => {
     if (!user?.uid) { setActiveGaps([]); return; }
     let cancelled = false;
@@ -843,6 +855,11 @@ const TheoryPage = () => {
     });
     return () => { cancelled = true; };
   }, [topicId, user?.uid]);
+
+  /* ── Re-open banner when a fresh set of gaps arrives ── */
+  useEffect(() => {
+    if (activeGaps.length > 0) setGapBannerOpen(true);
+  }, [activeGaps]);
 
   /* ── Save note callback ── */
   const handleNoteSave = useCallback(async (html) => {
@@ -928,21 +945,11 @@ const TheoryPage = () => {
 
   const notesReady = noteLoadedFor === topicId;
 
-  // CHANGED: banner shows only on first step of first section — entry point only
-  // ADD after activeGaps state — replaces showGapBanner
-  const activePrimaryGap = useMemo(() => {
-    if (!activeGaps.length) return null;
-    const order = { critical: 0, strong: 1, moderate: 2 };
-    return [...activeGaps].sort((a, b) => {
-      if (a.severity !== b.severity) return a.severity - b.severity;
-      return (order[a.strength] ?? 9) - (order[b.strength] ?? 9);
-    })[0];
-  }, [activeGaps]);
-
-  const showGapBanner =
-  !activeGapsLoading &&
-  activePrimaryGap !== null &&
-  activePrimaryGap.recommendation?.theorySectionIds?.includes(currSection?.id);
+  // Show whenever gaps exist — position in theory does not matter.
+  // The old secIdx === 0 && stepIdx === 0 guard caused the banner to never
+  // fire once the user had progressed past §1 step 1, breaking all
+  // non-discriminant gaps. gapBannerOpen preserves collapse state within session.
+  const showGapBanner = !activeGapsLoading && activeGaps.length > 0;
 
   /* ── Keyboard navigation ── */
   useEffect(() => {
@@ -1078,8 +1085,14 @@ const TheoryPage = () => {
                     <div className="th-skeleton">Loading…</div>
                   ) : (
                     <div className="th-flow">
-                      {/* CHANGED: gap banner inserted here, entry point only */}
-                      {showGapBanner && <GapRecommendationBanner gap={activePrimaryGap} />}
+
+                      {showGapBanner && (
+                        <GapRecommendationBanner
+                          gaps={activeGaps}
+                          open={gapBannerOpen}
+                          onToggle={() => setGapBannerOpen((v) => !v)}
+                        />
+                      )}
 
                       <div className="th-cards">
                         {(currStep?.cards || []).map((c, i) => renderCard(c, i, revealKey))}

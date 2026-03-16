@@ -133,9 +133,9 @@ const SurveyBar = ({ data, maxWidth }) => {
    PAGE
 ══════════════════════════════════════════ */
 const HomePage = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const firstName = user?.displayName?.split(" ")[0] ?? "there";
+  const firstName = (profile?.displayName || user?.displayName)?.split(" ")[0] ?? "there";
 
   return (
     <div className="page-shell">

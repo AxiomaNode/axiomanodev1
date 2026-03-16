@@ -76,13 +76,13 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) 
       {/* Left: avatar + identity */}
       <div className="profile-hero__left">
         <div className="profile-avatar-wrap">
-          <Avatar name={user?.displayName} photoURL={user?.photoURL} size={68} />
+          <Avatar name={profile?.displayName || user?.displayName} photoURL={user?.photoURL} size={68} />
           <div className="profile-avatar__lvl">{level}</div>
         </div>
 
         <div className="profile-hero__identity">
           <div className="profile-hero__name-row">
-            <h1 className="profile-hero__name">{user?.displayName || "Anonymous"}</h1>
+            <h1 className="profile-hero__name">{profile?.displayName || user?.displayName || "Anonymous"}</h1>
             <span className="profile-hero__tier"
               style={{ color: tier.color, borderColor: tier.color + "35",
                 background: tier.color + "0e" }}>
