@@ -10,12 +10,8 @@ import {
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 
-// CHANGED: Google provider
 const googleProvider = new GoogleAuthProvider();
 
-/* ─────────────────────────────────────────────
-   Email / password register
-───────────────────────────────────────────── */
 export const registerUser = async (email, password, displayName, language) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -37,7 +33,6 @@ export const registerUser = async (email, password, displayName, language) => {
       updatedAt: new Date().toISOString(),
     });
 
-    // CHANGED: send but don't block if it fails
     await sendEmailVerification(userCredential.user).catch(() => null);
     return userCredential.user;
   } catch (error) {
@@ -47,12 +42,6 @@ export const registerUser = async (email, password, displayName, language) => {
   }
 };
 
-/* ─────────────────────────────────────────────
-   NEW: Google sign-in
-   Handles both login and register in one call.
-   Creates Firestore profile only on first sign-in.
-   Existing accounts are signed in silently.
-───────────────────────────────────────────── */
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -65,8 +54,8 @@ export const signInWithGoogle = async () => {
       await setDoc(profileRef, {
         displayName: user.displayName || "",
         email: user.email || "",
-        language: "ru",    
         photoURL: user.photoURL || null,
+        language: "ru",
         ratingPoints: 0,
         stats: {
           practiceSessions: 0,
@@ -78,24 +67,20 @@ export const signInWithGoogle = async () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
-    }else {
-  // CHANGED: update photoURL for existing users who don't have it stored yet
-  const data = existing.data();
-  if (!data.photoURL && user.photoURL) {
-    await setDoc(profileRef, { photoURL: user.photoURL }, { merge: true });
-  }
+    } else {
+      const data = existing.data();
+      if (!data.photoURL && user.photoURL) {
+        await setDoc(profileRef, { photoURL: user.photoURL }, { merge: true });
+      }
+    }
 
     return user;
   } catch (error) {
-    // User closed the popup — not an error worth surfacing
     if (error.code === "auth/popup-closed-by-user") return null;
     throw new Error(error.message);
   }
 };
 
-/* ─────────────────────────────────────────────
-   Email / password login
-───────────────────────────────────────────── */
 export const loginUser = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -107,9 +92,6 @@ export const loginUser = async (email, password) => {
   }
 };
 
-/* ─────────────────────────────────────────────
-   Logout
-───────────────────────────────────────────── */
 export const logoutUser = async () => {
   try {
     await signOut(auth);
@@ -118,10 +100,6 @@ export const logoutUser = async () => {
   }
 };
 
-/* ─────────────────────────────────────────────
-   Resend verification email
-   CHANGED: rate limit silently ignored instead of throwing
-───────────────────────────────────────────── */
 export const resendVerificationEmail = async () => {
   try {
     const user = auth.currentUser;
@@ -134,9 +112,6 @@ export const resendVerificationEmail = async () => {
   }
 };
 
-/* ─────────────────────────────────────────────
-   Get user profile
-───────────────────────────────────────────── */
 export const getUserProfile = async (uid) => {
   try {
     const docRef = doc(db, "users", uid);
