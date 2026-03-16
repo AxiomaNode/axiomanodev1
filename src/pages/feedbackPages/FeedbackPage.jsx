@@ -618,6 +618,7 @@ const loadFeedback = useCallback(async () => {
       const item = { id: d.id, ...d.data() };
       try {
         const prof = await getUserProfile(item.uid);
+        if (prof?.photoURL) item.photoURL = prof.photoURL;
         if (prof?.displayName) item.displayName = prof.displayName;
       } catch { /* non-critical */ }
       return item;
