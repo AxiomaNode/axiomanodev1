@@ -61,25 +61,29 @@ export const signInWithGoogle = async () => {
     const profileRef = doc(db, "users", user.uid);
     const existing = await getDoc(profileRef);
 
-// In signInWithGoogle, replace the existing.exists() block:
-if (!existing.exists()) {
-  await setDoc(profileRef, {
-    displayName: user.displayName || "",
-    email: user.email || "",
-    photoURL: user.photoURL || null, // ADD
-    language: "ru",
-    ratingPoints: 0,
-    stats: { ... },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
-} else {
+    if (!existing.exists()) {
+      await setDoc(profileRef, {
+        displayName: user.displayName || "",
+        email: user.email || "",
+        language: "ru",    
+        photoURL: user.photoURL || null,
+        ratingPoints: 0,
+        stats: {
+          practiceSessions: 0,
+          diagnosticsCompleted: 0,
+          puzzlesSolved: 0,
+          homeworkCompleted: 0,
+          feedbackSent: 0,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }else {
   // CHANGED: update photoURL for existing users who don't have it stored yet
   const data = existing.data();
   if (!data.photoURL && user.photoURL) {
     await setDoc(profileRef, { photoURL: user.photoURL }, { merge: true });
   }
-}
 
     return user;
   } catch (error) {
