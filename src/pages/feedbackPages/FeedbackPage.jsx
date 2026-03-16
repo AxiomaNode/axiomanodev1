@@ -176,6 +176,7 @@ const FeedbackModal = ({ onClose, onSubmitted, existingReview, addToast }) => {
         strongSides: strongSides.trim(),
         weakSides:   weakSides.trim(),
         comment:     comment.trim(),
+        photoURL: user.photoURL || null,
         createdAt:   existingReview?.createdAt ?? serverTimestamp(),
         updatedAt:   serverTimestamp(),
         edited:      !isNew,
@@ -354,6 +355,19 @@ const DeleteConfirmModal = ({ onConfirm, onCancel, deleting }) => (
   </div>
 );
 
+const FeedbackAvatar = ({ name, photoURL }) => {
+  if (photoURL) {
+    return (
+      <img
+        src={photoURL}
+        alt={name}
+        className="fb-card__av fb-card__av--photo"
+      />
+    );
+  }
+  return <div className="fb-card__av">{initials(name)}</div>;
+};
+
 // ── Card ──────────────────────────────────────────────────────────────────────
 const FeedbackCard = ({ item, isOwn, onEdit, onDelete, onVote }) => {
   const [popup,      setPopup]      = useState(null);
@@ -393,7 +407,7 @@ const FeedbackCard = ({ item, isOwn, onEdit, onDelete, onVote }) => {
 
         <div className="fb-card__head">
           <Link to={`/profile/${item.uid}`} className="fb-card__av-link" tabIndex={-1}>
-            <div className="fb-card__av">{initials(item.displayName)}</div>
+            <FeedbackAvatar name={item.displayName} photoURL={item.photoURL} />
           </Link>
           <div className="fb-card__meta">
             <div className="fb-card__name-row">

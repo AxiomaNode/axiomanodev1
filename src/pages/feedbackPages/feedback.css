@@ -683,3 +683,12 @@
   background: var(--border);
   margin: 0;
 }
+
+.fb-card__av--photo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+}
