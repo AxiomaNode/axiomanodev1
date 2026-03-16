@@ -4,17 +4,18 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import { getPractice, getDiagnostics, getAllTopicNotes } from "../../services/db";
+import { getPractice, getDiagnostics, getAllTopicNotes, getTopicProgress } from "../../services/db";
 import { getUserProfile } from "../../firebase/auth";
 import ResultsSection  from "../../components/sections/ResultsSection";
 import ProgressSection from "../../components/sections/ProgressSections";
 import NotesSection    from "../../components/sections/NotesSection";
+import GapsSection from "../../components/sections/GapsSection";
 import ProfileEditModal from "../../components/profile/ProfileEditModal";
 import "./profile.css";
 import "../progressPages/progress.css";
 import '../resultsPages/results.css';
 import "../../styles/layout.css";
-
+import "./profile.gaps.css";
 // ── XP / level helpers ────────────────────────────────────────────────────────
 const XP_PER_LEVEL = 200;
 const getLevel    = (xp) => Math.floor((xp || 0) / XP_PER_LEVEL) + 1;
@@ -150,7 +151,7 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) 
 };
 
 // ── ProfilePage ───────────────────────────────────────────────────────────────
-const VALID_TABS = ["progress", "results", "notes"];
+const VALID_TABS = ["progress", "gaps", "results", "notes"];
 
 const ProfilePage = () => {
   const { user }   = useAuth();
@@ -165,6 +166,7 @@ const ProfilePage = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab,   setActiveTab]   = useState(initialTab);
+  const [topicProgress, setTopicProgress] = useState([]); 
   const [editOpen,    setEditOpen]    = useState(false);
 
   // Re-sync tab when navigating to /profile from elsewhere (e.g. header links)
@@ -196,17 +198,19 @@ const ProfilePage = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    Promise.all([
+        if (!user) return;
+        Promise.all([
       getDiagnostics(user.uid),
       getPractice(user.uid),
       getUserProfile(user.uid),
       getAllTopicNotes(user.uid),
-    ]).then(([diags, pracs, prof, notes]) => {
-      setDiagnostics(diags  ?? []);
-      setPractice(pracs     ?? []);
+      getTopicProgress(user.uid),        // ADD
+    ]).then(([diags, pracs, prof, notes, progress]) => {
+      setDiagnostics(diags    ?? []);
+      setPractice(pracs        ?? []);
       setProfile(prof);
-      setTopicNotes(notes   ?? []);
+      setTopicNotes(notes      ?? []);
+      setTopicProgress(progress ?? []);  // ADD
       setLoading(false);
     });
   }, [user]);
@@ -225,10 +229,11 @@ const ProfilePage = () => {
 
   const TABS = [
     { id: "progress", label: "Progress" },
+    { id: "gaps",     label: "Gaps",     badge: diagnostics.reduce((s, d) => s + (d.gaps?.length || 0), 0) || null },
     { id: "results",  label: "Results",  badge: diagnostics.length || null },
     { id: "notes",    label: "Notes",    badge: topicNotes.length  || null },
   ];
-
+ 
   return (
     <div className="page-shell">
       <Header sidebarOpen={sidebarOpen}
@@ -293,6 +298,12 @@ const ProfilePage = () => {
                     initialIdx={resultIdx}
                   />
                 )}
+                 {activeTab === "gaps" && (
+                  <GapsSection
+                    diagnostics={diagnostics}
+                    topicProgress={topicProgress}
+                  />
+                )}
                 {activeTab === "notes" && (
                   <NotesSection
                     notes={topicNotes}
@@ -300,6 +311,7 @@ const ProfilePage = () => {
                     onNoteUpdated={handleNoteUpdated}
                   />
                 )}
+                
               </div>
             </>
           )}

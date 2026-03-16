@@ -21,7 +21,7 @@
 import { topics } from "./topics";
 
 const theoryMeta = {
-  quadratic:    { subtitle: "Roots · Factoring · Formula · Vieta", minGrade: 8 },
+  quadratic:    { subtitle: "Roots · Factoring · Formula · Vertex Form · Vieta", minGrade: 8 },
   systems:      { subtitle: "Substitution · Addition",            minGrade: 8 },
   functions:    { subtitle: "Domain · Range · Composition",       minGrade: 9 },
   inequalities: { subtitle: "Linear · Quadratic · Sign method",   minGrade: 9 },
@@ -43,6 +43,9 @@ export const theory = {
   ═══════════════════════════════════════════════════════════ */
   quadratic: {
     title: "Quadratic Equations",
+    // homeworkCount: number of tasks in taskBank[quadratic].homework — NOT section count.
+    // Update this when tasks.js gains new homework items (e.g. completing the square tasks).
+    // TheoryPage falls back to taskBank?.[topicId]?.homework?.length if this is absent.
     homeworkCount: 8,
     sections: [
 
@@ -50,6 +53,7 @@ export const theory = {
          SECTION 1 — What is a quadratic equation?
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-intro",
         title: "What is a Quadratic Equation?",
         steps: [
           {
@@ -132,6 +136,7 @@ export const theory = {
          SECTION 2 — What are roots?
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-roots",
         title: "What Are Roots?",
         steps: [
           {
@@ -183,7 +188,6 @@ export const theory = {
                   title: "Graph of y = x² − x − 6",
                   caption:
                     "The parabola crosses the x-axis at x = −2 and x = 3. These crossing points are the roots of x² − x − 6 = 0.",
-                  // function coefficients
                   a: 1, b: -1, c: -6,
                   roots: [-2, 3],
                   xRange: [-3.5, 4.5],
@@ -199,7 +203,7 @@ export const theory = {
             ],
           },
           {
-            // Step 3 — How many roots can an equation have? (no check here, save for later)
+            // Step 3 — How many roots can an equation have?
             cards: [
               {
                 type: "fact",
@@ -242,6 +246,7 @@ export const theory = {
          SECTION 3 — Method 1: Factoring
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-factoring",
         title: "Method 1: Factoring",
         steps: [
           {
@@ -371,6 +376,7 @@ export const theory = {
          SECTION 4 — The Discriminant
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-discriminant",
         title: "The Discriminant",
         steps: [
           {
@@ -466,6 +472,7 @@ export const theory = {
          SECTION 5 — The Quadratic Formula
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-formula",
         title: "The Quadratic Formula",
         steps: [
           {
@@ -577,9 +584,139 @@ export const theory = {
       },
 
       /* ─────────────────────────────────────────────────────
-         SECTION 6 — Vieta's Formulas
+         SECTION 6 — Completing the Square
+         NEW — required by genCompleteSquare generator.
+         Teaches vertex form y = (x − h)² + k and how to reach
+         it from standard form by adding/subtracting (b/2)².
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-completing-square",
+        title: "Completing the Square",
+        steps: [
+          {
+            // Step 1 — The core move
+            cards: [
+              {
+                type: "analogy",
+                icon: "🧩",
+                title: "Making a perfect square fit",
+                content:
+                  "Completing the square is a technique for rewriting any quadratic " +
+                  "in a form that reveals its vertex directly. " +
+                  "Instead of x² + bx + c, you produce (x − h)² + k — " +
+                  "a shifted perfect square whose peak or trough is obvious at a glance.",
+              },
+              {
+                type: "formula",
+                label: "The core move",
+                content: "x² + bx  =  (x + b/2)² − (b/2)²",
+                note: "You add and subtract (b/2)² — adding zero in disguise. This turns the left side into a perfect square trinomial without changing the equation's value.",
+              },
+              {
+                type: "example",
+                title: "Apply the move to x² + 6x",
+                steps: [
+                  "Half of 6 is 3.  Square it: 3² = 9.",
+                  "x² + 6x  =  (x² + 6x + 9) − 9",
+                  "         =  (x + 3)² − 9",
+                  "Check by expanding: (x+3)² − 9 = x²+6x+9−9 = x² + 6x  ✓",
+                ],
+              },
+            ],
+          },
+          {
+            // Step 2 — Full equation and vertex form
+            cards: [
+              {
+                type: "text",
+                content:
+                  "When you apply this move to the full equation y = x² + bx + c, " +
+                  "you arrive at vertex form: y = (x − h)² + k. " +
+                  "The vertex of the parabola is the point (h, k) — readable directly from the form.",
+              },
+              {
+                type: "formula",
+                label: "Vertex form",
+                content: "y = (x − h)² + k\n\nh = −b/2     k = c − (b/2)²",
+                note: "Read the vertex as (h, k). Notice the sign: the form says (x − h), so if you see (x − 2)² the vertex x-coordinate is +2, not −2.",
+              },
+              {
+                type: "example",
+                title: "Rewrite y = x² − 4x + 7 in vertex form",
+                steps: [
+                  "b = −4.  Half of −4 is −2.  Square: (−2)² = 4.",
+                  "y = (x² − 4x + 4) − 4 + 7",
+                  "  = (x − 2)² + 3",
+                  "Vertex: h = 2, k = 3  →  vertex is (2, 3).",
+                  "Check: expand (x−2)²+3 = x²−4x+4+3 = x²−4x+7  ✓",
+                ],
+              },
+              {
+                type: "board",
+                scene: {
+                  type: "vertex_form",
+                  title: "Vertex form: y = (x − 2)² + 3",
+                  caption:
+                    "The parabola y = x² − 4x + 7 rewritten as (x−2)² + 3. " +
+                    "The vertex (2, 3) is the minimum point — readable directly from the form.",
+                  a: 1, b: -4, c: 7,
+                  h: 2, k: 3,
+                  xRange: [-1, 5],
+                },
+              },
+              {
+                type: "insight",
+                title: "The sign trap — the most common mistake",
+                content:
+                  "The form is (x − h)². " +
+                  "If the completed square reads (x − 2)², then h = +2. " +
+                  "If it reads (x + 3)² = (x − (−3))², then h = −3. " +
+                  "Always ask: 'what value of x makes this bracket zero?' — that's h.",
+              },
+            ],
+          },
+          {
+            // Step 3 — Negative b example + check
+            cards: [
+              {
+                type: "example",
+                title: "Rewrite y = x² + 2x − 5 in vertex form",
+                steps: [
+                  "b = 2.  Half of 2 is 1.  Square: 1² = 1.",
+                  "y = (x² + 2x + 1) − 1 − 5",
+                  "  = (x + 1)² − 6",
+                  "(x + 1)² = (x − (−1))²  →  h = −1,  k = −6.",
+                  "Vertex: (−1, −6).",
+                ],
+              },
+              {
+                type: "fact",
+                label: "Why this matters",
+                content:
+                  "Vertex form tells you the minimum (or maximum) of the parabola instantly — " +
+                  "it's the k value. It also connects back to the quadratic formula: " +
+                  "solving (x − h)² = −k gives x = h ± √(−k), which is exactly the formula rewritten.",
+              },
+            ],
+            check: {
+              question: "Complete the square for y = x² − 6x + 11. Which vertex form and vertex are correct?",
+              options: [
+                { label: "y = (x − 3)² + 2, vertex (3, 2)", explanation: "Correct. Half of −6 is −3. (−3)² = 9. y = (x²−6x+9) − 9 + 11 = (x−3)² + 2. Reading the vertex: h = 3, k = 2." },
+                { label: "y = (x + 3)² + 2, vertex (−3, 2)", explanation: "Sign error. (x+3)² expands to x²+6x+9 — the middle term would be +6x, not −6x. For b = −6 you need (x−3)²." },
+                { label: "y = (x − 3)² − 2, vertex (3, −2)", explanation: "The constant is wrong. After adding and subtracting 9: −9 + 11 = +2, not −2. Check the arithmetic on c − (b/2)²." },
+                { label: "y = (x − 6)² + 11, vertex (6, 11)", explanation: "You used b directly instead of b/2. The rule is half of b: half of −6 is −3, so the square is (x−3)², not (x−6)²." },
+              ],
+              correctIndex: 0,
+            },
+          },
+        ],
+      },
+
+      /* ─────────────────────────────────────────────────────
+         SECTION 7 — Vieta's Formulas  (was §6)
+      ───────────────────────────────────────────────────── */
+      {
+        id:    "quadratic-vieta",
         title: "Vieta's Formulas",
         steps: [
           {
@@ -609,6 +746,16 @@ export const theory = {
                   "Vieta's sum:     x₁ + x₂ = −(−5)/1 = 5     Check: 2 + 3 = 5  ✓",
                   "Vieta's product: x₁ · x₂ = 6/1 = 6          Check: 2 × 3 = 6  ✓",
                 ],
+              },
+              {
+                // ADDED: connects Vieta to discriminant — required by genVietaDiscriminant
+                type: "insight",
+                title: "Vieta's formulas give you the discriminant too",
+                content:
+                  "Since b = −a(x₁+x₂) and c = a·x₁x₂, substituting into D = b² − 4ac gives " +
+                  "D = a²[(x₁+x₂)² − 4·x₁x₂]. For a = 1 this simplifies to: " +
+                  "D = (x₁+x₂)² − 4·x₁x₂. " +
+                  "So if you know the sum and product of the roots, you can compute D directly — no equation needed.",
               },
             ],
           },
@@ -683,9 +830,10 @@ export const theory = {
       },
 
       /* ─────────────────────────────────────────────────────
-         SECTION 7 — Special Cases
+         SECTION 8 — Special Cases  (was §7)
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-special-cases",
         title: "Special Cases & Shortcuts",
         steps: [
           {
@@ -781,9 +929,10 @@ export const theory = {
       },
 
       /* ─────────────────────────────────────────────────────
-         SECTION 8 — Choosing Your Method
+         SECTION 9 — Choosing Your Method  (was §8)
       ───────────────────────────────────────────────────── */
       {
+        id:    "quadratic-methods",
         title: "Choosing the Right Method",
         steps: [
           {
@@ -791,7 +940,8 @@ export const theory = {
               {
                 type: "text",
                 content:
-                  "You now have four tools: special cases, factoring, the discriminant check, and the quadratic formula. " +
+                  "You now have six tools: special cases, factoring, the discriminant check, " +
+                  "the quadratic formula, completing the square, and Vieta's formulas. " +
                   "Knowing when to use each one makes solving faster and reduces errors. " +
                   "Here's the decision process a mathematician uses:",
               },
@@ -811,7 +961,14 @@ export const theory = {
               },
               {
                 type: "method",
-                title: "Step 3 — Use the discriminant + formula (always works)",
+                title: "Step 3 — Complete the square (when you need the vertex)",
+                when: "You need vertex form, or a ≠ 1 but no formula is allowed",
+                example: "y = x² − 4x + 7  →  y = (x−2)² + 3, vertex (2, 3)",
+                note: "Also the foundation of the quadratic formula — they are the same method.",
+              },
+              {
+                type: "method",
+                title: "Step 4 — Use the discriminant + formula (always works)",
                 when: "a ≠ 1, or decimal/fractional answers expected, or nothing else works",
                 example: "2x² − 5x − 3 = 0  →  D = 25+24 = 49  →  formula",
                 note: "Check D first. If D < 0, stop. If D ≥ 0, apply x = (−b ± √D) / 2a.",
@@ -820,10 +977,11 @@ export const theory = {
                 type: "formula",
                 label: "Decision flowchart (memorise this sequence)",
                 content:
-                  "b=0 or c=0 ?  → special case\n" +
+                  "b=0 or c=0 ?         → special case\n" +
                   "a=1 + integer roots? → factoring\n" +
-                  "otherwise → quadratic formula",
-                note: "Vieta's formulas can verify any result and solve 'find the coefficient' problems.",
+                  "need vertex form?    → complete the square\n" +
+                  "otherwise           → quadratic formula",
+                note: "Vieta's formulas verify any result and solve 'find the coefficient' problems.",
               },
               {
                 type: "fact",
@@ -832,8 +990,9 @@ export const theory = {
                   "1. Identify a, b, c instantly in any rearranged form. " +
                   "2. Calculate D without error. " +
                   "3. Apply the formula and simplify √D. " +
-                  "4. Use Vieta's to check or construct equations. " +
-                  "5. Recognise special cases on sight.",
+                  "4. Complete the square and read the vertex. " +
+                  "5. Use Vieta's to check or construct equations. " +
+                  "6. Recognise special cases on sight.",
               },
             ],
           },

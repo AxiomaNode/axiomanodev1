@@ -1,6 +1,6 @@
 // src/core/generators/quadraticGenerator.js
-// v2 — added sig/category fields, fixed string templates,
-//      added genFactoredForm + genRootEquation generators
+// v3 — fixed makeOptions dedup, guarded genCompleteSquare h≠0,
+//      guarded genRootEquation S≠0 and P≠0 to prevent option collisions
 
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const pick    = (arr) => arr[randInt(0, arr.length - 1)];
@@ -14,10 +14,19 @@ const shuffle = (arr) => {
   return a;
 };
 
+// ── makeOptions ────────────────────────────────────────────────
+// Deduplicates wrongs against correct AND against each other before
+// shuffling. Prevents identical options appearing in the same question.
 const makeOptions = (correctText, wrongTexts) => {
   const labels = ["A", "B", "C", "D"];
-  const all    = shuffle([correctText, ...wrongTexts].slice(0, 4));
-  const ci     = all.indexOf(correctText);
+  const seen   = new Set([correctText]);
+  const unique = wrongTexts.filter((w) => {
+    if (seen.has(w)) return false;
+    seen.add(w);
+    return true;
+  });
+  const all = shuffle([correctText, ...unique].slice(0, 4));
+  const ci  = all.indexOf(correctText);
   return {
     options: all.map((value, i) => ({ label: labels[i], value })),
     correct: labels[ci],
@@ -200,9 +209,12 @@ const genVietaSignMistake = () => {
 
 // ══════════════════════════════════════════════════════════════
 // GENERATOR 6: Completing the square
+// Guard: h ≠ 0 prevents (x − 0)² and (x + 0)² from appearing
+// as visually distinct but mathematically identical options.
 // ══════════════════════════════════════════════════════════════
 const genCompleteSquare = () => {
-  const h = randInt(-5, 5);
+  let h = randInt(-5, 5);
+  while (h === 0) h = randInt(-5, 5);          // guard: h ≠ 0
   const k = randInt(-10, 10);
   const b = -2 * h;
   const c = h * h + k;
@@ -228,26 +240,24 @@ const genCompleteSquare = () => {
 };
 
 // ══════════════════════════════════════════════════════════════
-// GENERATOR 7: Factored form  (NEW)
+// GENERATOR 7: Factored form
 // ══════════════════════════════════════════════════════════════
 const genFactoredForm = () => {
   const r1 = randInt(-5, 5);
   let   r2 = randInt(-5, 5);
   while (r2 === r1) r2 = randInt(-5, 5);
 
-  // x² − (r1+r2)x + r1*r2
   const S = r1 + r2;
   const P = r1 * r2;
 
   const correctText = `${factor(r1)} · ${factor(r2)}`;
 
-  // Wrong: sign-flipped roots, swapped, or off-by-one
   const wr1 = r1 + pick([-1, 1]);
   const wr2 = r2 + pick([-1, 1]);
   const wrongs = [
-    `${factor(-r1)} · ${factor(-r2)}`,    // signs flipped
-    `${factor(wr1)} · ${factor(r2)}`,     // r1 off
-    `${factor(r1)} · ${factor(wr2)}`,     // r2 off
+    `${factor(-r1)} · ${factor(-r2)}`,
+    `${factor(wr1)} · ${factor(r2)}`,
+    `${factor(r1)} · ${factor(wr2)}`,
   ];
   const { options, correct } = makeOptions(correctText, wrongs);
   return {
@@ -261,23 +271,33 @@ const genFactoredForm = () => {
 };
 
 // ══════════════════════════════════════════════════════════════
-// GENERATOR 8: "Which equation has these roots?"  (NEW)
+// GENERATOR 8: "Which equation has these roots?"
+// Constraints enforced upfront — no recursion, no retry loop:
+//   r1 ≠ 0          → ensures P = r1·r2 ≠ 0 (given r2 ≠ 0 below)
+//   r2 ∉ {0, r1, -r1} → ensures r2 ≠ r1 (distinct roots),
+//                        r2 ≠ 0 (P ≠ 0), r2 ≠ -r1 (S ≠ 0)
+// Without these, bxStr/cStr collapse to "" for both correct and
+// a wrong option, producing a literal duplicate string.
 // ══════════════════════════════════════════════════════════════
 const genRootEquation = () => {
-  const r1 = randInt(-6, 6);
-  let   r2 = randInt(-6, 6);
-  while (r2 === r1) r2 = randInt(-6, 6);
+  // r1: non-zero integer in [-6, 6]
+  const r1pool = [-6,-5,-4,-3,-2,-1,1,2,3,4,5,6];
+  const r1 = pick(r1pool);
 
-  const S = r1 + r2;
-  const P = r1 * r2;
-  // Correct: x² − Sx + P = 0  →  bxStr(-S) + cStr(P)
+  // r2: exclude 0 (P≠0), r1 (distinct), -r1 (S≠0)
+  const excluded = new Set([0, r1, -r1]);
+  const r2pool   = r1pool.filter((n) => !excluded.has(n));
+  const r2       = pick(r2pool);
+
+  const S = r1 + r2;  // guaranteed ≠ 0
+  const P = r1 * r2;  // guaranteed ≠ 0
+
   const correctText = `x²${bxStr(-S)}${cStr(P)} = 0`;
 
-  // Wrong variants: signs swapped, swapped sum/product, wrong sign on c
   const wrongs = [
-    `x²${bxStr(S)}${cStr(P)} = 0`,       // b sign flipped
-    `x²${bxStr(-S)}${cStr(-P)} = 0`,     // c sign flipped
-    `x²${bxStr(-P)}${cStr(S)} = 0`,      // sum/product swapped
+    `x²${bxStr(S)}${cStr(P)} = 0`,
+    `x²${bxStr(-S)}${cStr(-P)} = 0`,
+    `x²${bxStr(-P)}${cStr(S)} = 0`,
   ];
   const { options, correct } = makeOptions(correctText, wrongs);
   return {

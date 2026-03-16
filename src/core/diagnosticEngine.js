@@ -1,5 +1,5 @@
 import { topics } from "../data/topics";
-import { questions } from "../data/questions";
+import { generateQuestions } from "../core/questionGenerator";
 import { gapsDatabase } from "../data/gaps";
 import { coreGaps } from "../data/coreGaps";
 
@@ -31,6 +31,7 @@ if (process.env.NODE_ENV !== "production") {
    Returns a flat ordered list of questions for the given topics.
 ───────────────────────────────────────────────────────── */
 export const buildFullDiagnostic = (selectedTopicIds = null) => {
+  const questions = generateQuestions();
   const activeTopics = topics.filter((t) => {
     const hasQ = questions[t.id]?.length > 0;
     const isSel = selectedTopicIds ? selectedTopicIds.includes(t.id) : true;
@@ -97,7 +98,7 @@ export const detectAllGaps = (answers, allQuestions) => {
       let signalCount = 0;
       const failedTaskIds = [];
 
-      signals.forEach(({ taskId, gapAnswers }) => {
+     signals.forEach(({ taskId, gapAnswers: staticGapAnswers }) => {
         const given = fullAnswers[taskId];
         if (given === undefined) return;
 
@@ -105,6 +106,7 @@ export const detectAllGaps = (answers, allQuestions) => {
 
         const question = allQuestions.find((q) => q.id === taskId);
         if (!question) return;
+        const gapAnswers = question.gapAnswers ?? staticGapAnswers;
 
         const isWrong =
   given === "__skipped__" ||

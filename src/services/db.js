@@ -147,6 +147,8 @@ export const assignHomework = async (uid, topicId, payload, force = false) => {
   return after.exists() ? after.data() : null;
 };
 
+
+
 export const saveHomeworkAnswer = async (uid, topicId, taskId, answerLabel) => {
   const ref = doc(db, "users", uid, "homework", topicId);
   const snap = await getDoc(ref);
@@ -248,10 +250,16 @@ export const completeHomework = async (uid, topicId) => {
   return after.exists() ? after.data() : null;
 };
 
-export const getTopicProgress = async (uid, topicId) => {
-  const ref = doc(db, "users", uid, "topicProgress", topicId);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
+export const getTopicProgress = async (uid) => {
+  if (!uid) return [];
+  try {
+    const ref  = collection(db, "users", uid, "topicProgress");
+    const snap = await getDocs(ref);
+    return snap.docs.map((d) => ({ topicId: d.id, ...d.data() }));
+  } catch (e) {
+    console.error("[db] getTopicProgress:", e);
+    return [];
+  }
 };
 
 /* ─────────────────────────────────────────────

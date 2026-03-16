@@ -308,13 +308,162 @@ const Chalkboard = ({ scene, revealKey }) => {
     }
   };
 
+  // ── renderVertexForm — added from patch ───────────────────────────────────
+  const renderVertexForm = (ctx, w, h, t, scene) => {
+    const {
+      a = 1, b = -4, c = 7,
+      h: vh = 2, k: vk = 3,
+      xRange = [-1, 5],
+    } = scene;
+
+    const padL = 52, padR = 28, padT = 28, padB = 44;
+    const cw = w - padL - padR;
+    const ch = h - padT - padB;
+
+    const xMin = xRange[0], xMax = xRange[1];
+    const scaleX = cw / (xMax - xMin);
+
+    let yMin = Infinity, yMax = -Infinity;
+    for (let xi = xMin; xi <= xMax; xi += 0.05) {
+      const y = a * xi * xi + b * xi + c;
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    }
+    yMin = Math.floor(yMin) - 1;
+    yMax = Math.ceil(yMax) + 2;
+    const scaleY = ch / (yMax - yMin);
+
+    const ox = padL + (-xMin) * scaleX;
+    const oy = padT + yMax * scaleY;
+    const toC = (x, y) => [ox + x * scaleX, oy - y * scaleY];
+
+    drawAxesLines(ctx, ox, oy, w, h, scaleX, xMin, xMax);
+    drawAxesLabels(ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax);
+
+    // Curve (0 → 0.6)
+    const SAMPLES = 120;
+    const curveEnd = Math.floor(SAMPLES * Math.min(1, t / 0.6));
+    if (curveEnd > 1) {
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "rgba(42, 213, 180, 0.85)";
+      ctx.lineWidth = 2.2;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = "rgba(42, 213, 180, 0.25)";
+      ctx.globalAlpha = 0.92;
+      ctx.beginPath();
+      for (let i = 0; i < curveEnd; i++) {
+        const xi = xMin + (i / SAMPLES) * (xMax - xMin);
+        const yi = a * xi * xi + b * xi + c;
+        const [px, py] = toC(xi, yi);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Vertex dot (0.6 → 0.75)
+    if (t > 0.6) {
+      const dotT = Math.min(1, (t - 0.6) / 0.15);
+      const [vpx, vpy] = toC(vh, vk);
+
+      ctx.save();
+      ctx.globalAlpha = 0.22 * dotT;
+      const grad = ctx.createRadialGradient(vpx, vpy, 0, vpx, vpy, 18);
+      grad.addColorStop(0, "rgba(255, 210, 100, 0.9)");
+      grad.addColorStop(1, "rgba(255, 180, 50, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(vpx, vpy, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = dotT;
+      ctx.fillStyle = "rgba(255, 210, 100, 0.95)";
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = "rgba(255, 210, 100, 0.6)";
+      ctx.beginPath();
+      ctx.arc(vpx, vpy, 5 * dotT, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Dashed drop lines (0.75 → 0.88)
+    if (t > 0.75) {
+      const lineT = Math.min(1, (t - 0.75) / 0.13);
+      const [vpx, vpy] = toC(vh, vk);
+
+      ctx.save();
+      ctx.globalAlpha = 0.35 * lineT;
+      ctx.strokeStyle = "rgba(255, 210, 100, 0.7)";
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 4]);
+
+      ctx.beginPath();
+      ctx.moveTo(vpx, vpy);
+      ctx.lineTo(vpx, oy);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(vpx, vpy);
+      ctx.lineTo(ox, vpy);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Labels (0.88 → 1.0)
+    if (t > 0.88) {
+      const labelT = Math.min(1, (t - 0.88) / 0.12);
+      const [vpx, vpy] = toC(vh, vk);
+
+      ctx.save();
+      ctx.globalAlpha = labelT;
+
+      const coordLabel = `(${vh}, ${vk})`;
+      ctx.font = "700 12px 'Courier New', monospace";
+      const coordW = ctx.measureText(coordLabel).width;
+      const lx = vpx + 10;
+      const ly = vpy - 14;
+
+      ctx.fillStyle = "rgba(13, 17, 23, 0.85)";
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(lx - 3, ly - 12, coordW + 6, 16, 3);
+        ctx.fill();
+      } else {
+        ctx.fillRect(lx - 3, ly - 12, coordW + 6, 16);
+      }
+      ctx.fillStyle = "rgba(255, 210, 100, 0.95)";
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = "rgba(255, 210, 100, 0.4)";
+      ctx.fillText(coordLabel, lx, ly);
+
+      ctx.font = "500 10px -apple-system, sans-serif";
+      const vLabel = "vertex";
+      const vw = ctx.measureText(vLabel).width;
+      ctx.fillStyle = "rgba(13, 17, 23, 0.8)";
+      ctx.fillRect(lx - 3, ly + 4, vw + 6, 13);
+      ctx.fillStyle = "rgba(180, 210, 205, 0.65)";
+      ctx.shadowBlur = 0;
+      ctx.fillText(vLabel, lx, ly + 14);
+
+      ctx.restore();
+    }
+  };
+  // ── end renderVertexForm ──────────────────────────────────────────────────
+
   const renderScene = (ctx, w, h, t) => {
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = "#0d1117";
     ctx.fillRect(0, 0, w, h);
     if (!scene) return;
-    if (scene.type === "parabola_single") renderParabolaSingle(ctx, w, h, t, scene);
+    if (scene.type === "parabola_single")       renderParabolaSingle(ctx, w, h, t, scene);
     else if (scene.type === "parabola_D_cases") renderDCases(ctx, w, h, t);
+    else if (scene.type === "vertex_form")      renderVertexForm(ctx, w, h, t, scene);
   };
 
   useEffect(() => {
@@ -558,54 +707,24 @@ const StrengthPip = ({ strength }) => {
   return <span className="th-gap-rec__pip" style={{ color: s.color }}>{s.label}</span>;
 };
 
-const GapRecommendationBanner = ({ gaps }) => {
-  const [open, setOpen] = useState(true);
-  if (!gaps?.length) return null;
+const GapRecommendationBanner = ({ gap }) => {
+  if (!gap) return null;
+  const strengthColor = {
+    moderate: "#f0a500",
+    strong:   "#e05c5c",
+    critical: "#e05c5c",
+  }[gap.strength] || "var(--teal)";
 
   return (
-    <div className={`th-gap-rec${open ? "" : " th-gap-rec--collapsed"}`}>
+    <div className="th-gap-rec" style={{ borderLeftColor: strengthColor }}>
       <div className="th-gap-rec__header">
-        <div className="th-gap-rec__header-left">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          <span className="th-gap-rec__label">Recommended for you</span>
-          <span className="th-gap-rec__count">{gaps.length} gap{gaps.length !== 1 ? "s" : ""} detected</span>
-        </div>
-        <button
-          className="th-gap-rec__toggle"
-          onClick={() => setOpen(v => !v)}
-          aria-label={open ? "Collapse" : "Expand"}
-        >
-          <svg
-            width="13" height="13" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"
-            style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.2s" }}
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
+        <span className="th-gap-rec__label">Recommended for you</span>
+        <span className="th-gap-rec__pip" style={{ color: strengthColor }}>
+          {gap.strength}
+        </span>
       </div>
-
-      {open && (
-        <div className="th-gap-rec__body">
-          <p className="th-gap-rec__intro">
-            Your last diagnostic found reasoning gaps in this topic. Pay close attention to the sections below.
-          </p>
-          <div className="th-gap-rec__list">
-            {gaps.map((gap) => (
-              <div key={gap.id} className="th-gap-rec__item">
-                <div className="th-gap-rec__item-head">
-                  <span className="th-gap-rec__item-title">{gap.title}</span>
-                  <StrengthPip strength={gap.strength} />
-                </div>
-                <p className="th-gap-rec__item-rec">{gap.recommendationText}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <p className="th-gap-rec__title">{gap.title}</p>
+      <p className="th-gap-rec__item-rec">{gap.recommendationText}</p>
     </div>
   );
 };
@@ -810,7 +929,20 @@ const TheoryPage = () => {
   const notesReady = noteLoadedFor === topicId;
 
   // CHANGED: banner shows only on first step of first section — entry point only
-  const showGapBanner = !activeGapsLoading && activeGaps.length > 0 && secIdx === 0 && stepIdx === 0;
+  // ADD after activeGaps state — replaces showGapBanner
+  const activePrimaryGap = useMemo(() => {
+    if (!activeGaps.length) return null;
+    const order = { critical: 0, strong: 1, moderate: 2 };
+    return [...activeGaps].sort((a, b) => {
+      if (a.severity !== b.severity) return a.severity - b.severity;
+      return (order[a.strength] ?? 9) - (order[b.strength] ?? 9);
+    })[0];
+  }, [activeGaps]);
+
+  const showGapBanner =
+  !activeGapsLoading &&
+  activePrimaryGap !== null &&
+  activePrimaryGap.recommendation?.theorySectionIds?.includes(currSection?.id);
 
   /* ── Keyboard navigation ── */
   useEffect(() => {
@@ -947,7 +1079,7 @@ const TheoryPage = () => {
                   ) : (
                     <div className="th-flow">
                       {/* CHANGED: gap banner inserted here, entry point only */}
-                      {showGapBanner && <GapRecommendationBanner gaps={activeGaps} />}
+                      {showGapBanner && <GapRecommendationBanner gap={activePrimaryGap} />}
 
                       <div className="th-cards">
                         {(currStep?.cards || []).map((c, i) => renderCard(c, i, revealKey))}

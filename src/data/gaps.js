@@ -7,7 +7,19 @@
  * - Each gap maps to exactly one coreGapId from coreGaps.js
  * - signals[] maps to question IDs in questions.js
  * - subGaps[] are internal detection signals only — never shown to the user directly
- * - recommendation.theorySectionIds are placeholders until theory content is indexed
+ * - recommendation.theorySectionIds reference the `id` fields on theory.js sections.
+ *   The full ID list (as of theory.js v3):
+ *     "quadratic-intro"              §1
+ *     "quadratic-roots"              §2
+ *     "quadratic-factoring"          §3
+ *     "quadratic-discriminant"       §4
+ *     "quadratic-formula"            §5
+ *     "quadratic-completing-square"  §6
+ *     "quadratic-vieta"              §7
+ *     "quadratic-special-cases"      §8
+ *     "quadratic-methods"            §9
+ *   When adding a new theory section, assign its id there first,
+ *   then reference it here. Never invent IDs that don't exist in theory.js.
  *
  * Detection logic (per gap):
  *   2 / totalSignals wrong → moderate
@@ -52,14 +64,15 @@ export const gapsDatabase = {
         { taskId: "A3", gapAnswers: ["Two different solutions in ℝ", "One solution in ℝ", "Infinitely many solutions"], expectedFailurePattern: "Chooses 'two solutions' or 'one solution' when D<0 means none" },
         { taskId: "A4", gapAnswers: ["Two different solutions in ℝ", "One solution in ℝ", "Two solutions in ℝ, both negative"], expectedFailurePattern: "Chooses any real-solution option despite D=-16" },
       ],
-      // Internal only — not shown to user
       subGaps: [
         { id: "sq-disc-zero", description: "Confuses D=0 (one root) with D>0 (two roots)" },
         { id: "sq-disc-negative", description: "Treats D<0 as still producing real solutions" },
         { id: "sq-disc-miscount", description: "Computes D correctly but selects wrong root count" },
       ],
       recommendation: {
-        theorySectionIds: ["quadratic-discriminant-intro", "quadratic-discriminant-cases"],
+        // §4 covers D formula, all three cases, and visual — primary reference.
+        // §5 reinforces D usage inside the quadratic formula.
+        theorySectionIds: ["quadratic-discriminant", "quadratic-formula"],
         practiceMode: "gap_targeted",
         practiceTag: "discriminant",
       },
@@ -100,7 +113,10 @@ export const gapsDatabase = {
         { id: "sq-root-perfect-square", description: "Treats (x−a)²=0 as having two solutions" },
       ],
       recommendation: {
-        theorySectionIds: ["quadratic-roots-symmetry", "quadratic-discriminant-cases"],
+        // §2 introduces roots and the three possible counts.
+        // §4 ties D=0 to the repeated root case explicitly.
+        // §8 covers the b=0 pure quadratic case (x²=k → ±√k).
+        theorySectionIds: ["quadratic-roots", "quadratic-discriminant", "quadratic-special-cases"],
         practiceMode: "gap_targeted",
         practiceTag: "double-root",
       },
@@ -142,7 +158,9 @@ export const gapsDatabase = {
         { id: "sq-div-incomplete-recognition", description: "Recognises the error conceptually but can't execute correct method" },
       ],
       recommendation: {
-        theorySectionIds: ["quadratic-factoring-zero-product", "quadratic-factoring-patterns"],
+        // §3 introduces the zero product property and factoring out x
+        // (the correct alternative to dividing by x).
+        theorySectionIds: ["quadratic-factoring"],
         practiceMode: "gap_targeted",
         practiceTag: "div-by-var",
       },
@@ -184,7 +202,9 @@ export const gapsDatabase = {
         { id: "sq-factor-no-verify", description: "Does not expand result to verify against original expression" },
       ],
       recommendation: {
-        theorySectionIds: ["quadratic-factoring-patterns", "quadratic-factoring-identities"],
+        // §3 covers the p,q method and sign rules for factoring.
+        // §8 covers perfect square trinomials and difference of squares explicitly.
+        theorySectionIds: ["quadratic-factoring", "quadratic-special-cases"],
         practiceMode: "gap_targeted",
         practiceTag: "factoring",
       },
@@ -226,7 +246,8 @@ export const gapsDatabase = {
         { id: "sq-vieta-build-equation", description: "Builds equation from roots with incorrect signs" },
       ],
       recommendation: {
-        theorySectionIds: ["quadratic-vieta-intro", "quadratic-vieta-applications"],
+        // §7 covers Vieta's formulas, sign conventions, and building equations from roots.
+        theorySectionIds: ["quadratic-vieta"],
         practiceMode: "gap_targeted",
         practiceTag: "vieta",
       },
