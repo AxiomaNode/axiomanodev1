@@ -1,0 +1,105 @@
+/* ════════════════════════════════════════
+   Gap Recommendation Banner — Option A
+   Uses project CSS variables (globals.css).
+   Replace the old .th-gap-rec block in theory.css with this.
+════════════════════════════════════════ */
+
+.th-gap-rec {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  background: var(--card-bg-alt);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--teal);
+  border-radius: 0 6px 6px 0;
+}
+
+/* teal icon box */
+.th-gap-rec__icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  background: var(--teal-light);
+  color: var(--teal-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+/* text block */
+.th-gap-rec__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.th-gap-rec__eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+  margin-bottom: 4px;
+}
+
+.th-gap-rec__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--teal);
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.th-gap-rec__desc {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+/* right side: pill + dismiss */
+.th-gap-rec__right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 1px;
+}
+
+/* bg / color / borderColor set inline from STRENGTH_META in the component */
+.th-gap-rec__strength {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.th-gap-rec__dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  color: var(--text-light);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.th-gap-rec__dismiss:hover {
+  background: var(--border);
+  color: var(--text-mid);
+}
+
+/* ── Dark mode: --teal-light is already rgba(42,143,160,0.15) in the dark
+      theme so the icon bg adapts automatically. Strength pills use hardcoded
+      semantic amber/red which remain legible on both --card-bg-alt values. ── */
+[data-theme="dark"] .th-gap-rec {
+  border-color: var(--border);
+  border-left-color: var(--teal);
+}

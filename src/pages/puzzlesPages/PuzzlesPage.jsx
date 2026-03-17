@@ -57,19 +57,15 @@ const TimerRing = ({ timeLeft, total }) => {
   return (
     <div className={`pz-ring${urgent ? " pz-ring--urgent" : ""}`}>
       <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--border)" strokeWidth={STROKE} />
         <circle
-          cx={SIZE / 2} cy={SIZE / 2} r={R}
-          fill="none" stroke="var(--border)"
-          strokeWidth={STROKE}
-        />
-        <circle
-          cx={SIZE / 2} cy={SIZE / 2} r={R}
+          cx={SIZE/2} cy={SIZE/2} r={R}
           fill="none" stroke={color}
           strokeWidth={STROKE}
           strokeDasharray={CIRC}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
+          transform={`rotate(-90 ${SIZE/2} ${SIZE/2})`}
           style={{ transition: "stroke-dashoffset 1s linear, stroke 0.5s ease" }}
         />
       </svg>
@@ -95,7 +91,6 @@ const LobbyScreen = ({ selectedTopic, onTopicSelect, onStart, bestStreak, bestSc
         Wrong answer or timeout breaks your streak.
       </p>
 
-      {/* Personal bests */}
       {(bestStreak > 0 || bestScore > 0) && (
         <div className="pz-lobby__bests">
           {bestStreak > 0 && (
@@ -119,7 +114,6 @@ const LobbyScreen = ({ selectedTopic, onTopicSelect, onStart, bestStreak, bestSc
         </div>
       )}
 
-      {/* Topic select */}
       <div className="pz-lobby__topics">
         <p className="pz-lobby__topics-label">Select topic</p>
         <div className="pz-lobby__topic-grid">
@@ -148,7 +142,6 @@ const LobbyScreen = ({ selectedTopic, onTopicSelect, onStart, bestStreak, bestSc
         </div>
       </div>
 
-      {/* Rules */}
       <div className="pz-lobby__rules">
         {[
           { icon: "⚡", text: "Answer fast — more XP for speed" },
@@ -187,9 +180,9 @@ const ResultsScreen = ({ correct, total, sessionXP, bestStreak, results, onResta
         </div>
         <div className="pz-results__grid">
           {[
-            { val: `${correct}/${total}`,                       label: "Correct"     },
-            { val: `${Math.round((correct / total) * 100)}%`,  label: "Accuracy"    },
-            { val: bestStreak,                                   label: "Best streak" },
+            { val: `${correct}/${total}`,                      label: "Correct"     },
+            { val: `${Math.round((correct/total)*100)}%`,      label: "Accuracy"    },
+            { val: bestStreak,                                  label: "Best streak" },
           ].map(s => (
             <div key={s.label} className="pz-results__stat">
               <strong>{s.val}</strong><span>{s.label}</span>
@@ -215,32 +208,29 @@ const ResultsScreen = ({ correct, total, sessionXP, bestStreak, results, onResta
 /* ── Main Page ─────────────────────────────────────────────── */
 const PuzzlesPage = () => {
   const { user } = useAuth();
-  const [sidebarOpen,    setSidebarOpen]    = useState(false);
-  const [selectedTopic,  setSelectedTopic]  = useState(TOPICS[0]);
-  const [screen,         setScreen]         = useState("lobby"); // lobby | game | results
-  const [bestStreak,     setBestStreak]     = useState(0);
-  const [bestScore,      setBestScore]      = useState(0);
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState(TOPICS[0]);
+  const [screen,        setScreen]        = useState("lobby");
+  const [bestStreak,    setBestStreak]    = useState(0);
+  const [bestScore,     setBestScore]     = useState(0);
 
-  /* Game state */
-  const [tasks,    setTasks]    = useState([]);
-  const [idx,      setIdx]      = useState(0);
-  const [selected, setSelected] = useState(null);
-  const [revealed, setRevealed] = useState(false);
-  const [results,  setResults]  = useState([]);
-
-  const [streak,     setStreak]     = useState(0);
-  const [sessionBest,setSessionBest]= useState(0);
-  const [sessionXP,  setSessionXP]  = useState(0);
-  const [correct,    setCorrect]    = useState(0);
-  const [timeLeft,   setTimeLeft]   = useState(TIMER_SECS);
+  const [tasks,     setTasks]     = useState([]);
+  const [idx,       setIdx]       = useState(0);
+  const [selected,  setSelected]  = useState(null);
+  const [revealed,  setRevealed]  = useState(false);
+  const [results,   setResults]   = useState([]);
+  const [streak,    setStreak]    = useState(0);
+  const [sessionBest, setSessionBest] = useState(0);
+  const [sessionXP,   setSessionXP]   = useState(0);
+  const [correct,   setCorrect]   = useState(0);
+  const [timeLeft,  setTimeLeft]  = useState(TIMER_SECS);
   const [streakAnim, setStreakAnim] = useState(false);
-  const [xpPop,      setXpPop]     = useState(null);
+  const [xpPop,     setXpPop]     = useState(null);
   const timerRef = useRef(null);
   const xpKey    = useRef(0);
 
   const task = tasks[idx] || null;
 
-  /* Load personal bests from Firestore */
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "users", user.uid)).then(snap => {
@@ -269,7 +259,6 @@ const PuzzlesPage = () => {
     } catch (e) { console.error("bests:", e); }
   }, [user]);
 
-  /* Timer */
   useEffect(() => { if (screen === "game") setTimeLeft(TIMER_SECS); }, [idx, screen]);
 
   useEffect(() => {
@@ -326,7 +315,6 @@ const PuzzlesPage = () => {
     }
   }, [idx, sessionBest, correct, selected, task, saveBests]);
 
-  /* Keyboard */
   useEffect(() => {
     const onKey = (e) => {
       if (screen !== "game") return;
@@ -342,7 +330,6 @@ const PuzzlesPage = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [revealed, screen, handleNext, handleSelect]);
 
-  /* Timer-based card tint */
   const cardTint = !revealed && timeLeft <= 15
     ? `rgba(231,76,60,${((15 - timeLeft) / 15) * 0.06})`
     : "transparent";
@@ -358,7 +345,6 @@ const PuzzlesPage = () => {
 
       <main className="page-main pz-main">
 
-        {/* ── LOBBY ── */}
         {screen === "lobby" && (
           <LobbyScreen
             selectedTopic={selectedTopic}
@@ -369,149 +355,131 @@ const PuzzlesPage = () => {
           />
         )}
 
-        {/* ── GAME ── */}
         {screen === "game" && task && (
-          <div className="diag-shell diag-shell--with-notes" style={{width: "100%", maxWidth:"1200px"}}>
-            <div className="diag-shell__main">
-              <div className="pz-game-shell">
+          <div className="pz-shell">
             <div className="pz-game">
 
-            {/* Top bar */}
-            <div className="pz-game__top">
-              <div className="pz-game__top-left">
-                <div className={`pz-streak${streakAnim ? " pz-streak--pop" : ""}`}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="pz-streak__flame">
-                    <path d="M12 2c0 0-5 4.5-5 9.5a5 5 0 0 0 10 0C17 6.5 12 2 12 2zm0 14a3 3 0 0 1-3-3c0-2.5 3-6 3-6s3 3.5 3 6a3 3 0 0 1-3 3z"/>
-                  </svg>
-                  <strong>{streak}</strong>
-                  <span>streak</span>
+              <div className="pz-game__top">
+                <div className="pz-game__top-left">
+                  <div className={`pz-streak${streakAnim ? " pz-streak--pop" : ""}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="pz-streak__flame">
+                      <path d="M12 2c0 0-5 4.5-5 9.5a5 5 0 0 0 10 0C17 6.5 12 2 12 2zm0 14a3 3 0 0 1-3-3c0-2.5 3-6 3-6s3 3.5 3 6a3 3 0 0 1-3 3z"/>
+                    </svg>
+                    <strong>{streak}</strong>
+                    <span>streak</span>
+                  </div>
+                  <div className="pz-game__xp">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    +{sessionXP} XP
+                  </div>
                 </div>
-                <div className="pz-game__xp">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                  </svg>
-                  +{sessionXP} XP
+                <div className="pz-game__top-right">
+                  <span className="pz-game__counter">{idx + 1} / {TASKS_PER_SESSION}</span>
+                  <button className="pz-game__quit" onClick={() => setScreen("lobby")}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <div className="pz-game__top-right">
-                <span className="pz-game__counter">{idx + 1} / {TASKS_PER_SESSION}</span>
-                <button className="pz-game__quit" onClick={() => setScreen("lobby")}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
+              <div className="pz-game__dots">
+                {Array.from({ length: TASKS_PER_SESSION }, (_, i) => {
+                  let s = "idle";
+                  if (i < results.length) s = results[i] ? "ok" : "no";
+                  else if (i === idx)     s = "active";
+                  return <div key={i} className={`pz-gdot pz-gdot--${s}`} />;
+                })}
               </div>
-            </div>
 
-            {/* Progress dots */}
-            <div className="pz-game__dots">
-              {Array.from({ length: TASKS_PER_SESSION }, (_, i) => {
-                let s = "idle";
-                if (i < results.length) s = results[i] ? "ok" : "no";
-                else if (i === idx)     s = "active";
-                return <div key={i} className={`pz-gdot pz-gdot--${s}`} />;
-              })}
-            </div>
+              <div className="pz-qcard" key={`q-${idx}`}
+                style={{ background: `color-mix(in srgb, var(--card-bg) 100%, ${cardTint})` }}>
+                <div className="pz-qcard__head">
+                  {task.category && <span className="pz-qcat">{task.category}</span>}
+                  {!revealed && <TimerRing timeLeft={timeLeft} total={TIMER_SECS} />}
+                  {revealed && (
+                    <div className={`pz-qcard__verdict pz-qcard__verdict--${feedbackState}`}>
+                      {feedbackState === "ok" ? "✓" : feedbackState === "timeout" ? "—" : "✗"}
+                    </div>
+                  )}
+                </div>
 
-            {/* Question card */}
-            <div
-              className="pz-qcard"
-              key={`q-${idx}`}
-              style={{ background: `color-mix(in srgb, var(--card-bg) 100%, ${cardTint})` }}
-            >
-              {/* Timer ring + category */}
-              <div className="pz-qcard__head">
-                {task.category && <span className="pz-qcat">{task.category}</span>}
-                {!revealed && <TimerRing timeLeft={timeLeft} total={TIMER_SECS} />}
+                <p className="pz-qcard__text">{task.text}</p>
+
                 {revealed && (
-                  <div className={`pz-qcard__verdict pz-qcard__verdict--${feedbackState}`}>
-                    {feedbackState === "ok" ? "✓" : feedbackState === "timeout" ? "—" : "✗"}
+                  <div className={`pz-feedback pz-feedback--${feedbackState}`}>
+                    <span className="pz-feedback__msg">
+                      {feedbackState === "ok"
+                        ? streak >= 5 ? `🔥 ${streak} in a row!`
+                          : streak >= 3 ? `${streak}-streak`
+                          : "Correct"
+                        : feedbackState === "timeout"
+                        ? `Time's up — answer: ${task.correct}`
+                        : `Wrong — correct: ${task.correct}`}
+                    </span>
+                    <button className="pz-feedback__next" onClick={handleNext}>
+                      {idx + 1 < TASKS_PER_SESSION ? "Next →" : "Results →"}
+                    </button>
+                  </div>
+                )}
+
+                {!revealed && (
+                  <div className="pz-qcard__hint">
+                    <kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd>
+                    <span>or click</span>
+                  </div>
+                )}
+
+                {xpPop && (
+                  <div className="pz-xppop" key={xpPop.key} aria-hidden="true">
+                    +{xpPop.amount}<span>XP</span>
                   </div>
                 )}
               </div>
 
-              <p className="pz-qcard__text">{task.text}</p>
-
-              {/* Feedback */}
-              {revealed && (
-                <div className={`pz-feedback pz-feedback--${feedbackState}`}>
-                  <span className="pz-feedback__msg">
-                    {feedbackState === "ok"
-                      ? streak >= 5 ? `🔥 ${streak} in a row!`
-                        : streak >= 3 ? `${streak}-streak`
-                        : "Correct"
-                      : feedbackState === "timeout"
-                      ? `Time's up — answer: ${task.correct}`
-                      : `Wrong — correct: ${task.correct}`}
-                  </span>
-                  <button className="pz-feedback__next" onClick={handleNext}>
-                    {idx + 1 < TASKS_PER_SESSION ? "Next →" : "Results →"}
-                  </button>
-                </div>
-              )}
-
-              {/* Keyboard hint */}
-              {!revealed && (
-                <div className="pz-qcard__hint">
-                  <kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd>
-                  <span>or click</span>
-                </div>
-              )}
-
-              {/* XP pop */}
-              {xpPop && (
-                <div className="pz-xppop" key={xpPop.key} aria-hidden="true">
-                  +{xpPop.amount}<span>XP</span>
-                </div>
-              )}
-            </div>
-
-            {/* Answer tiles */}
-            <div className="pz-tiles">
-              {task.options.map((opt) => {
-                let state = "idle";
-                if (revealed) {
-                  if (opt.label === task.correct)  state = "correct";
-                  else if (opt.label === selected) state = "wrong";
-                  else                             state = "dim";
-                }
-                return (
-                  <button
-                    key={opt.label}
-                    className={`pz-tile pz-tile--${state}`}
-                    onClick={() => handleSelect(opt.label)}
-                    disabled={revealed}
-                  >
-                    <span className="pz-tile__lbl">{opt.label}</span>
-                    <span className="pz-tile__val">{opt.value}</span>
-                    {revealed && opt.label === task.correct && (
-                      <span className="pz-tile__mark pz-tile__mark--ok">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                      </span>
-                    )}
-                    {revealed && opt.label === selected && opt.label !== task.correct && (
-                      <span className="pz-tile__mark pz-tile__mark--no">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+              <div className="pz-tiles">
+                {task.options.map((opt) => {
+                  let state = "idle";
+                  if (revealed) {
+                    if (opt.label === task.correct)  state = "correct";
+                    else if (opt.label === selected) state = "wrong";
+                    else                             state = "dim";
+                  }
+                  return (
+                    <button
+                      key={opt.label}
+                      className={`pz-tile pz-tile--${state}`}
+                      onClick={() => handleSelect(opt.label)}
+                      disabled={revealed}
+                    >
+                      <span className="pz-tile__lbl">{opt.label}</span>
+                      <span className="pz-tile__val">{opt.value}</span>
+                      {revealed && opt.label === task.correct && (
+                        <span className="pz-tile__mark pz-tile__mark--ok">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        </span>
+                      )}
+                      {revealed && opt.label === selected && opt.label !== task.correct && (
+                        <span className="pz-tile__mark pz-tile__mark--no">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
             </div>
-            <NotesPanel />
-          </div>
-            </div>
+            <NotesPanel sessionId={`pz_${selectedTopic.id}`} />
           </div>
         )}
 
-        {/* ── RESULTS ── */}
         {screen === "results" && (
           <ResultsScreen
             correct={correct}

@@ -291,10 +291,9 @@ const GapsEmpty = () => (
 
 const GapsSection = ({ diagnostics = [], topicProgress = [] }) => {
   const activeGaps = useMemo(() => deriveActiveGaps(diagnostics), [diagnostics]);
-  const primaryGap = useMemo(() => derivePrimaryGap(activeGaps), [activeGaps]);
   const mostCommon = useMemo(() => deriveMostCommonGap(diagnostics), [diagnostics]);
 
-    const sortedActiveGaps = useMemo(
+  const sortedActiveGaps = useMemo(
     () =>
       [...activeGaps].sort((a, b) => {
         const sd = (a.severity ?? 9) - (b.severity ?? 9);
@@ -303,6 +302,17 @@ const GapsSection = ({ diagnostics = [], topicProgress = [] }) => {
       }),
     [activeGaps]
   );
+
+    const STRENGTH_ORDER = { critical: 0, strong: 1, moderate: 2 };
+
+    const primaryGap = useMemo(() => {
+      if (!activeGaps.length) return null;
+      return [...activeGaps].sort((a, b) => {
+        const sd = (a.severity ?? 9) - (b.severity ?? 9);
+        if (sd !== 0) return sd;
+        return (STRENGTH_ORDER[a.strength] ?? 9) - (STRENGTH_ORDER[b.strength] ?? 9);
+      })[0];
+    }, [activeGaps]);
 
 
   const grouped  = groupByTopic(sortedActiveGaps);
