@@ -44,7 +44,7 @@ const ChevronDown = () => (
 );
 
 /* ── Gap strength ordering (used by primaryGap sort) ── */
-const STRENGTH_ORDER = { moderate: 0, strong: 1, critical: 2 };
+const STRENGTH_ORDER = { critical: 0, strong: 1, moderate: 2 };
 
 /* ── Gap dismiss key helper ── */
 const gapDismissKey = (topicId, gap) =>
@@ -961,7 +961,14 @@ const TheoryPage = () => {
 
   const notesReady = noteLoadedFor === topicId;
 
-  const showGapBanner = !activeGapsLoading && !!primaryGap && !isDismissed;
+  const showGapBanner = useMemo(() => {
+  if (activeGapsLoading || !primaryGap || isDismissed) return false;
+  if (stepIdx !== 0) return false;
+  const relevantSections = primaryGap.recommendation?.theorySectionIds;
+  if (!relevantSections?.length) return secIdx === 0; // fallback to intro
+  const currentSectionId = currSection?.id;
+  return currentSectionId && relevantSections.includes(currentSectionId);
+}, [activeGapsLoading, primaryGap, isDismissed, stepIdx, secIdx, currSection]);
 
   /* ── Keyboard navigation ─────────────────────────────────────────────────
      Keep a ref to the latest values so the single stable listener never

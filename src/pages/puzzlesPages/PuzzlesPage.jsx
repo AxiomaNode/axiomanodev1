@@ -6,7 +6,8 @@ import { db }      from "../../firebase/firebaseConfig";
 import { useAuth } from "../../context/AuthContext";
 import Header  from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import { generateQuadraticTasks } from "../../core/generators/quadraticGenerator";
+import { generatePracticeSession } from "../../data/questionTemplates";
+import { topics } from "../../data/topics";
 import "./puzzles.css";
 import "../../styles/layout.css";
 import NotesPanel from "../../components/NotesPanel";
@@ -33,11 +34,7 @@ const PERF = [
 ];
 const getPerf = (n) => PERF.find(p => n >= p.min);
 
-const TOPICS = [
-  { id: "quadratic",    label: "Quadratic Equations", sub: "Roots · Discriminant · Vieta", available: true,  generator: generateQuadraticTasks },
-  { id: "linear",       label: "Linear Equations",    sub: "Coming soon",                  available: false },
-  { id: "inequalities", label: "Inequalities",         sub: "Coming soon",                  available: false },
-];
+
 
 /* ── Timer Ring ────────────────────────────────────────────── */
 const TimerRing = ({ timeLeft, total }) => {
@@ -117,7 +114,7 @@ const LobbyScreen = ({ selectedTopic, onTopicSelect, onStart, bestStreak, bestSc
       <div className="pz-lobby__topics">
         <p className="pz-lobby__topics-label">Select topic</p>
         <div className="pz-lobby__topic-grid">
-          {TOPICS.map(topic => (
+          {topics.map(topic => (
             <button
               key={topic.id}
               className={[
@@ -209,7 +206,7 @@ const ResultsScreen = ({ correct, total, sessionXP, bestStreak, results, onResta
 const PuzzlesPage = () => {
   const { user } = useAuth();
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
-  const [selectedTopic, setSelectedTopic] = useState(TOPICS[0]);
+  const [selectedTopic, setSelectedTopic] = useState(topics[0]);
   const [screen,        setScreen]        = useState("lobby");
   const [bestStreak,    setBestStreak]    = useState(0);
   const [bestScore,     setBestScore]     = useState(0);
@@ -272,7 +269,7 @@ const PuzzlesPage = () => {
   }, [timeLeft, revealed, screen]);
 
   const startGame = useCallback(() => {
-    const newTasks = selectedTopic.generator(TASKS_PER_SESSION);
+    const newTasks = generatePracticeSession(selectedTopic.id, TASKS_PER_SESSION);
     setTasks(newTasks);
     setIdx(0); setSelected(null); setRevealed(false);
     setResults([]); setStreak(0); setSessionBest(0);

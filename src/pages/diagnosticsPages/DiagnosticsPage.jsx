@@ -7,12 +7,12 @@ import NotesPanel from "../../components/NotesPanel";
 import { topics } from "../../data/topics";
 import { saveDiagnostic } from "../../services/db";
 import { gapsDatabase } from "../../data/gaps";
-import { questions } from "../../data/questions";
 import "./diagnostics.css";
 import "../../styles/layout.css"
 import { awardPoints } from "../../core/scoringEngine";
 import { buildFullDiagnostic, detectAllGaps } from "../../core/diagnosticEngine";
 import { getRecommendations } from "../../core/recommendationEngine";
+import { questionTemplates } from "../../data/questionTemplates";
 
 /* ════════════════════════════════════════════
    ICONS
@@ -111,8 +111,8 @@ const ConfirmModal = ({ answeredCount, totalCount, onConfirm, onCancel }) => {
    INTRO SCREEN
 ════════════════════════════════════════════ */
 const IntroScreen = ({ onConfigure }) => {
-  const activeTopics = topics.filter(t => questions[t.id]?.length > 0);
-  const totalQ = activeTopics.reduce((s, t) => s + (questions[t.id]?.length || 0), 0);
+  const activeTopics = topics.filter(t => questionTemplates[t.id]?.length > 0);
+  const totalQ = activeTopics.reduce((s, t) => s + (questionTemplates[t.id]?.length || 0), 0);
 
   return (
     <div className="diag-intro">
@@ -190,7 +190,7 @@ const IntroScreen = ({ onConfigure }) => {
    TOPIC SELECT
 ════════════════════════════════════════════ */
 const TopicSelectScreen = ({ onStart, onBack }) => {
-  const availableTopics = topics.filter(t => questions[t.id]?.length > 0);
+  const availableTopics = topics.filter(t => questionTemplates[t.id]?.length > 0);
   const [selected, setSelected] = useState(new Set(availableTopics.map(t => t.id)));
 
   const toggleTopic = (id) => {
@@ -205,7 +205,7 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
   const selectAll = () => setSelected(new Set(availableTopics.map(t => t.id)));
   const clearAll  = () => { const f = availableTopics[0]; if (f) setSelected(new Set([f.id])); };
 
-  const estimatedQ   = [...selected].reduce((s, id) => s + (questions[id]?.length || 0), 0);
+  const estimatedQ = selected.size * 20; 
   const estimatedMin = Math.round(estimatedQ * 0.5);
   const diffColor    = { easy: "easy", medium: "med", hard: "hard" };
 
@@ -239,7 +239,7 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
       <div className="diag-topic-grid">
         {availableTopics.map(topic => {
           const isSelected = selected.has(topic.id);
-          const qCount     = questions[topic.id]?.length || 0;
+          const qCount = 20;
           const gapCount   = gapsDatabase[topic.id]?.length || 0;
           const diff       = topic.difficulty || "medium";
           return (
@@ -629,18 +629,26 @@ const DiagnosticsPage = () => {
   };
 
   const handleFinish = async (answers) => {
-    if (savingRef.current) return;
-    savingRef.current = true;
-    const gapsByTopic = detectAllGaps(answers, allQuestions);
-    const result = {
-      type: "full", answers, gapsByTopic,
-      gaps: Object.values(gapsByTopic).flat(),
-      topicId: "full", topicTitle: "Full Diagnostic",
-      score: {
-        correct: allQuestions.filter(q => answers[q.id] === q.correct).length,
-        total: allQuestions.length,
-      },
-    };
+     if (savingRef.current) return;
+  savingRef.current = true;
+  const gapsByTopic = detectAllGaps(answers, allQuestions);
+  const result = {
+    type: "full", answers, gapsByTopic,
+    gaps: Object.values(gapsByTopic).flat(),
+    topicId: "full", topicTitle: "Full Diagnostic",
+    // ADD THIS — store questions with session
+    questions: allQuestions.map(q => ({
+      id: q.id,
+      text: q.text,
+      correct: q.correct,
+      options: q.options,
+      topicId: q.topicId,
+    })),
+    score: {
+      correct: allQuestions.filter(q => answers[q.id] === q.correct).length,
+      total: allQuestions.length,
+    },
+  };
     await saveDiagnostic(user.uid, result);
     setFinalAnswers(answers);
     setStep("results");

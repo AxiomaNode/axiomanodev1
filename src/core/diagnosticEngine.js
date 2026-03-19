@@ -1,6 +1,6 @@
 import { topics } from "../data/topics";
-import { generateQuestions } from "../core/questionGenerator";
 import { gapsDatabase } from "../data/gaps";
+import { questionTemplates } from "../data/questionTemplates";
 import { coreGaps } from "../data/coreGaps";
 
 /* ─────────────────────────────────────────────────────────
@@ -8,6 +8,15 @@ import { coreGaps } from "../data/coreGaps";
    in coreGaps. Logs a warning in dev — never throws.
 ───────────────────────────────────────────────────────── */
 const CORE_GAP_IDS = new Set(coreGaps.map((g) => g.id));
+
+const shuffle = (arr) => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
 
 const validateGapTaxonomy = () => {
   Object.entries(gapsDatabase).forEach(([topicId, gaps]) => {
@@ -31,23 +40,42 @@ if (process.env.NODE_ENV !== "production") {
    Returns a flat ordered list of questions for the given topics.
 ───────────────────────────────────────────────────────── */
 export const buildFullDiagnostic = (selectedTopicIds = null) => {
-  const questions = generateQuestions();
-  const activeTopics = topics.filter((t) => {
-    const hasQ = questions[t.id]?.length > 0;
+  const activeTopics = topics.filter(t => {
+    const hasTemplates = questionTemplates[t.id]?.length > 0;
     const isSel = selectedTopicIds ? selectedTopicIds.includes(t.id) : true;
-    return hasQ && isSel;
+    return hasTemplates && isSel;
   });
 
   if (!activeTopics.length) return [];
 
   const pool = [];
-  activeTopics.forEach((topic) => {
-    (questions[topic.id] || []).forEach((q) =>
-      pool.push({ ...q, topicId: topic.id })
-    );
+
+  activeTopics.forEach(topic => {
+    const templates = questionTemplates[topic.id] || [];
+
+    // Group templates by gapTag
+    const byGap = {};
+    templates.forEach(t => {
+      if (!byGap[t.gapTag]) byGap[t.gapTag] = [];
+      byGap[t.gapTag].push(t);
+    });
+
+    // Pick 4 random templates per gap, generate questions
+    Object.entries(byGap).forEach(([gapTag, gapTemplates]) => {
+      const picked = shuffle(gapTemplates).slice(0, 4);
+      picked.forEach(template => {
+        const q = template.generate();
+        pool.push({
+          ...q,
+          id: `${template.id}_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+          topicId: topic.id,
+          gapTag,
+        });
+      });
+    });
   });
 
-  return pool;
+  return shuffle(pool);
 };
 
 /* ─────────────────────────────────────────────────────────

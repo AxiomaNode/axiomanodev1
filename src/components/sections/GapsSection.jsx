@@ -290,7 +290,7 @@ const GapsEmpty = () => (
 /* ── GapsSection ─────────────────────────────────────────────────────────── */
 
 const GapsSection = ({ diagnostics = [], topicProgress = [] }) => {
-    const STRENGTH_ORDER = { critical: 0, strong: 1, moderate: 2 };
+  const STRENGTH_ORDER = { critical: 0, strong: 1, moderate: 2 };
   const activeGaps = useMemo(() => deriveActiveGaps(diagnostics), [diagnostics]);
   const mostCommon = useMemo(() => deriveMostCommonGap(diagnostics), [diagnostics]);
 

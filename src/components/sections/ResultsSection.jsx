@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { topics } from "../../data/topics";
-import { questions as questionsDb } from "../../data/questions";
+
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -67,8 +67,7 @@ const ScoreRing = ({ pct, color }) => {
 
 const AnswerBreakdown = ({ session }) => {
   const allQMap = {};
-  Object.values(questionsDb).flat().forEach((q) => { allQMap[q.id] = q; });
-
+  (session.questions || []).forEach((q) => { allQMap[q.id] = q; });
   const entries      = Object.entries(session.answers || {});
   const wrongEntries = entries.filter(([qId, userAns]) => {
     const q = allQMap[qId];
@@ -102,9 +101,7 @@ const AnswerBreakdown = ({ session }) => {
           const q = allQMap[qId];
           if (!q) return null;
           const isSkipped = !userAns;
-          const topicMeta = topics.find((t) =>
-            questionsDb[t.id]?.some((qq) => qq.id === qId)
-          );
+          const topicMeta = topics.find((t) => t.id === q?.topicId);
           return (
             <div key={qId} className="results-breakdown__item">
               <div className="results-breakdown__item-header">

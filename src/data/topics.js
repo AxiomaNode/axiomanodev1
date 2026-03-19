@@ -19,5 +19,4 @@ export const topics = [
     description: "Ildizlar, diskriminant va echish usullari.",
     difficulty: "medium"
   },
-
 ];

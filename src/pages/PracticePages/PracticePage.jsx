@@ -8,6 +8,7 @@ import { topics } from "../../data/topics";
 import { tasks as taskBank } from "../../data/tasks";
 import { savePractice, getActiveGaps } from "../../services/db"; // CHANGED: added getActiveGaps
 import { awardPoints } from "../../core/scoringEngine";
+import { generatePracticeSession } from "../../data/questionTemplates";
 import "./practice.css";
 import "../../styles/diag-shell.css";
 import "../../styles/layout.css";
@@ -107,13 +108,7 @@ const PracticePage = () => {
   );
 
   // CHANGED: bank depends on practiceMode and activeGaps
-  const bank    = useMemo(() => {
-    if (!topicId) return [];
-    if (practiceMode === "gap" && activeGaps.length > 0) {
-      return pickGapBank(topicId, activeGaps);
-    }
-    return pickBank(topicId);
-  }, [topicId, practiceMode, activeGaps]);
+  const [bank, setBank] = useState([]);
 
   const current = bank[idx];
 
@@ -144,6 +139,7 @@ const PracticePage = () => {
   const selectTopic = (id) => {
     stopTimer();
     setTopicId(id);
+    setBank([]);  
     setIdx(0);
     setAnswers({});
     setDone(false);
@@ -156,6 +152,11 @@ const PracticePage = () => {
   };
 
   const handleStart = () => {
+    const tag = practiceMode === "gap" && activeGaps.length > 0
+      ? activeGaps[0]?.recommendation?.practiceTag
+      : null;
+    const generated = generatePracticeSession(topicId, 15, tag);
+    setBank(generated);
     setStarted(true);
     setTimeout(startTimer, 50);
   };
@@ -428,7 +429,7 @@ const PracticePage = () => {
                     </div>
                   )}
 
-                  {topicId && bank.length === 0 && (
+                  {topicId && started && bank.length === 0 && (
                     <div className="pr-empty">
                       <p className="pr-empty__title">No tasks found</p>
                       <p className="pr-empty__sub">This topic has no practice tasks yet.</p>
@@ -436,7 +437,7 @@ const PracticePage = () => {
                   )}
 
                   {/* CHANGED: gap mode banner above start modal */}
-                  {topicId && !done && bank.length > 0 && !started && hasGaps && (
+                  {topicId && !done && !started && hasGaps && (
                     <GapModeBanner
                       gaps={activeGaps}
                       practiceMode={practiceMode}
@@ -445,7 +446,7 @@ const PracticePage = () => {
                   )}
 
                   {/* Start modal */}
-                  {topicId && !done && bank.length > 0 && !started && (
+                  {topicId && !done && !started && (
                     <div className="pr-start-modal">
                       <div className="pr-start-modal__icon">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
