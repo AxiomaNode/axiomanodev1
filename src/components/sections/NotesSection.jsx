@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from "react";
 import { saveTopicNote } from "../../services/db";
 import "./notes-section.css";
+import { Link } from "react-router-dom";
 
 /* ── Strip HTML tags → plain text (for preview) ── */
 const stripHtml = (html) => {
@@ -94,20 +95,74 @@ const NotesSection = ({ notes = [], uid, onNoteUpdated }) => {
   };
 
   /* ── Empty state ── */
+
   if (notes.length === 0) {
     return (
-      <div className="ns-empty">
-        <div className="ns-empty__icon">
-          <NoteIcon />
+      <div className="profile-empty-state">
+
+        <div className="profile-empty-state__head">
+          <div className="profile-empty-state__head-icon profile-empty-state__head-icon--teal">
+            <NoteIcon />
+          </div>
+          <div>
+            <h3 className="profile-empty-state__title">No notes yet</h3>
+            <p className="profile-empty-state__sub">
+              Notes are written in the Theory page while you study.
+              They're saved per topic and collected here so you can review them alongside your results.
+            </p>
+          </div>
         </div>
-        <p className="ns-empty__title">No notes yet</p>
-        <p className="ns-empty__sub">
-          Write notes while studying theory — they will appear here, organised by topic.
-        </p>
+
+        <div className="profile-empty-state__note-how">
+          <div className="profile-empty-state__note-step">
+            <span className="profile-empty-state__note-step-num">1</span>
+            <div>
+              <strong>Go to Theory</strong>
+              <p>Open any topic section in the Theory page.</p>
+            </div>
+          </div>
+          <div className="profile-empty-state__note-arrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div className="profile-empty-state__note-step">
+            <span className="profile-empty-state__note-step-num">2</span>
+            <div>
+              <strong>Open the notes panel</strong>
+              <p>The notes panel lives alongside each theory section.</p>
+            </div>
+          </div>
+          <div className="profile-empty-state__note-arrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+          <div className="profile-empty-state__note-step">
+            <span className="profile-empty-state__note-step-num">3</span>
+            <div>
+              <strong>Write anything</strong>
+              <p>Notes auto-save and appear here organised by topic.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="profile-empty-state__actions">
+          <Link to="/theory" className="profile-empty-state__btn profile-empty-state__btn--primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            Go to Theory
+          </Link>
+        </div>
+
       </div>
     );
   }
-
   return (
     <div className="ns-inner">
       <div className="ns-layout">

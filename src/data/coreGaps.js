@@ -12,49 +12,35 @@
 
 export const coreGaps = [
   {
-    id: "strategic",
-    title: "Method selection error",
-    meaning:
-      "The learner chooses an inappropriate strategy or formula for the problem. " +
-      "They may know the concept but reach for the wrong tool.",
-    userFacingLabel: "You often choose the wrong method here.",
-    surveyBlock: "C", // weakest block: 21/100
+    id: "interpretive",
+    title: "Interpretation gap",
+    userFacingLabel: "You compute correctly but misread what the result tells you.",
+    // ADD:
+    shortLabel: "Reading conclusions",
   },
   {
     id: "procedural",
     title: "Procedural breakdown",
-    meaning:
-      "The learner identifies the right approach but executes it incorrectly. " +
-      "Errors happen during transformation, not during planning.",
     userFacingLabel: "Your reasoning starts correctly but breaks during execution.",
-    surveyBlock: "B", // 40/150
+    shortLabel: "Execution errors",
   },
   {
-    id: "interpretive",
-    title: "Interpretation error",
-    meaning:
-      "The learner misreads what the problem asks, or misreads what a result means. " +
-      "They compute something correctly but draw the wrong conclusion.",
-    userFacingLabel: "You compute correctly but misread what the result tells you.",
-    surveyBlock: "A", // partially — surface knowledge without deeper reading
+    id: "strategic",
+    title: "Method selection error",
+    userFacingLabel: "You often choose the wrong method here.",
+    shortLabel: "Wrong approach",
   },
   {
     id: "adaptive",
     title: "Adaptive reasoning gap",
-    meaning:
-      "The learner collapses when the problem is non-standard or when a familiar " +
-      "algorithm is unavailable. They cannot construct a strategy from scratch.",
     userFacingLabel: "You struggle when the problem doesn't match a familiar pattern.",
-    surveyBlock: "E", // 34/100
+    shortLabel: "Non-standard problems",
   },
   {
     id: "relational",
-    title: "Representation connection gap",
-    meaning:
-      "The learner fails to connect different forms of the same object: " +
-      "symbolic, verbal, graphical, or geometric. Each form feels isolated.",
+    title: "Representation gap",
     userFacingLabel: "You lose the thread when the same idea appears in a different form.",
-    surveyBlock: "D", // 75/100 — strong in v1, included for future topics
+    shortLabel: "Switching representations",
   },
 ];
 

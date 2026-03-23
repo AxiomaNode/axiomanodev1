@@ -1,12 +1,12 @@
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
 import NotesPanel from "../../components/NotesPanel";
 import { topics } from "../../data/topics";
 import { tasks as taskBank } from "../../data/tasks";
-import { savePractice, getActiveGaps } from "../../services/db"; // CHANGED: added getActiveGaps
+import { savePractice, getActiveGaps } from "../../services/db";
 import { awardPoints } from "../../core/scoringEngine";
 import { generatePracticeSession } from "../../data/questionTemplates";
 import "./practice.css";
@@ -18,16 +18,6 @@ const pickBank = (topicId) => {
   return t?.practice?.length ? t.practice : (t?.homework?.length ? t.homework : []);
 };
 
-// CHANGED: filter bank by gap practice tags
-const pickGapBank = (topicId, gaps) => {
-  const all = pickBank(topicId);
-  if (!gaps?.length) return all;
-  const tags = new Set(gaps.map((g) => g.recommendation?.practiceTag).filter(Boolean));
-  if (!tags.size) return all;
-  const filtered = all.filter((t) => t.gapTag && tags.has(t.gapTag));
-  return filtered.length > 0 ? filtered : all; // fallback to full bank if no tagged tasks
-};
-
 const formatTime = (secs) => {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -37,9 +27,7 @@ const formatTime = (secs) => {
 const scoreColor = (pct) =>
   pct >= 70 ? "#27ae60" : pct >= 40 ? "#d35400" : "#c0392b";
 
-/* ════════════════════════════════════════
-   NEW: Gap mode toggle banner
-════════════════════════════════════════ */
+/* ── Gap Mode Banner ── */
 const GapModeBanner = ({ gaps, practiceMode, onSwitch }) => {
   if (!gaps?.length) return null;
   const isGapMode = practiceMode === "gap";
@@ -62,9 +50,7 @@ const GapModeBanner = ({ gaps, practiceMode, onSwitch }) => {
   );
 };
 
-/* ════════════════════════════════════════
-   NEW: Active gap context pill (above question)
-════════════════════════════════════════ */
+/* ── Gap Context Pill ── */
 const GapContextPill = ({ gaps, taskGapTag }) => {
   if (!gaps?.length || !taskGapTag) return null;
   const gap = gaps.find((g) => g.recommendation?.practiceTag === taskGapTag);
@@ -77,69 +63,99 @@ const GapContextPill = ({ gaps, taskGapTag }) => {
   );
 };
 
+/* ── Targeted Mode Header ── */
+const TargetedHeader = ({ gapTitle, topicTitle, onClear }) => (
+  <div className="pr-targeted-header">
+    <div className="pr-targeted-header__left">
+      <span className="pr-targeted-header__label">Targeted training</span>
+      <span className="pr-targeted-header__gap">{gapTitle}</span>
+      {topicTitle && <span className="pr-targeted-header__topic">· {topicTitle}</span>}
+    </div>
+    <button className="pr-targeted-header__clear" onClick={onClear}>
+      Switch to free practice
+    </button>
+  </div>
+);
+
 const PracticePage = () => {
-  const { user } = useAuth();
+  const { user }   = useAuth();
+  const location   = useLocation();
+
+  // Read incoming targeted state from Results page
+  const incomingGapId    = location.state?.gapId    ?? null;
+  const incomingGapTitle = location.state?.gapTitle ?? null;
+  const incomingTopicId  = location.state?.topicId  ?? null;
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  /* ── Session ───────────────────────────────────── */
-  const [topicId, setTopicId]   = useState(null);
-  const [idx, setIdx]           = useState(0);
-  const [answers, setAnswers]   = useState({});
-  const [done, setDone]         = useState(false);
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [started, setStarted]   = useState(false);
+  const [topicId,      setTopicId]      = useState(null);
+  const [idx,          setIdx]          = useState(0);
+  const [answers,      setAnswers]      = useState({});
+  const [done,         setDone]         = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [saved,        setSaved]        = useState(false);
+  const [started,      setStarted]      = useState(false);
 
-  // CHANGED: gap state
   const [activeGaps,   setActiveGaps]   = useState([]);
-  const [practiceMode, setPracticeMode] = useState("free"); // "free" | "gap"
+  const [practiceMode, setPracticeMode] = useState("free");
 
-  /* ── Notes session key — new key per practice session ── */
+  // Targeted mode state — set from incoming route state
+  const [targetedGapId,    setTargetedGapId]    = useState(incomingGapId);
+  const [targetedGapTitle, setTargetedGapTitle] = useState(incomingGapTitle);
+  const isTargeted = !!targetedGapId;
+
   const [sessionId, setSessionId] = useState(() => `pr_${Date.now()}`);
 
-  /* ── Timer ─────────────────────────────────────── */
-  const [elapsed, setElapsed]   = useState(0);
-  const timerRef                = useRef(null);
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef              = useRef(null);
 
-  /* ── Data ──────────────────────────────────────── */
   const availableTopics = useMemo(
     () => topics.filter((t) => pickBank(t.id).length > 0),
     []
   );
 
-  // CHANGED: bank depends on practiceMode and activeGaps
   const [bank, setBank] = useState([]);
-
   const current = bank[idx];
 
-  /* ── Timer control ─────────────────────────────── */
   const startTimer = () => {
     clearInterval(timerRef.current);
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
   };
   const stopTimer = () => clearInterval(timerRef.current);
-
   useEffect(() => () => clearInterval(timerRef.current), []);
 
-  // CHANGED: fetch active gaps when topicId or user changes
+  // If incoming gapId — immediately set topic and start in targeted mode
   useEffect(() => {
-    if (!user?.uid || !topicId) { setActiveGaps([]); setPracticeMode("free"); return; }
+    if (!incomingGapId || !incomingTopicId) return;
+
+    setTopicId(incomingTopicId);
+    setTargetedGapId(incomingGapId);
+    setTargetedGapTitle(incomingGapTitle);
+    setPracticeMode("gap");
+
+    // Generate targeted bank immediately
+    const generated = generatePracticeSession(incomingTopicId, 15, incomingGapId);
+    setBank(generated);
+    setStarted(false); // still show start modal so user can see what they're doing
+  }, []); // eslint-disable-line — runs once on mount
+
+  // Fetch active gaps when topicId changes (for non-targeted flow)
+  useEffect(() => {
+    if (!user?.uid || !topicId || isTargeted) { return; }
     let cancelled = false;
     getActiveGaps(user.uid, topicId).then((gaps) => {
       if (cancelled) return;
       setActiveGaps(gaps);
-      // auto-switch to gap mode if gaps exist and session hasn't started
       if (gaps.length > 0 && !started) setPracticeMode("gap");
     });
     return () => { cancelled = true; };
   }, [topicId, user?.uid]); // eslint-disable-line
 
-  /* ── Topic selection ───────────────────────────── */
   const selectTopic = (id) => {
     stopTimer();
     setTopicId(id);
-    setBank([]);  
+    setBank([]);
     setIdx(0);
     setAnswers({});
     setDone(false);
@@ -148,33 +164,56 @@ const PracticePage = () => {
     setElapsed(0);
     setActiveGaps([]);
     setPracticeMode("free");
+    setTargetedGapId(null);
+    setTargetedGapTitle(null);
     setSessionId(`pr_${Date.now()}`);
   };
 
+  // Clear targeted mode — drop back to free practice
+  const clearTargeted = () => {
+    setTargetedGapId(null);
+    setTargetedGapTitle(null);
+    setPracticeMode("free");
+    setBank([]);
+    setIdx(0);
+    setAnswers({});
+    setDone(false);
+    setSaved(false);
+    setStarted(false);
+    setElapsed(0);
+  };
+
   const handleStart = () => {
-    const tag = practiceMode === "gap" && activeGaps.length > 0
-      ? activeGaps[0]?.recommendation?.practiceTag
-      : null;
+    // If already generated (targeted mode), just start timer
+    if (isTargeted && bank.length > 0) {
+      setStarted(true);
+      setTimeout(startTimer, 50);
+      return;
+    }
+
+    const tag = isTargeted
+      ? targetedGapId
+      : practiceMode === "gap" && activeGaps.length > 0
+        ? activeGaps[0]?.recommendation?.practiceTag
+        : null;
+
     const generated = generatePracticeSession(topicId, 15, tag);
     setBank(generated);
     setStarted(true);
     setTimeout(startTimer, 50);
   };
 
-  // CHANGED: toggle between gap and free mode
   const handleSwitchMode = () => {
-    if (started) return; // don't switch mid-session
+    if (started) return;
     setPracticeMode((m) => m === "gap" ? "free" : "gap");
     setIdx(0);
     setAnswers({});
   };
 
-  /* ── Answer (no feedback — just record) ────────── */
   const selectAnswer = (task, label) => {
     setAnswers((prev) => ({ ...prev, [task.id]: label }));
   };
 
-  /* ── Navigation ────────────────────────────────── */
   const goNext = () => {
     if (idx + 1 >= bank.length) {
       stopTimer();
@@ -185,7 +224,6 @@ const PracticePage = () => {
   };
   const goPrev = () => setIdx((v) => Math.max(0, v - 1));
 
-  /* ── Save ──────────────────────────────────────── */
   const finish = async () => {
     if (!user?.uid || !topicId || !bank.length || saving || saved) return;
 
@@ -201,7 +239,8 @@ const PracticePage = () => {
         topicTitle: topics.find((t) => t.id === topicId)?.title ?? topicId,
         correct, wrong, total, percent, answers,
         timeSecs: elapsed,
-        practiceMode, // CHANGED: record which mode was used
+        practiceMode,
+        targetedGapId: isTargeted ? targetedGapId : null,
       });
       await awardPoints(user.uid, "practice_complete", { percent });
       setSaved(true);
@@ -210,7 +249,6 @@ const PracticePage = () => {
     }
   };
 
-  /* ── Retry ─────────────────────────────────────── */
   const retry = () => {
     stopTimer();
     setIdx(0);
@@ -220,14 +258,18 @@ const PracticePage = () => {
     setStarted(false);
     setElapsed(0);
     setSessionId(`pr_${Date.now()}`);
+    // Regenerate bank for targeted mode
+    if (isTargeted && topicId) {
+      const generated = generatePracticeSession(topicId, 15, targetedGapId);
+      setBank(generated);
+    }
   };
 
-  /* ── Keyboard navigation ───────────────────────── */
   useEffect(() => {
     const onKey = (e) => {
       if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
 
-      if (!started && topicId && bank.length > 0 && !done) {
+      if (!started && topicId && !done) {
         if (e.key === "Enter") { e.preventDefault(); handleStart(); }
         return;
       }
@@ -251,13 +293,11 @@ const PracticePage = () => {
         }
       }
     };
-
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started, done, current, idx, bank.length, topicId]);
 
-  /* ── Derived ───────────────────────────────────── */
   const activeTopic   = topics.find((t) => t.id === topicId);
   const answeredCount = Object.keys(answers).length;
   const progress      = bank.length ? Math.round((answeredCount / bank.length) * 100) : 0;
@@ -265,8 +305,7 @@ const PracticePage = () => {
   const wrongCount    = bank.length - correctCount;
   const percent       = bank.length ? Math.round((correctCount / bank.length) * 100) : 0;
   const hasGaps       = activeGaps.length > 0;
-
-  const showNotes = started && !done;
+  const showNotes     = started && !done;
 
   return (
     <div className="page-shell">
@@ -276,14 +315,13 @@ const PracticePage = () => {
       <main className="page-main">
         <div className="pr-wrap">
 
-          {/* ══ HERO ════════════════════════════════════ */}
+          {/* Hero */}
           <div className="pr-hero">
             <div className="pr-hero__content">
               <div className="pr-hero__left">
                 <div className="pr-tag">
                   <span className="pr-dot" />
-                  {/* CHANGED: tag reflects mode */}
-                  {practiceMode === "gap" && hasGaps ? "Gap Practice" : "Practice Mode"}
+                  {isTargeted ? "Targeted Training" : practiceMode === "gap" && hasGaps ? "Gap Practice" : "Practice Mode"}
                 </div>
                 <h1 className="pr-title">Solve &amp; Reinforce</h1>
                 <p className="pr-sub">
@@ -325,11 +363,10 @@ const PracticePage = () => {
                     <span>Time</span>
                     <strong>{topicId && !done ? formatTime(elapsed) : "—"}</strong>
                   </div>
-                  {/* CHANGED: show mode pill when topic selected */}
                   {topicId && (
                     <div className="pr-hero__pill">
                       <span>Mode</span>
-                      <strong>{practiceMode === "gap" && hasGaps ? "Gap" : "Free"}</strong>
+                      <strong>{isTargeted ? "Targeted" : practiceMode === "gap" && hasGaps ? "Gap" : "Free"}</strong>
                     </div>
                   )}
                 </div>
@@ -339,43 +376,52 @@ const PracticePage = () => {
 
           <div className={`diag-shell${showNotes ? " diag-shell--with-notes" : ""}`}>
             <div className="diag-shell__main">
-              <div className="pr-layout">
+              <div className={`pr-layout${isTargeted ? " pr-layout--no-sidebar" : ""}`}>
 
-                {/* ── Sidebar ────────────────────────── */}
-                <aside className="pr-side">
-                  <div className="pr-side__head">
-                    <div>
-                      <p className="pr-side__eyebrow">Topics</p>
-                      <p className="pr-side__hint">Pick what to practice</p>
+                {/* Sidebar — hidden in targeted mode since topic is pre-set */}
+                {!isTargeted && (
+                  <aside className="pr-side">
+                    <div className="pr-side__head">
+                      <div>
+                        <p className="pr-side__eyebrow">Topics</p>
+                        <p className="pr-side__hint">Pick what to practice</p>
+                      </div>
+                      <span className="pr-side__badge">{availableTopics.length}</span>
                     </div>
-                    <span className="pr-side__badge">{availableTopics.length}</span>
-                  </div>
+                    <div className="pr-side__list">
+                      {availableTopics.map((t) => (
+                        <button
+                          key={t.id}
+                          className={`pr-topic${topicId === t.id ? " is-active" : ""}`}
+                          onClick={() => selectTopic(t.id)}
+                        >
+                          <div className="pr-topic__icon">
+                            {t.icon ? <t.icon size={16} /> : "?"}
+                          </div>
+                          <div className="pr-topic__txt">
+                            <p className="pr-topic__title">{t.title}</p>
+                            <p className="pr-topic__sub">{pickBank(t.id).length} tasks</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="pr-side__footer">
+                      <Link to="/home" className="pr-side__link">← Back to Home</Link>
+                    </div>
+                  </aside>
+                )}
 
-                  <div className="pr-side__list">
-                    {availableTopics.map((t) => (
-                      <button
-                        key={t.id}
-                        className={`pr-topic${topicId === t.id ? " is-active" : ""}`}
-                        onClick={() => selectTopic(t.id)}
-                      >
-                        <div className="pr-topic__icon">
-                          {t.icon ? <t.icon size={16} /> : "?"}
-                        </div>
-                        <div className="pr-topic__txt">
-                          <p className="pr-topic__title">{t.title}</p>
-                          <p className="pr-topic__sub">{pickBank(t.id).length} tasks</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="pr-side__footer">
-                    <Link to="/home" className="pr-side__link">← Back to Home</Link>
-                  </div>
-                </aside>
-
-                {/* ── Board ────────────────────────── */}
+                {/* Board */}
                 <div className="pr-board">
+
+                  {/* Targeted mode header */}
+                  {isTargeted && !done && (
+                    <TargetedHeader
+                      gapTitle={targetedGapTitle}
+                      topicTitle={activeTopic?.title}
+                      onClear={clearTargeted}
+                    />
+                  )}
 
                   <div className="pr-board__top">
                     <div className="pr-crumbs">
@@ -389,7 +435,6 @@ const PracticePage = () => {
                         </>
                       )}
                     </div>
-
                     {topicId && !done && (
                       <div className="pr-timer">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -400,7 +445,6 @@ const PracticePage = () => {
                         {formatTime(elapsed)}
                       </div>
                     )}
-
                     {topicId && !done && (
                       <div className="pr-tracker">
                         {bank.map((t, i) => (
@@ -417,14 +461,13 @@ const PracticePage = () => {
                     )}
                   </div>
 
-                  {/* Empty state */}
-                  {!topicId && (
+                  {/* Empty state — only shown in free mode */}
+                  {!topicId && !isTargeted && (
                     <div className="pr-empty">
                       <div className="pr-empty__icon">✦</div>
                       <p className="pr-empty__title">Select a topic to begin</p>
                       <p className="pr-empty__sub">
-                        Choose any topic from the sidebar. Answer all questions,
-                        then submit to see your results.
+                        Choose any topic from the sidebar.
                       </p>
                     </div>
                   )}
@@ -436,8 +479,8 @@ const PracticePage = () => {
                     </div>
                   )}
 
-                  {/* CHANGED: gap mode banner above start modal */}
-                  {topicId && !done && !started && hasGaps && (
+                  {/* Gap mode banner — only in free mode */}
+                  {!isTargeted && topicId && !done && !started && hasGaps && (
                     <GapModeBanner
                       gaps={activeGaps}
                       practiceMode={practiceMode}
@@ -455,11 +498,13 @@ const PracticePage = () => {
                           <polyline points="12 6 12 12 16 14"/>
                         </svg>
                       </div>
-                      <h2 className="pr-start-modal__title">{activeTopic?.title}</h2>
+                      <h2 className="pr-start-modal__title">
+                        {isTargeted ? targetedGapTitle : activeTopic?.title}
+                      </h2>
                       <p className="pr-start-modal__sub">
                         {bank.length} questions · timer starts on begin
-                        {/* CHANGED: show gap context in subtitle */}
-                        {practiceMode === "gap" && hasGaps && " · gap-targeted"}
+                        {isTargeted && " · targeted training"}
+                        {!isTargeted && practiceMode === "gap" && hasGaps && " · gap-targeted"}
                       </p>
                       <div className="pr-start-modal__meta">
                         <div className="pr-start-modal__pill">
@@ -467,8 +512,8 @@ const PracticePage = () => {
                           <strong>{bank.length}</strong>
                         </div>
                         <div className="pr-start-modal__pill">
-                          <span>Type</span>
-                          <strong>Multiple choice</strong>
+                          <span>Mode</span>
+                          <strong>{isTargeted ? "Targeted" : practiceMode === "gap" ? "Gap" : "Free"}</strong>
                         </div>
                         <div className="pr-start-modal__pill">
                           <span>Results</span>
@@ -484,7 +529,6 @@ const PracticePage = () => {
                   {/* Active question */}
                   {topicId && !done && current && started && (
                     <div className="pr-board__inner">
-
                       <div className="pr-progress">
                         <div className="pr-progress__track">
                           <div className="pr-progress__fill" style={{ width: `${progress}%` }} />
@@ -494,8 +538,7 @@ const PracticePage = () => {
                         </span>
                       </div>
 
-                      {/* CHANGED: show gap context pill above question if in gap mode */}
-                      {practiceMode === "gap" && (
+                      {practiceMode === "gap" && !isTargeted && (
                         <GapContextPill gaps={activeGaps} taskGapTag={current.gapTag} />
                       )}
 
@@ -534,15 +577,13 @@ const PracticePage = () => {
                           {idx + 1 >= bank.length ? "Finish →" : "Next →"}
                         </button>
                       </div>
-
                     </div>
                   )}
 
-                  {/* Results screen */}
+                  {/* Results */}
                   {topicId && done && (
                     <div className="pr-board__inner">
                       <div className="pr-complete">
-
                         <div className="pr-complete__head">
                           <div className={`pr-complete__ring ${
                             percent >= 70 ? "pr-complete__ring--good"
@@ -559,9 +600,9 @@ const PracticePage = () => {
                                 : "Keep practising"}
                             </h2>
                             <p className="pr-complete__sub">
-                              {activeTopic?.title} · {formatTime(elapsed)}
-                              {/* CHANGED: show mode in results */}
-                              {practiceMode === "gap" && hasGaps && " · gap practice"}
+                              {isTargeted ? targetedGapTitle : activeTopic?.title} · {formatTime(elapsed)}
+                              {isTargeted && " · targeted training"}
+                              {!isTargeted && practiceMode === "gap" && hasGaps && " · gap practice"}
                               {saved && <span className="pr-complete__saved"> · Saved ✓</span>}
                             </p>
                           </div>
@@ -569,20 +610,16 @@ const PracticePage = () => {
 
                         <div className="pr-complete__stats">
                           <div className="pr-complete__stat">
-                            <strong>{bank.length}</strong>
-                            <span>Total</span>
+                            <strong>{bank.length}</strong><span>Total</span>
                           </div>
                           <div className="pr-complete__stat">
-                            <strong style={{ color: "#27ae60" }}>{correctCount}</strong>
-                            <span>Correct</span>
+                            <strong style={{ color: "#27ae60" }}>{correctCount}</strong><span>Correct</span>
                           </div>
                           <div className="pr-complete__stat">
-                            <strong style={{ color: "#e74c3c" }}>{wrongCount}</strong>
-                            <span>Wrong</span>
+                            <strong style={{ color: "#e74c3c" }}>{wrongCount}</strong><span>Wrong</span>
                           </div>
                           <div className="pr-complete__stat">
-                            <strong style={{ color: "var(--teal)" }}>{formatTime(elapsed)}</strong>
-                            <span>Time</span>
+                            <strong style={{ color: "var(--teal)" }}>{formatTime(elapsed)}</strong><span>Time</span>
                           </div>
                         </div>
 
@@ -590,9 +627,9 @@ const PracticePage = () => {
                           <p className="pr-complete__breakdown-cap">Answer breakdown</p>
                           <div className="pr-complete__breakdown-list">
                             {bank.map((task, i) => {
-                              const chosen    = answers[task.id];
-                              const isCorrect = chosen === task.correct;
-                              const skipped   = chosen == null;
+                              const chosen     = answers[task.id];
+                              const isCorrect  = chosen === task.correct;
+                              const skipped    = chosen == null;
                               const correctOpt = task.options?.find(o => o.label === task.correct);
                               const chosenOpt  = task.options?.find(o => o.label === chosen);
                               return (
@@ -637,27 +674,30 @@ const PracticePage = () => {
                             </Link>
                           )}
                           <button className="pr-navbtn" onClick={retry}>Retry</button>
-                          <button
-                            className="pr-navbtn"
-                            onClick={() => { stopTimer(); setTopicId(null); }}
-                          >
-                            Change topic
-                          </button>
+                          {isTargeted ? (
+                            <button className="pr-navbtn" onClick={clearTargeted}>
+                              Free practice
+                            </button>
+                          ) : (
+                            <button
+                              className="pr-navbtn"
+                              onClick={() => { stopTimer(); setTopicId(null); }}
+                            >
+                              Change topic
+                            </button>
+                          )}
                         </div>
-
                       </div>
                     </div>
                   )}
 
-                </div>{/* /pr-board */}
-              </div>{/* /pr-layout */}
-            </div>{/* /diag-shell__main */}
+                </div>
+              </div>
+            </div>
 
             {showNotes && <NotesPanel sessionId={sessionId} />}
-
-          </div>{/* /diag-shell */}
-
-        </div>{/* /pr-wrap */}
+          </div>
+        </div>
       </main>
     </div>
   );

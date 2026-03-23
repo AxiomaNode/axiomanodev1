@@ -506,3 +506,295 @@ body.axioma-profile-bg::after {
   .pedit-modal__body { padding: 18px; }
   .pedit-modal__footer { padding: 14px 18px; }
 }
+/* ══════════════════════════════════════════
+   APPEND TO profile.css
+══════════════════════════════════════════ */
+
+/* ── Status line (replaces email) ── */
+.profile-hero__status {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+  margin: 0;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+
+/* ── Clickable stat buttons ── */
+.profile-hero__stat--btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 14px 20px;
+  transition: background 0.13s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: -apple-system, sans-serif;
+}
+.profile-hero__stat--btn:hover {
+  background: var(--teal-light);
+}
+.profile-hero__stat--btn strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  font-family: 'Courier New', monospace;
+  line-height: 1;
+}
+.profile-hero__stat--btn span {
+  font-size: 0.6rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  white-space: nowrap;
+}
+
+/* Tone down dot grid — was 0.13 opacity, too strong */
+body.axioma-profile-bg::after {
+  background-image: radial-gradient(circle, rgba(42,143,160,0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+/* ══════════════════════════════════════════════════════
+   SHARED EMPTY STATES — append to profile.css
+   Used by Results, Gaps, and Notes sections.
+══════════════════════════════════════════════════════ */
+
+.profile-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 0 8px;
+  animation: card-in 0.3s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── Head row ── */
+.profile-empty-state__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.profile-empty-state__head-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.profile-empty-state__head-icon--teal {
+  background: var(--teal-light);
+  border: 1px solid rgba(42,143,160,0.2);
+  color: var(--teal);
+}
+.profile-empty-state__head-icon--orange {
+  background: rgba(211,84,0,0.07);
+  border: 1px solid rgba(211,84,0,0.18);
+  color: #d35400;
+}
+.profile-empty-state__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: 'Georgia', serif;
+  margin: 0 0 5px;
+  letter-spacing: -0.01em;
+}
+.profile-empty-state__sub {
+  font-size: 0.83rem;
+  color: var(--text-mid);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 520px;
+}
+
+/* ── Feature cards (Results) ── */
+.profile-empty-state__cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.profile-empty-state__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.profile-empty-state__card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--card-bg-alt);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+}
+.profile-empty-state__card h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: -apple-system, sans-serif;
+  margin: 0;
+}
+.profile-empty-state__card p {
+  font-size: 0.76rem;
+  color: var(--text-mid);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Explainer rows (Gaps) ── */
+.profile-empty-state__explainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.profile-empty-state__explainer-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.profile-empty-state__explainer-row:last-child { border-bottom: none; }
+.profile-empty-state__explainer-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--card-bg-alt);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.profile-empty-state__explainer-row strong {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: -apple-system, sans-serif;
+  margin-bottom: 3px;
+}
+.profile-empty-state__explainer-row p {
+  font-size: 0.76rem;
+  color: var(--text-mid);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Notes how-to (Notes) ── */
+.profile-empty-state__note-how {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.profile-empty-state__note-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.profile-empty-state__note-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--teal-light);
+  border: 1px solid rgba(42,143,160,0.25);
+  color: var(--teal);
+  font-size: 0.68rem;
+  font-weight: 800;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 4px;
+}
+.profile-empty-state__note-step strong {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-family: -apple-system, sans-serif;
+}
+.profile-empty-state__note-step p {
+  font-size: 0.75rem;
+  color: var(--text-mid);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.55;
+  margin: 0;
+}
+.profile-empty-state__note-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--border);
+  padding: 28px 12px 0;
+  flex-shrink: 0;
+}
+
+/* ── Actions ── */
+.profile-empty-state__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.profile-empty-state__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 9px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: -apple-system, sans-serif;
+  text-decoration: none;
+  transition: opacity 0.15s, transform 0.12s;
+  cursor: pointer;
+  border: none;
+}
+.profile-empty-state__btn--primary {
+  background: var(--teal);
+  color: #fff;
+}
+.profile-empty-state__btn--primary:hover { opacity: 0.88; transform: translateY(-1px); }
+.profile-empty-state__btn--ghost {
+  background: var(--card-bg);
+  color: var(--text-mid);
+  border: 1px solid var(--border);
+}
+.profile-empty-state__btn--ghost:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .profile-empty-state__cards { grid-template-columns: 1fr; }
+  .profile-empty-state__note-how { flex-direction: column; gap: 8px; }
+  .profile-empty-state__note-arrow { transform: rotate(90deg); padding: 0; align-self: center; }
+  .profile-empty-state__head { flex-direction: column; }
+  .profile-empty-state__actions { flex-direction: column; align-items: stretch; }
+  .profile-empty-state__btn { justify-content: center; }
+}

@@ -54,7 +54,7 @@ const AppRouter = () => (
     <Route path="/results"      element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"      element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
     <Route path="/feedback"      element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
-    <Route path="/homework"      element={<ProtectedRoute><MasteryTestPage /></ProtectedRoute>} />
+    <Route path="/masteryTest"      element={<ProtectedRoute><MasteryTestPage /></ProtectedRoute>} />
     <Route path="/theory"       element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
     <Route path="/profile"      element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
     <Route path="/about"        element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />

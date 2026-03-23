@@ -580,3 +580,46 @@
   .gaps-themes__grid { grid-template-columns: 1fr; }
   .gaps-primary__title { font-size: 0.95rem; }
 }
+
+/* ══════════════════════════════════════════
+   APPEND TO profile.gaps.css
+   CleanGapsBlock — used in GapsSection.jsx
+   but styles were missing
+══════════════════════════════════════════ */
+
+.gaps-clean-gaps {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  animation: card-in 0.5s cubic-bezier(0.22,1,0.36,1) 0.08s both;
+}
+
+.gaps-clean-gaps__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gaps-clean-gaps__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  background: rgba(39,174,96,0.07);
+  border: 1px solid rgba(39,174,96,0.2);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #27ae60;
+  font-family: -apple-system, sans-serif;
+}
+
+.gaps-clean-gaps__note {
+  font-size: 0.72rem;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+  margin: 0;
+  line-height: 1.5;
+}

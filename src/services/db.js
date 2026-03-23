@@ -13,7 +13,7 @@ import { limit } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
 /* ─────────────────────────────────────────────
-   Theory progress (keep)
+   Theory progress
 ───────────────────────────────────────────── */
 export const getTheoryProgress = async (uid, topicId) => {
   const ref = doc(db, "users", uid, "theoryProgress", topicId);
@@ -23,19 +23,11 @@ export const getTheoryProgress = async (uid, topicId) => {
 
 export const saveTheoryProgress = async (uid, topicId, payload) => {
   const ref = doc(db, "users", uid, "theoryProgress", topicId);
-  await setDoc(
-    ref,
-    {
-      topicId,
-      ...payload,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  await setDoc(ref, { topicId, ...payload, updatedAt: serverTimestamp() }, { merge: true });
 };
 
 /* ─────────────────────────────────────────────
-   Practice sessions (keep)
+   Practice sessions
 ───────────────────────────────────────────── */
 export const savePractice = async (userId, data) => {
   await addDoc(collection(db, "users", userId, "practice_sessions"), {
@@ -45,22 +37,38 @@ export const savePractice = async (userId, data) => {
 };
 
 export const getPractice = async (userId) => {
-  const q = query(
-    collection(db, "users", userId, "practice_sessions"),
-    orderBy("date", "desc")
-  );
+  const q = query(collection(db, "users", userId, "practice_sessions"), orderBy("date", "desc"));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => d.data());
+  return snapshot.docs.map(d => d.data());
 };
 
 /* ─────────────────────────────────────────────
-   Diagnostics (keep)
+   Diagnostics
 ───────────────────────────────────────────── */
 export const saveDiagnostic = async (userId, data) => {
+  // Save the session
   await addDoc(collection(db, "users", userId, "diagnostic_sessions"), {
     ...data,
     date: new Date().toISOString(),
   });
+
+  // Record today's local date for daily limit check
+  const today = new Date().toLocaleDateString();
+  await setDoc(
+    doc(db, "users", userId),
+    { lastDiagnosticDate: today },
+    { merge: true }
+  );
+};
+
+export const getLastDiagnosticDate = async (uid) => {
+  try {
+    const ref  = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    return snap.exists() ? (snap.data().lastDiagnosticDate ?? null) : null;
+  } catch {
+    return null;
+  }
 };
 
 export const getDiagnostics = async (userId) => {
@@ -69,85 +77,50 @@ export const getDiagnostics = async (userId) => {
     orderBy("date", "desc")
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => d.data());
+  return snapshot.docs.map(d => d.data());
 };
 
 /* ─────────────────────────────────────────────
-   Homework / Tasks (NEW)
-   Firestore structure:
-   users/{uid}/homework/{topicId}
-   users/{uid}/topicProgress/{topicId}
+   Homework / Tasks
 ───────────────────────────────────────────── */
-
 export const getHomeworkDoc = async (uid, topicId) => {
   const ref = doc(db, "users", uid, "homework", topicId);
   const snap = await getDoc(ref);
   return snap.exists() ? snap.data() : null;
 };
 
-/**
- * Creates (assigns) homework for a topic if it doesn't exist,
- * or overwrites if force=true.
- * payload must contain:
- * { topicId, topicTitle, grade, tasks: [ {id,text,options,correct,explanation} ] }
- */
 export const assignHomework = async (uid, topicId, payload, force = false) => {
   const ref = doc(db, "users", uid, "homework", topicId);
   const snap = await getDoc(ref);
 
-  if (snap.exists() && !force) {
-    return snap.data(); // keep existing assignment
-  }
+  if (snap.exists() && !force) return snap.data();
 
   const docData = {
     topicId,
     topicTitle: payload.topicTitle || topicId,
-    status: "assigned", // assigned | in_progress | completed
-    tasks: (payload.tasks || []).map((t) => ({
-      id: t.id,
-      text: t.text,
-      options: t.options,
-      correct: t.correct,
-      explanation: t.explanation,
-      // user fields
-      userAnswer: null,
-      isCorrect: null,
+    status: "assigned",
+    tasks: (payload.tasks || []).map(t => ({
+      id: t.id, text: t.text, options: t.options, correct: t.correct, explanation: t.explanation,
+      userAnswer: null, isCorrect: null,
     })),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt:   serverTimestamp(),
+    updatedAt:   serverTimestamp(),
     completedAt: null,
-    score: {
-      correct: 0,
-      wrong: 0,
-      total: (payload.tasks || []).length,
-      percent: 0,
-    },
+    score: { correct: 0, wrong: 0, total: (payload.tasks || []).length, percent: 0 },
   };
 
   await setDoc(ref, docData, { merge: false });
 
-  // also ensure topicProgress exists
   const progRef = doc(db, "users", uid, "topicProgress", topicId);
-  await setDoc(
-    progRef,
-    {
-      topicId,
-      topicTitle: payload.topicTitle || topicId,
-      status: "in_progress", // in_progress | completed
-      homeworkAssigned: true,
-      homeworkCompleted: false,
-      percent: 0,
-      updatedAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  await setDoc(progRef, {
+    topicId, topicTitle: payload.topicTitle || topicId, status: "in_progress",
+    homeworkAssigned: true, homeworkCompleted: false, percent: 0,
+    updatedAt: serverTimestamp(), createdAt: serverTimestamp(),
+  }, { merge: true });
 
   const after = await getDoc(ref);
   return after.exists() ? after.data() : null;
 };
-
-
 
 export const saveHomeworkAnswer = async (uid, topicId, taskId, answerLabel) => {
   const ref = doc(db, "users", uid, "homework", topicId);
@@ -157,52 +130,26 @@ export const saveHomeworkAnswer = async (uid, topicId, taskId, answerLabel) => {
   const hw = snap.data();
   const tasks = Array.isArray(hw.tasks) ? hw.tasks.slice() : [];
 
-  let correctCount = 0;
-  let wrongCount = 0;
-
-  const updatedTasks = tasks.map((t) => {
-    if (t.id !== taskId) {
-      // keep previous
-      if (t.isCorrect === true) correctCount += 1;
-      if (t.isCorrect === false) wrongCount += 1;
-      return t;
-    }
+  const updatedTasks = tasks.map(t => {
+    if (t.id !== taskId) return t;
     const isCorrect = answerLabel === t.correct;
-    if (isCorrect) correctCount += 1;
-    else wrongCount += 1;
-    return {
-      ...t,
-      userAnswer: answerLabel,
-      isCorrect,
-    };
+    return { ...t, userAnswer: answerLabel, isCorrect };
   });
 
-  // Re-count all (in case taskId not found)
-  correctCount = 0;
-  wrongCount = 0;
-  updatedTasks.forEach((t) => {
-    if (t.isCorrect === true) correctCount += 1;
-    if (t.isCorrect === false) wrongCount += 1;
+  let correctCount = 0, wrongCount = 0;
+  updatedTasks.forEach(t => {
+    if (t.isCorrect === true)  correctCount++;
+    if (t.isCorrect === false) wrongCount++;
   });
 
-  const total = updatedTasks.length;
+  const total   = updatedTasks.length;
   const percent = total ? Math.floor((correctCount / total) * 100) : 0;
-
   const nextStatus = hw.status === "assigned" ? "in_progress" : hw.status;
 
-  const payload = {
-    tasks: updatedTasks,
-    status: nextStatus,
-    updatedAt: serverTimestamp(),
-    score: {
-      correct: correctCount,
-      wrong: wrongCount,
-      total,
-      percent,
-    },
-  };
-
-  await setDoc(ref, payload, { merge: true });
+  await setDoc(ref, {
+    tasks: updatedTasks, status: nextStatus, updatedAt: serverTimestamp(),
+    score: { correct: correctCount, wrong: wrongCount, total, percent },
+  }, { merge: true });
 
   const after = await getDoc(ref);
   return after.exists() ? after.data() : null;
@@ -215,36 +162,16 @@ export const completeHomework = async (uid, topicId) => {
 
   const hw = snap.data();
   const tasks = Array.isArray(hw.tasks) ? hw.tasks : [];
+  const allAnswered = tasks.length > 0 && tasks.every(t => t.userAnswer != null);
+  if (!allAnswered) return { ...hw, _error: "NOT_ALL_ANSWERED" };
 
-  // completion rule: every task answered (userAnswer not null)
-  const allAnswered = tasks.length > 0 && tasks.every((t) => t.userAnswer != null);
-  if (!allAnswered) {
-    return { ...hw, _error: "NOT_ALL_ANSWERED" };
-  }
+  await setDoc(ref, { status: "completed", completedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true });
 
-  await setDoc(
-    ref,
-    {
-      status: "completed",
-      completedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
-
-  // update topicProgress
   const progRef = doc(db, "users", uid, "topicProgress", topicId);
-  await setDoc(
-    progRef,
-    {
-      status: "completed",
-      homeworkCompleted: true,
-      percent: hw?.score?.percent ?? 0,
-      updatedAt: serverTimestamp(),
-      completedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  await setDoc(progRef, {
+    status: "completed", homeworkCompleted: true,
+    percent: hw?.score?.percent ?? 0, updatedAt: serverTimestamp(), completedAt: serverTimestamp(),
+  }, { merge: true });
 
   const after = await getDoc(ref);
   return after.exists() ? after.data() : null;
@@ -255,7 +182,7 @@ export const getTopicProgress = async (uid) => {
   try {
     const ref  = collection(db, "users", uid, "topicProgress");
     const snap = await getDocs(ref);
-    return snap.docs.map((d) => ({ topicId: d.id, ...d.data() }));
+    return snap.docs.map(d => ({ topicId: d.id, ...d.data() }));
   } catch (e) {
     console.error("[db] getTopicProgress:", e);
     return [];
@@ -263,137 +190,97 @@ export const getTopicProgress = async (uid) => {
 };
 
 /* ─────────────────────────────────────────────
-   Homework Results — best score per topic
-   Firestore structure:
-   users/{uid}/homeworkResults/{topicId}
+   Homework Results
 ───────────────────────────────────────────── */
-
-/**
- * Returns the best saved result for a topic, or null if none exists.
- * Shape: { pct, correct, total, completedAt, updatedAt }
- */
 export const getHomeworkResult = async (uid, topicId) => {
   const ref = doc(db, "users", uid, "homeworkResults", topicId);
   const snap = await getDoc(ref);
   return snap.exists() ? snap.data() : null;
 };
 
-/**
- * Saves (or overwrites) the best result for a topic.
- * payload: { pct, correct, total, completedAt }
- *
- * Call-site already guards "only save if pct > prev.pct",
- * so here we simply overwrite unconditionally.
- */
 export const saveHomeworkResult = async (uid, topicId, payload) => {
   const ref = doc(db, "users", uid, "homeworkResults", topicId);
-  await setDoc(
-    ref,
-    {
-      topicId,
-      pct:         payload.pct,
-      correct:     payload.correct,
-      total:       payload.total,
-      completedAt: payload.completedAt ?? new Date().toISOString(),
-      updatedAt:   serverTimestamp(),
-    },
-    { merge: false } // full overwrite — call-site already checked it's a new best
-  );
+  await setDoc(ref, {
+    topicId,
+    pct:         payload.pct,
+    correct:     payload.correct,
+    total:       payload.total,
+    completedAt: payload.completedAt ?? new Date().toISOString(),
+    updatedAt:   serverTimestamp(),
+  }, { merge: false });
 };
 
- 
-export const getActiveGaps = async (uid, topicId) => {
+export const getActiveGaps = async (uid, topicId = null) => {
   const q = query(
     collection(db, "users", uid, "diagnostic_sessions"),
     orderBy("date", "desc"),
-    limit(10) // check last 10 sessions max
+    limit(10)
   );
   const snapshot = await getDocs(q);
- 
+
   for (const d of snapshot.docs) {
     const data = d.data();
-    const gapsByTopic = data.gapsByTopic || {};
-    const topicGaps = gapsByTopic[topicId];
-    if (Array.isArray(topicGaps) && topicGaps.length > 0) {
-      return topicGaps;
+
+    if (data.coreGapProfile) {
+      const profile = data.coreGapProfile;
+      const activeGaps = Object.values(profile).filter(
+        cg => cg.strength !== null && cg.evidence?.length > 0
+      );
+      if (!activeGaps.length) continue;
+      if (topicId) {
+        const topicFiltered = activeGaps.filter(cg =>
+          cg.evidence.some(ev => ev.topicId === topicId)
+        );
+        return topicFiltered.length > 0 ? topicFiltered : activeGaps;
+      }
+      return activeGaps;
+    }
+
+    if (data.gapsByTopic) {
+      const gapsByTopic = data.gapsByTopic;
+      if (topicId) {
+        const topicGaps = gapsByTopic[topicId];
+        if (Array.isArray(topicGaps) && topicGaps.length > 0) return topicGaps;
+      } else {
+        const all = Object.values(gapsByTopic).flat();
+        if (all.length > 0) return all;
+      }
     }
   }
- 
+
   return [];
 };
- 
 
 /* ─────────────────────────────────────────────
    Topic Notes
-   Firestore structure:
-   users/{uid}/topicNotes/{topicId}
-   {
-     topicId:    string,
-     topicTitle: string,
-     content:    string,   ← HTML from rich editor
-     createdAt:  Timestamp,
-     updatedAt:  Timestamp,
-   }
 ───────────────────────────────────────────── */
-
-/**
- * Load the saved note for a single topic.
- * Returns null if no note exists yet.
- */
 export const getTopicNote = async (uid, topicId) => {
   const ref = doc(db, "users", uid, "topicNotes", topicId);
   const snap = await getDoc(ref);
   return snap.exists() ? snap.data() : null;
 };
 
-/**
- * Create or update the note for a topic.
- * Skips write if content is empty and no document exists yet.
- */
 export const saveTopicNote = async (uid, topicId, { topicTitle, content }) => {
   const ref = doc(db, "users", uid, "topicNotes", topicId);
   const snap = await getDoc(ref);
   const isNew = !snap.exists();
-
-  // Don't create a doc for an empty note
   if (isNew && (!content || !content.trim())) return;
-
-  await setDoc(
-    ref,
-    {
-      topicId,
-      topicTitle: topicTitle || topicId,
-      content,
-      updatedAt: serverTimestamp(),
-      ...(isNew ? { createdAt: serverTimestamp() } : {}),
-    },
-    { merge: true }
-  );
+  await setDoc(ref, {
+    topicId, topicTitle: topicTitle || topicId, content,
+    updatedAt: serverTimestamp(),
+    ...(isNew ? { createdAt: serverTimestamp() } : {}),
+  }, { merge: true });
 };
 
-/**
- * Fetch all topic notes for a user that have non-empty content.
- * Used by ProfilePage to populate the Notes section.
- */
 export const getAllTopicNotes = async (uid) => {
   const colRef = collection(db, "users", uid, "topicNotes");
-  const snap = await getDocs(colRef);
-  return snap.docs
-    .map((d) => d.data())
-    .filter((n) => n.content && n.content.trim());
+  const snap   = await getDocs(colRef);
+  return snap.docs.map(d => d.data()).filter(n => n.content && n.content.trim());
 };
 
-// mastery test
 /* ─────────────────────────────────────────────
    Mastery Tests
-   ADD these functions to db.js
-
-   Firestore path: users/{uid}/masteryTests/{topicId}
-
-   Also add to imports at top of db.js:
-   updateDoc  ← from "firebase/firestore"
 ───────────────────────────────────────────── */
-
 export const getMasteryTest = async (uid, topicId) => {
   const ref = doc(db, "users", uid, "masteryTests", topicId);
   const snap = await getDoc(ref);
@@ -402,41 +289,21 @@ export const getMasteryTest = async (uid, topicId) => {
 
 export const assignMasteryTest = async (uid, topicId, payload) => {
   const ref = doc(db, "users", uid, "masteryTests", topicId);
-  const snap = await getDoc(ref);
-
-  // Resume existing incomplete test rather than overwrite
-  if (snap.exists() && snap.data().status !== "completed") {
-    return snap.data();
+  if (!payload.forceNew) {
+    const existing = await getDoc(ref);
+    if (existing.exists() && existing.data().status === "in_progress") return existing.data();
   }
-
-  const docData = {
+  const newDoc = {
     topicId,
-    topicTitle: payload.topicTitle || topicId,
-    status: "assigned", // assigned | in_progress | completed
-    tasks: (payload.tasks || []).map((t) => ({
-      id: t.id,
-      text: t.text,
-      options: t.options,
-      correct: t.correct,
-      explanation: t.explanation || "",
-      userAnswer: null,
-      isCorrect: null,
-    })),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    completedAt: null,
-    timeSecs: 0,
-    score: {
-      correct: 0,
-      wrong: 0,
-      total: (payload.tasks || []).length,
-      percent: 0,
-    },
+    topicTitle: payload.topicTitle,
+    tasks:      payload.tasks.map(t => ({ ...t, userAnswer: null })),
+    status:     "in_progress",
+    timeSecs:   0,
+    createdAt:  new Date().toISOString(),
+    updatedAt:  new Date().toISOString(),
   };
-
-  await setDoc(ref, docData, { merge: false });
-  const after = await getDoc(ref);
-  return after.exists() ? after.data() : null;
+  await setDoc(ref, newDoc);
+  return newDoc;
 };
 
 export const saveMasteryAnswer = async (uid, topicId, taskId, answerLabel) => {
@@ -447,16 +314,14 @@ export const saveMasteryAnswer = async (uid, topicId, taskId, answerLabel) => {
   const hw = snap.data();
   const tasks = Array.isArray(hw.tasks) ? hw.tasks.slice() : [];
 
-  const updatedTasks = tasks.map((t) => {
+  const updatedTasks = tasks.map(t => {
     if (t.id !== taskId) return t;
-    const isCorrect = answerLabel === t.correct;
-    return { ...t, userAnswer: answerLabel, isCorrect };
+    return { ...t, userAnswer: answerLabel, isCorrect: answerLabel === t.correct };
   });
 
-  let correctCount = 0;
-  let wrongCount = 0;
-  updatedTasks.forEach((t) => {
-    if (t.isCorrect === true) correctCount++;
+  let correctCount = 0, wrongCount = 0;
+  updatedTasks.forEach(t => {
+    if (t.isCorrect === true)  correctCount++;
     if (t.isCorrect === false) wrongCount++;
   });
 
@@ -464,16 +329,10 @@ export const saveMasteryAnswer = async (uid, topicId, taskId, answerLabel) => {
   const percent = total ? Math.floor((correctCount / total) * 100) : 0;
   const nextStatus = hw.status === "assigned" ? "in_progress" : hw.status;
 
-  await setDoc(
-    ref,
-    {
-      tasks: updatedTasks,
-      status: nextStatus,
-      updatedAt: serverTimestamp(),
-      score: { correct: correctCount, wrong: wrongCount, total, percent },
-    },
-    { merge: true }
-  );
+  await setDoc(ref, {
+    tasks: updatedTasks, status: nextStatus, updatedAt: serverTimestamp(),
+    score: { correct: correctCount, wrong: wrongCount, total, percent },
+  }, { merge: true });
 
   const after = await getDoc(ref);
   return after.exists() ? after.data() : null;
@@ -486,36 +345,22 @@ export const completeMasteryTest = async (uid, topicId, timeSecs = 0) => {
 
   const hw = snap.data();
   const tasks = Array.isArray(hw.tasks) ? hw.tasks : [];
-  const allAnswered = tasks.length > 0 && tasks.every((t) => t.userAnswer != null);
+  const allAnswered = tasks.length > 0 && tasks.every(t => t.userAnswer != null);
   if (!allAnswered) return { ...hw, _error: "NOT_ALL_ANSWERED" };
 
-  await setDoc(
-    ref,
-    {
-      status: "completed",
-      completedAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      timeSecs,
-    },
-    { merge: true }
-  );
+  await setDoc(ref, {
+    status: "completed", completedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(), timeSecs,
+  }, { merge: true });
 
-  // If score >= 80%, write a mastery card to topicProgress
   const pct = hw.score?.percent ?? 0;
   if (pct >= 80) {
     const progRef = doc(db, "users", uid, "topicProgress", topicId);
-    await setDoc(
-      progRef,
-      {
-        topicId,
-        topicTitle: hw.topicTitle || topicId,
-        masteryUnlocked: true,
-        masteryPct: pct,
-        masteryCompletedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await setDoc(progRef, {
+      topicId, topicTitle: hw.topicTitle || topicId,
+      masteryUnlocked: true, masteryPct: pct,
+      masteryCompletedAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }, { merge: true });
   }
 
   const after = await getDoc(ref);

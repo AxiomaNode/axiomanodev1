@@ -1,5 +1,5 @@
 // src/pages/profilePages/ProfilePage.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
@@ -9,14 +9,15 @@ import { getUserProfile } from "../../firebase/auth";
 import ResultsSection  from "../../components/sections/ResultsSection";
 import ProgressSection from "../../components/sections/ProgressSections";
 import NotesSection    from "../../components/sections/NotesSection";
-import GapsSection from "../../components/sections/GapsSection";
+import GapsSection     from "../../components/sections/GapsSection";
 import ProfileEditModal from "../../components/profile/ProfileEditModal";
 import "./profile.css";
 import "../progressPages/progress.css";
 import '../resultsPages/results.css';
 import "../../styles/layout.css";
 import "./profile.gaps.css";
-// ── XP / level helpers ────────────────────────────────────────────────────────
+
+// ── XP / level helpers ──────────────────────────────────────────────────────
 const XP_PER_LEVEL = 200;
 const getLevel    = (xp) => Math.floor((xp || 0) / XP_PER_LEVEL) + 1;
 const getLevelXp  = (xp) => (xp || 0) % XP_PER_LEVEL;
@@ -29,7 +30,7 @@ const getTier = (level) => {
   return               { label: "Beginner", color: "rgba(255,255,255,0.3)" };
 };
 
-// ── Avatar ────────────────────────────────────────────────────────────────────
+// ── Avatar ──────────────────────────────────────────────────────────────────
 const Avatar = ({ name, photoURL, size = 68 }) => {
   const initials = (name || "?")
     .split(" ")
@@ -52,17 +53,15 @@ const Avatar = ({ name, photoURL, size = 68 }) => {
   );
 };
 
-// ── Hero Card ─────────────────────────────────────────────────────────────────
-const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) => {
+// ── Hero Card ────────────────────────────────────────────────────────────────
+const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, activeGapCount, onTabChange }) => {
   const xp       = profile?.ratingPoints || 0;
   const level    = getLevel(xp);
   const levelXp  = getLevelXp(xp);
   const levelPct = getLevelPct(xp);
   const tier     = getTier(level);
 
-  const totalSessions = diagnostics.length + practice.length;
-  const totalGaps     = diagnostics.reduce((s, d) => s + (d.gaps?.length || 0), 0);
-  const avgScore      = diagnostics.length
+  const avgScore = diagnostics.length
     ? Math.round(
         diagnostics.reduce((s, d) => s + (d.score.correct / d.score.total) * 100, 0) /
         diagnostics.length
@@ -70,6 +69,24 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) 
     : null;
 
   const scoreCol = (p) => (p >= 70 ? "#27ae60" : p >= 40 ? "#d35400" : "#c0392b");
+
+  // Last diagnostic date — formatted short
+  const lastDiagDate = useMemo(() => {
+    if (!diagnostics.length) return null;
+    const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const d = new Date(sorted[0].date);
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  }, [diagnostics]);
+
+  // One-line status summary
+  const statusLine = useMemo(() => {
+    const parts = [];
+    if (activeGapCount > 0) parts.push(`${activeGapCount} active gap${activeGapCount !== 1 ? "s" : ""}`);
+    else if (diagnostics.length > 0) parts.push("no active gaps");
+    if (lastDiagDate) parts.push(`last run ${lastDiagDate}`);
+    if (diagnostics.length > 0) parts.push(`${diagnostics.length} session${diagnostics.length !== 1 ? "s" : ""}`);
+    return parts.join(" · ");
+  }, [activeGapCount, lastDiagDate, diagnostics.length]);
 
   return (
     <div className="profile-hero">
@@ -84,12 +101,15 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) 
           <div className="profile-hero__name-row">
             <h1 className="profile-hero__name">{profile?.displayName || user?.displayName || "Anonymous"}</h1>
             <span className="profile-hero__tier"
-              style={{ color: tier.color, borderColor: tier.color + "35",
-                background: tier.color + "0e" }}>
+              style={{ color: tier.color, borderColor: tier.color + "35", background: tier.color + "0e" }}>
               {tier.label}
             </span>
           </div>
-          <p className="profile-hero__email">{user?.email}</p>
+
+          {/* Status line — replaces email */}
+          {statusLine && (
+            <p className="profile-hero__status">{statusLine}</p>
+          )}
 
           {/* XP bar */}
           <div className="profile-xp">
@@ -112,29 +132,59 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) 
       {/* Right: stats + edit */}
       <div className="profile-hero__right">
         <div className="profile-hero__stats">
-          <div className="profile-hero__stat">
-            <strong>{totalSessions}</strong>
-            <span>sessions</span>
-          </div>
+
+          {/* GAPS — clickable → Gaps tab */}
+          <button
+            className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("gaps")}
+            title="View your active gaps"
+          >
+            <strong style={{ color: activeGapCount > 0 ? "#d35400" : undefined }}>
+              {activeGapCount}
+            </strong>
+            <span>gaps</span>
+          </button>
+
           <div className="profile-hero__stat-sep" />
-          <div className="profile-hero__stat">
+
+          {/* AVG SCORE — clickable → Results tab */}
+          <button
+            className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("results")}
+            title="View diagnostic results"
+          >
             <strong style={{ color: avgScore != null ? scoreCol(avgScore) : undefined }}>
               {avgScore != null ? `${avgScore}%` : "—"}
             </strong>
             <span>avg score</span>
-          </div>
+          </button>
+
           <div className="profile-hero__stat-sep" />
-          <div className="profile-hero__stat">
-            <strong style={{ color: totalGaps > 0 ? "#d35400" : undefined }}>
-              {totalGaps}
+
+          {/* LAST RUN — clickable → Results tab */}
+          <button
+            className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("results")}
+            title="View latest diagnostic"
+          >
+            <strong style={{ fontSize: "0.95rem" }}>
+              {lastDiagDate ?? "—"}
             </strong>
-            <span>gaps</span>
-          </div>
+            <span>last run</span>
+          </button>
+
           <div className="profile-hero__stat-sep" />
-          <div className="profile-hero__stat">
+
+          {/* DIAGNOSTICS — clickable → Results tab */}
+          <button
+            className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("results")}
+            title="View all diagnostic sessions"
+          >
             <strong>{profile?.stats?.diagnosticsCompleted ?? diagnostics.length}</strong>
             <span>diagnostics</span>
-          </div>
+          </button>
+
         </div>
 
         <button className="profile-hero__edit-btn" onClick={onEditClick} type="button">
@@ -150,67 +200,62 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick }) 
   );
 };
 
-// ── ProfilePage ───────────────────────────────────────────────────────────────
+// ── ProfilePage ──────────────────────────────────────────────────────────────
 const VALID_TABS = ["progress", "gaps", "results", "notes"];
 
 const ProfilePage = () => {
-  const { user }   = useAuth();
-  const location   = useLocation();
+  const { user }  = useAuth();
+  const location  = useLocation();
 
-  // Initialise tab and result index from navigation state (e.g. redirects from
-  // /progress or /results, or sidebar links that pass state={{ tab: "..." }}).
   const initialTab = VALID_TABS.includes(location.state?.tab)
     ? location.state.tab
     : "progress";
   const initialIdx = location.state?.selectedIdx ?? 0;
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab,   setActiveTab]   = useState(initialTab);
-  const [topicProgress, setTopicProgress] = useState([]); 
-  const [editOpen,    setEditOpen]    = useState(false);
+  const [sidebarOpen,    setSidebarOpen]    = useState(false);
+  const [activeTab,      setActiveTab]      = useState(initialTab);
+  const [topicProgress,  setTopicProgress]  = useState([]);
+  const [editOpen,       setEditOpen]       = useState(false);
+  const [resultIdx,      setResultIdx]      = useState(initialIdx);
+  const [diagnostics,    setDiagnostics]    = useState([]);
+  const [practice,       setPractice]       = useState([]);
+  const [profile,        setProfile]        = useState(null);
+  const [topicNotes,     setTopicNotes]     = useState([]);
+  const [loading,        setLoading]        = useState(true);
 
-  // Re-sync tab when navigating to /profile from elsewhere (e.g. header links)
-  // while the component is already mounted — useState initialiser won't re-run.
+  const activeGapCount = useMemo(() => {
+    const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
+    for (const s of sorted) {
+      if (s.gaps?.length > 0) return s.gaps.length;
+    }
+    return 0;
+  }, [diagnostics]);
+
   useEffect(() => {
     const tab = location.state?.tab;
-    if (tab && VALID_TABS.includes(tab)) {
-      setActiveTab(tab);
-    }
-    if (location.state?.selectedIdx != null) {
-      setResultIdx(location.state.selectedIdx);
-    }
+    if (tab && VALID_TABS.includes(tab)) setActiveTab(tab);
+    if (location.state?.selectedIdx != null) setResultIdx(location.state.selectedIdx);
   }, [location.state]);
 
-  const [resultIdx,   setResultIdx]   = useState(initialIdx);
-
-  const [diagnostics, setDiagnostics] = useState([]);
-  const [practice,    setPractice]    = useState([]);
-  const [profile,     setProfile]     = useState(null);
-  const [topicNotes,  setTopicNotes]  = useState([]);
-  const [loading,     setLoading]     = useState(true);
-
-  // Dot-grid background on body
   useEffect(() => {
     document.body.classList.add("axioma-profile-bg");
-    return () => {
-      document.body.classList.remove("axioma-profile-bg");
-    };
+    return () => document.body.classList.remove("axioma-profile-bg");
   }, []);
 
   useEffect(() => {
-        if (!user) return;
-        Promise.all([
+    if (!user) return;
+    Promise.all([
       getDiagnostics(user.uid),
       getPractice(user.uid),
       getUserProfile(user.uid),
       getAllTopicNotes(user.uid),
-      getTopicProgress(user.uid),        // ADD
+      getTopicProgress(user.uid),
     ]).then(([diags, pracs, prof, notes, progress]) => {
-      setDiagnostics(diags    ?? []);
+      setDiagnostics(diags     ?? []);
       setPractice(pracs        ?? []);
       setProfile(prof);
       setTopicNotes(notes      ?? []);
-      setTopicProgress(progress ?? []);  // ADD
+      setTopicProgress(progress ?? []);
       setLoading(false);
     });
   }, [user]);
@@ -229,30 +274,26 @@ const ProfilePage = () => {
 
   const TABS = [
     { id: "progress", label: "Progress" },
-    { id: "gaps",     label: "Gaps",     badge: diagnostics.reduce((s, d) => s + (d.gaps?.length || 0), 0) || null },
-    { id: "results",  label: "Results",  badge: diagnostics.length || null },
-    { id: "notes",    label: "Notes",    badge: topicNotes.length  || null },
+    { id: "gaps",     label: "Gaps",    badge: activeGapCount || null },
+    { id: "results",  label: "Results", badge: diagnostics.length || null },
+    { id: "notes",    label: "Notes",   badge: topicNotes.length  || null },
   ];
- 
+
   return (
     <div className="page-shell">
-      <Header sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)} />
+      <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="page-main">
         <div className="profile-page">
 
-          {/* Breadcrumb */}
           <nav className="profile-breadcrumb" aria-label="breadcrumb">
             <Link to="/home" className="profile-breadcrumb__item">Home</Link>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
-            <span className="profile-breadcrumb__item profile-breadcrumb__item--active">
-              Profile
-            </span>
+            <span className="profile-breadcrumb__item profile-breadcrumb__item--active">Profile</span>
           </nav>
 
           {loading ? (
@@ -268,6 +309,8 @@ const ProfilePage = () => {
                 diagnostics={diagnostics}
                 practice={practice}
                 onEditClick={() => setEditOpen(true)}
+                activeGapCount={activeGapCount}
+                onTabChange={setActiveTab}
               />
 
               <div className="profile-tabs" role="tablist">
@@ -298,7 +341,7 @@ const ProfilePage = () => {
                     initialIdx={resultIdx}
                   />
                 )}
-                 {activeTab === "gaps" && (
+                {activeTab === "gaps" && (
                   <GapsSection
                     diagnostics={diagnostics}
                     topicProgress={topicProgress}
@@ -311,7 +354,6 @@ const ProfilePage = () => {
                     onNoteUpdated={handleNoteUpdated}
                   />
                 )}
-                
               </div>
             </>
           )}
