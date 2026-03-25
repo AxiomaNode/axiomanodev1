@@ -205,3 +205,92 @@
   .todo-card { max-width: 100%; }
   .todo-card--skeleton { max-width: 100%; }
 }
+
+/* ══════════════════════════════════════════════════════
+   APPEND TO daily-todo-panel.css
+   New card type styles + small updates
+══════════════════════════════════════════════════════ */
+
+/* Progress label in header */
+.todo-panel__progress-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+}
+.todo-panel__progress-label--done {
+  color: #27ae60;
+}
+
+/* Description line under title */
+.todo-card__desc {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  font-family: -apple-system, sans-serif;
+  line-height: 1.4;
+  margin: 0;
+  text-align: center;
+  max-width: 140px;
+}
+
+/* Type badge with icon */
+.todo-card__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+}
+
+/* "gap" pill next to targeted badge */
+.todo-card__type-gap {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  background: rgba(192,57,43,0.1);
+  border: 1px solid rgba(192,57,43,0.25);
+  border-radius: 10px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #c0392b;
+  letter-spacing: 0.08em;
+  margin-left: 2px;
+}
+
+/* Targeted practice card — subtle red accent */
+.todo-card--practice_targeted .todo-card__accent {
+  background: linear-gradient(90deg, #c0392b, rgba(192,57,43,0.2), transparent);
+}
+.todo-card--practice_targeted:not(.todo-card--done):hover {
+  border-color: rgba(192,57,43,0.35);
+}
+
+/* Puzzles card — purple accent */
+.todo-card--puzzles .todo-card__accent {
+  background: linear-gradient(90deg, #9b59b6, rgba(155,89,182,0.2), transparent);
+}
+.todo-card--puzzles:not(.todo-card--done):hover {
+  border-color: rgba(155,89,182,0.35);
+}
+
+/* 3-card grid layout */
+.todo-panel__cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 680px) {
+  .todo-panel__cards {
+    grid-template-columns: 1fr;
+  }
+}
+@media (min-width: 681px) and (max-width: 900px) {
+  .todo-panel__cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

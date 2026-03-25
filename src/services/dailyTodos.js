@@ -9,17 +9,14 @@ const todayId = () => {
 
 const ref = (uid) => doc(db, "users", uid, "dailyTodos", todayId());
 
-/* internal — ensures today's doc exists, returns { docRef, data } */
 const ensureTodayDoc = async (uid) => {
   const docRef = ref(uid);
   const snap = await getDoc(docRef);
   if (snap.exists()) return { docRef, data: snap.data() };
-  const empty = { date: todayId(), plan: [], updatedAt: Date.now() };
+  const empty = { date: todayId(), plan: [], puzzleCount: 0, updatedAt: Date.now() };
   await setDoc(docRef, empty);
   return { docRef, data: empty };
 };
-
-/* ── public API ── */
 
 export const getTodayDoc = async (uid) => {
   const { data } = await ensureTodayDoc(uid);
@@ -37,4 +34,15 @@ export const markPlanItemXpAwarded = async (uid, itemId) => {
     item.id === itemId ? { ...item, xpAwarded: true } : item
   );
   await updateDoc(docRef, { plan, updatedAt: Date.now() });
+};
+
+/* ── Puzzle completion counter ──────────────────────────────────────────────
+   Call this once per puzzle solved from the Puzzles page.
+   Returns the new total so the caller can update local state immediately.
+─────────────────────────────────────────────────────────────────────────── */
+export const markPuzzleSolved = async (uid) => {
+  const { docRef, data } = await ensureTodayDoc(uid);
+  const newCount = (data.puzzleCount || 0) + 1;
+  await updateDoc(docRef, { puzzleCount: newCount, updatedAt: Date.now() });
+  return newCount;
 };

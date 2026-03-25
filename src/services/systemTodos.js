@@ -1,4 +1,4 @@
-import { getDiagnostics, getPractice } from "./db";
+import { getDiagnostics, getPractice, getActiveGaps } from "./db";
 import { awardPoints } from "../core/scoringEngine";
 import { getTodayDoc, savePlan, markPlanItemXpAwarded } from "./dailyTodos";
 
@@ -14,56 +14,165 @@ const toLocalDate = (iso) => {
 };
 const isToday = (iso) => toLocalDate(iso) === todayStr();
 
-/* ── plan generation — always 2 cards ── */
-const generatePlan = () => {
-  const practiceTarget = Math.random() < 0.5 ? 1 : 2;
-  return [
+/* ── plan generation ── */
+const generatePlan = (activeGap = null) => {
+  // Puzzle target varies 10–15
+  const puzzleTarget = Math.floor(Math.random() * 6) + 10;
+
+  const plan = [
     {
-      id: "plan_diagnostic",
-      type: "diagnostic",
-      title: "Run today's diagnostic",
-      target: 1,
-      xp: 20,
-      xpAwarded: false,
-    },
-    {
-      id: "plan_practice",
-      type: "practice",
-      title: `Complete ${practiceTarget} practice session${practiceTarget > 1 ? "s" : ""}`,
-      target: practiceTarget,
-      xp: practiceTarget === 1 ? 15 : 25,
-      xpAwarded: false,
+      id:          "plan_diagnostic",
+      type:        "diagnostic",
+      title:       "Run today's diagnostic",
+      description: "Map where your reasoning breaks.",
+      target:      1,
+      xp:          20,
+      xpAwarded:   false,
+      route:       "/diagnostics",
+      routeState:  null,
     },
   ];
-};
 
-export const getDailyPlan = async (uid) => {
-  const todayDoc = await getTodayDoc(uid);
-
-  let plan = todayDoc.plan;
-  if (!plan || plan.length === 0) {
-    plan = generatePlan();
-    await savePlan(uid, plan);
+  if (activeGap) {
+    plan.push({
+      id:          "plan_practice",
+      type:        "practice_targeted",
+      title:       `Train on: ${activeGap.title}`,
+      description: "Targeted practice on your active gap.",
+      target:      1,
+      xp:          15,
+      xpAwarded:   false,
+      route:       "/practice",
+      routeState:  {
+        gapId:    activeGap.evidence?.[0]?.gapId,
+        gapTitle: activeGap.title,
+        topicId:  activeGap.evidence?.[0]?.topicId,
+      },
+      gapTitle: activeGap.title,
+    });
+  } else {
+    plan.push({
+      id:          "plan_practice",
+      type:        "practice_free",
+      title:       "Complete a practice session",
+      description: "Free practice across any topic.",
+      target:      1,
+      xp:          15,
+      xpAwarded:   false,
+      route:       "/practice",
+      routeState:  null,
+    });
   }
 
-  const [allDiagnostics, allPractice] = await Promise.all([
+  plan.push({
+    id:          "plan_puzzles",
+    type:        "puzzles",
+    title:       `Solve ${puzzleTarget} puzzles`,
+    description: "Sharpen pattern recognition.",
+    target:      puzzleTarget,
+    xp:          20,
+    xpAwarded:   false,
+    route:       "/puzzles",
+    routeState:  null,
+  });
+
+  return plan;
+};
+
+/* ── getDailyPlan ── */
+export const getDailyPlan = async (uid) => {
+  const [todayDoc, allDiagnostics, allPractice, activeGaps] = await Promise.all([
+    getTodayDoc(uid),
     getDiagnostics(uid),
     getPractice(uid),
+    getActiveGaps(uid),
   ]);
 
-  const todayDiagCount  = allDiagnostics.filter((s) => isToday(s.date)).length;
-  const todayPractCount = allPractice.filter((s) => isToday(s.date)).length;
+  const activeGap    = activeGaps?.[0] ?? null;
+  const puzzleCount  = todayDoc.puzzleCount || 0; // tracked separately, not from sessions
+
+  let plan = todayDoc.plan;
+
+  if (!plan || plan.length === 0) {
+    plan = generatePlan(activeGap);
+    await savePlan(uid, plan);
+  } else {
+    // Patch practice task if active gap changed
+    const practiceItem = plan.find(i => i.id === "plan_practice");
+    if (practiceItem && activeGap) {
+      const expectedTitle = `Train on: ${activeGap.title}`;
+      if (practiceItem.type !== "practice_targeted" || practiceItem.title !== expectedTitle) {
+        plan = plan.map(i => {
+          if (i.id !== "plan_practice") return i;
+          return {
+            ...i,
+            type:        "practice_targeted",
+            title:       expectedTitle,
+            description: "Targeted practice on your active gap.",
+            route:       "/practice",
+            routeState:  {
+              gapId:    activeGap.evidence?.[0]?.gapId,
+              gapTitle: activeGap.title,
+              topicId:  activeGap.evidence?.[0]?.topicId,
+            },
+            gapTitle: activeGap.title,
+          };
+        });
+        await savePlan(uid, plan);
+      }
+    } else if (practiceItem && !activeGap && practiceItem.type === "practice_targeted") {
+      plan = plan.map(i => {
+        if (i.id !== "plan_practice") return i;
+        return {
+          ...i,
+          type:        "practice_free",
+          title:       "Complete a practice session",
+          description: "Free practice across any topic.",
+          routeState:  null,
+          gapTitle:    null,
+        };
+      });
+      await savePlan(uid, plan);
+    }
+
+    // Add puzzles card to old 2-card plans
+    if (!plan.find(i => i.id === "plan_puzzles")) {
+      const puzzleTarget = Math.floor(Math.random() * 6) + 10;
+      plan = [
+        ...plan,
+        {
+          id:          "plan_puzzles",
+          type:        "puzzles",
+          title:       `Solve ${puzzleTarget} puzzles`,
+          description: "Sharpen pattern recognition.",
+          target:      puzzleTarget,
+          xp:          20,
+          xpAwarded:   false,
+          route:       "/puzzles",
+          routeState:  null,
+        },
+      ];
+      await savePlan(uid, plan);
+    }
+  }
+
+  const todayDiagCount  = allDiagnostics.filter(s => isToday(s.date)).length;
+  const todayPractCount = allPractice.filter(s => isToday(s.date)).length;
 
   const resolved = await Promise.all(
     plan.map(async (item) => {
-      const rawProgress =
-        item.type === "diagnostic" ? todayDiagCount : todayPractCount;
+      let rawProgress = 0;
+      if (item.type === "diagnostic")             rawProgress = todayDiagCount;
+      else if (item.type === "practice_targeted") rawProgress = todayPractCount;
+      else if (item.type === "practice_free")     rawProgress = todayPractCount;
+      else if (item.type === "puzzles")           rawProgress = puzzleCount; // from dailyTodos doc
+
       const progress  = Math.min(rawProgress, item.target);
       const completed = progress >= item.target;
 
       if (completed && !item.xpAwarded) {
         await awardPoints(uid, "todo_complete", {
-          xp: item.xp,
+          xp:    item.xp,
           label: `Daily todo: ${item.title}`,
         });
         await markPlanItemXpAwarded(uid, item.id);

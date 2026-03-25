@@ -431,3 +431,75 @@
   .progress-empty__actions { flex-direction: column; align-items: stretch; }
   .progress-btn--lg { justify-content: center; }
 }
+
+/* ══════════════════════════════════════════════════════
+   APPEND TO progress.css
+   Discipline insights block (item 16)
+══════════════════════════════════════════════════════ */
+
+.progress-insights {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: card-in 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.progress-insights__header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'Courier New', monospace;
+  color: var(--text-light);
+}
+
+.progress-insights__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+
+.progress-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 13px;
+  border-radius: 9px;
+  border: 1px solid;
+}
+
+.progress-insight--good {
+  background: rgba(39,174,96,0.06);
+  border-color: rgba(39,174,96,0.18);
+}
+.progress-insight--warn {
+  background: rgba(192,57,43,0.06);
+  border-color: rgba(192,57,43,0.18);
+}
+.progress-insight--neutral {
+  background: var(--card-bg-alt);
+  border-color: var(--border);
+}
+
+.progress-insight__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.progress-insight--good    .progress-insight__icon { color: #27ae60; }
+.progress-insight--warn    .progress-insight__icon { color: #c0392b; }
+.progress-insight--neutral .progress-insight__icon { color: var(--text-light); }
+
+.progress-insight__text {
+  font-size: 0.8rem;
+  font-family: -apple-system, sans-serif;
+  line-height: 1.5;
+  color: var(--text-mid);
+}
+.progress-insight--good .progress-insight__text { color: var(--text-dark); }

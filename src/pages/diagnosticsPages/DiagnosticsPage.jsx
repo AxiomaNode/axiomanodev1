@@ -6,6 +6,7 @@ import Sidebar from "../../components/layout/Sidebar";
 import NotesPanel from "../../components/NotesPanel";
 import { topics } from "../../data/topics";
 import { saveDiagnostic, getLastDiagnosticDate, getActiveGaps } from "../../services/db";
+import { getGapStatus, getGapDisplayState } from "../../services/db";
 import { gapsDatabase } from "../../data/gaps";
 import "./diagnostics.css";
 import "../../styles/layout.css";
@@ -447,10 +448,17 @@ const QuestionStep = ({ allQuestions, onFinish }) => {
 /* ── Results step ── */
 const ResultsStep = ({ answers, allQuestions, onRetry }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeIdx,     setActiveIdx]     = useState(0);
   const [expandedGap,   setExpandedGap]   = useState(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [gapStatus, setGapStatus] = useState({});
 
+  useEffect(() => {
+    if (!user?.uid) return;
+    getGapStatus(user.uid).then(setGapStatus);
+  }, [user?.uid]);
+  
   const { profile: coreGapProfile, cleanGaps } = detectAllGaps(answers, allQuestions);
   const activeGaps = Object.values(coreGapProfile).filter(cg => cg.strength !== null);
   const totalGaps  = activeGaps.length;
@@ -462,6 +470,64 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
   const topicIds      = [...new Set(allQuestions.map(q => q.topicId))];
   const isSingleTopic = topicIds.length === 1;
   const singleTopicId = isSingleTopic ? topicIds[0] : null;
+
+  const GAP_STATUS_CONFIG = {
+    closed: {
+      label: "Closed",
+      color: "#27ae60",
+      bg:    "rgba(39,174,96,0.1)",
+      border:"rgba(39,174,96,0.25)",
+      icon: (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      ),
+    },
+    clean7: {
+      label: "7 days clean",
+      color: "#9b59b6",
+      bg:    "rgba(155,89,182,0.1)",
+      border:"rgba(155,89,182,0.25)",
+      icon: (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      ),
+    },
+    reopened: {
+      label: "Reopened",
+      color: "#c0392b",
+      bg:    "rgba(192,57,43,0.1)",
+      border:"rgba(192,57,43,0.25)",
+      icon: (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 .49-5"/>
+        </svg>
+      ),
+    },
+  };
+ 
+ 
+  const GapStatusBadge = ({ coreGapId, gapStatus }) => {
+    const state = getGapDisplayState(coreGapId, gapStatus);
+    const config = GAP_STATUS_CONFIG[state];
+    if (!config) return null;
+  
+    return (
+      <span className="rsl-gap-status-badge" style={{
+        color:       config.color,
+        background:  config.bg,
+        borderColor: config.border,
+      }}>
+        {config.icon}
+        {config.label}
+      </span>
+    );
+  };
 
   const gapStats = {};
   allQuestions.forEach(q => {
@@ -586,38 +652,27 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                   return (
                     <div key={cg.coreGapId} className="rsl-gap-card" style={{ "--gap-color": GAP_COLOR }}>
                       <div className="rsl-gap-card__inner">
-
+ 
+                        {/* Header: badge + gap title as subtext — item 14 */}
                         <div className="rsl-gap-card__header">
                           <div className="rsl-gap-card__badge" style={{ color: GAP_COLOR, borderColor: GAP_COLOR + "35", background: GAP_COLOR + "12" }}>
                             gap detected
                           </div>
+                          <GapStatusBadge coreGapId={cg.coreGapId} gapStatus={gapStatus} />
+                          <span className="rsl-gap-card__gap-label">{cg.title}</span>
                         </div>
-
-                        <h4 className="rsl-gap-card__title">{cg.title}</h4>
-                        <p className="rsl-gap-card__desc">{cg.userFacingLabel}</p>
-
-                        <div className="rsl-gap-card__divider" />
-
-                        {ev0?.description && (
-                          <div className="rsl-gap-card__notes">
-                            {ev0.description.what && (
-                              <div className="rsl-gap-card__note rsl-gap-card__note--what">
-                                <span className="rsl-gap-card__note-label">What happened</span>
-                                <p className="rsl-gap-card__note-text">{ev0.description.what}</p>
-                              </div>
-                            )}
-                            {ev0.description.check && (
-                              <div className="rsl-gap-card__note rsl-gap-card__note--check">
-                                <span className="rsl-gap-card__note-label">Next time</span>
-                                <p className="rsl-gap-card__note-text">{ev0.description.check}</p>
-                              </div>
-                            )}
-                          </div>
+ 
+                        {/* Headline: description.what — item 14 */}
+                        {ev0?.description?.what ? (
+                          <h4 className="rsl-gap-card__title">{ev0.description.what}</h4>
+                        ) : (
+                          <h4 className="rsl-gap-card__title">{cg.userFacingLabel}</h4>
                         )}
-
+ 
+                        {/* Evidence first — item 6 */}
                         {items.length > 0 && (
                           <div className="rsl-gap-card__evidence">
-                            <p className="rsl-gap-card__evidence-label">Examples from your answers</p>
+                            <p className="rsl-gap-card__evidence-label">From your answers</p>
                             <div className="rsl-gap-card__evidence-list">
                               {(isExpanded ? items : items.slice(0, 2)).map((item, i) => (
                                 <div key={i} className="rsl-ev-item">
@@ -642,7 +697,22 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                             </div>
                           </div>
                         )}
-
+ 
+                        <div className="rsl-gap-card__divider" />
+ 
+                        {/* Explanation below evidence — item 6 */}
+                        {ev0?.description && (
+                          <div className="rsl-gap-card__notes">
+                            {ev0.description.check && (
+                              <div className="rsl-gap-card__note rsl-gap-card__note--check">
+                                <span className="rsl-gap-card__note-label">Next time</span>
+                                <p className="rsl-gap-card__note-text">{ev0.description.check}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+ 
+                        {/* Footer */}
                         {ev0 && (
                           <div className="rsl-gap-card__footer">
                             <button className="rsl-gap-card__train" onClick={() => handleTrain(ev0)}>
@@ -651,11 +721,30 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                             </button>
                           </div>
                         )}
-
+ 
                       </div>
                     </div>
                   );
                 })}
+                {(() => {
+                const clean7Gaps = activeGaps.filter(cg => {
+                  const state = getGapDisplayState(cg.coreGapId, gapStatus);
+                  return state === "clean7";
+                });
+                if (!clean7Gaps.length) return null;
+                return (
+                  <div className="rsl-clean7-note">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <p>
+                      <strong>{clean7Gaps.map(g => g.title).join(", ")}</strong>
+                      {" "}— clean for 7+ days. Keep running diagnostics to confirm it's closed.
+                    </p>
+                  </div>
+                );
+              })()}
               </div>
 
               {totalGaps > 1 && (

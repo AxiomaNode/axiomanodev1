@@ -8,12 +8,14 @@ import Header  from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
 import { generatePracticeSession } from "../../data/questionTemplates";
 import { topics } from "../../data/topics";
+import { markPuzzleSolved } from "../../services/dailyTodos";
 import "./puzzles.css";
 import "../../styles/layout.css";
 import NotesPanel from "../../components/NotesPanel";
 
 /* ── Constants ─────────────────────────────────────────────── */
-const TASKS_PER_SESSION = 10;
+const REFILL_THRESHOLD  = 5;   // generate more when this many questions left
+const REFILL_BATCH      = 20;  // how many to generate per refill
 const TIMER_SECS        = 40;
 const BASE_XP           = 5;
 
@@ -26,15 +28,15 @@ const getXP = (streak, timeLeft) => {
 };
 
 const PERF = [
-  { min: 10, grade: "S", title: "Perfect",        sub: "Flawless. Every answer right.",      color: "#9b59b6" },
-  { min:  8, grade: "A", title: "Excellent",       sub: "Sharp reasoning throughout.",        color: "#2a8fa0" },
-  { min:  6, grade: "B", title: "Good",            sub: "Solid understanding overall.",       color: "#27ae60" },
-  { min:  4, grade: "C", title: "Getting there",   sub: "Review weak areas and retry.",       color: "#d35400" },
-  { min:  0, grade: "D", title: "Keep practicing", sub: "Every expert started here.",         color: "#c0392b" },
+  { min: 0.9,  grade: "S", title: "Flawless",       sub: "Near-perfect accuracy.",              color: "#9b59b6" },
+  { min: 0.75, grade: "A", title: "Excellent",       sub: "Sharp reasoning throughout.",         color: "#2a8fa0" },
+  { min: 0.6,  grade: "B", title: "Good",            sub: "Solid overall.",                      color: "#27ae60" },
+  { min: 0.4,  grade: "C", title: "Getting there",   sub: "Review weak areas and retry.",        color: "#d35400" },
+  { min: 0,    grade: "D", title: "Keep practicing", sub: "Every expert started here.",          color: "#c0392b" },
 ];
-const getPerf = (n) => PERF.find(p => n >= p.min);
-
-
+const getPerf = (correct, total) =>
+  total === 0 ? PERF[PERF.length - 1]
+  : PERF.find(p => (correct / total) >= p.min) ?? PERF[PERF.length - 1];
 
 /* ── Timer Ring ────────────────────────────────────────────── */
 const TimerRing = ({ timeLeft, total }) => {
@@ -42,27 +44,16 @@ const TimerRing = ({ timeLeft, total }) => {
   const STROKE = 5;
   const R      = (SIZE - STROKE * 2) / 2;
   const CIRC   = 2 * Math.PI * R;
-  const pct    = timeLeft / total;
-  const offset = CIRC * (1 - pct);
-
-  const color = timeLeft > 20 ? "#2a8fa0"
-    : timeLeft > 10 ? "#c9a227"
-    : "#e74c3c";
-
-  const urgent = timeLeft <= 10;
+  const offset = CIRC * (1 - timeLeft / total);
+  const color  = timeLeft > 20 ? "#2a8fa0" : timeLeft > 10 ? "#c9a227" : "#e74c3c";
 
   return (
-    <div className={`pz-ring${urgent ? " pz-ring--urgent" : ""}`}>
+    <div className={`pz-ring${timeLeft <= 10 ? " pz-ring--urgent" : ""}`}>
       <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--border)" strokeWidth={STROKE} />
-        <circle
-          cx={SIZE/2} cy={SIZE/2} r={R}
-          fill="none" stroke={color}
-          strokeWidth={STROKE}
-          strokeDasharray={CIRC}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${SIZE/2} ${SIZE/2})`}
+        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="var(--border)" strokeWidth={STROKE}/>
+        <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke={color}
+          strokeWidth={STROKE} strokeDasharray={CIRC} strokeDashoffset={offset}
+          strokeLinecap="round" transform={`rotate(-90 ${SIZE/2} ${SIZE/2})`}
           style={{ transition: "stroke-dashoffset 1s linear, stroke 0.5s ease" }}
         />
       </svg>
@@ -72,96 +63,160 @@ const TimerRing = ({ timeLeft, total }) => {
 };
 
 /* ── Lobby Screen ──────────────────────────────────────────── */
-const LobbyScreen = ({ selectedTopic, onTopicSelect, onStart, bestStreak, bestScore }) => (
-  <div className="pz-lobby">
-    <div className="pz-lobby__card">
-      <div className="pz-lobby__badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-        </svg>
-        Puzzle Mode
-      </div>
+const LobbyScreen = ({ selectedTopic, onTopicSelect, onStart, bestStreak, bestScore, bestTotal }) => {
+  const hasStats        = bestStreak > 0 || bestScore > 0;
+  const accuracy        = bestTotal > 0 ? Math.round((bestScore / bestTotal) * 100) : null;
+  const availableTopics = topics.filter(t => t.available !== false);
+  const lockedTopics    = topics.filter(t => t.available === false);
 
-      <h1 className="pz-lobby__title">Puzzles</h1>
-      <p className="pz-lobby__desc">
-        10 questions. 40 seconds each. Streak bonuses for speed.
-        Wrong answer or timeout breaks your streak.
-      </p>
+  return (
+    <div className="pz-lobby">
 
-      {(bestStreak > 0 || bestScore > 0) && (
-        <div className="pz-lobby__bests">
-          {bestStreak > 0 && (
-            <div className="pz-lobby__best">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2c0 0-5 4.5-5 9.5a5 5 0 0 0 10 0C17 6.5 12 2 12 2z"/>
-              </svg>
-              <span>Best streak</span>
-              <strong>{bestStreak}</strong>
-            </div>
-          )}
-          {bestScore > 0 && (
-            <div className="pz-lobby__best">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              <span>Best score</span>
-              <strong>{bestScore}/10</strong>
+      <div className="pz-lobby__hero">
+        <div className="pz-lobby__hero-left">
+          <div className="pz-lobby__eyebrow">
+            <span className="pz-lobby__eyebrow-dot" />
+            Puzzle Mode
+          </div>
+          <h1 className="pz-lobby__title">Puzzles</h1>
+          <p className="pz-lobby__subtitle">
+            Infinite timed questions. Build streaks, earn speed bonuses.
+            Quit whenever — results shown on exit.
+          </p>
+
+          {hasStats && (
+            <div className="pz-lobby__stats">
+              {bestStreak > 0 && (
+                <div className="pz-lobby__stat">
+                  <strong>{bestStreak}</strong>
+                  <span>Best streak</span>
+                </div>
+              )}
+              {bestScore > 0 && (
+                <div className="pz-lobby__stat">
+                  <strong>{bestScore}</strong>
+                  <span>Best correct</span>
+                </div>
+              )}
+              {accuracy !== null && (
+                <div className="pz-lobby__stat">
+                  <strong>{accuracy}<em>%</em></strong>
+                  <span>Best accuracy</span>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      <div className="pz-lobby__topics">
-        <p className="pz-lobby__topics-label">Select topic</p>
-        <div className="pz-lobby__topic-grid">
-          {topics.map(topic => (
-            <button
-              key={topic.id}
-              className={[
-                "pz-lobby__topic",
-                topic.id === selectedTopic.id ? "pz-lobby__topic--active" : "",
-                !topic.available ? "pz-lobby__topic--locked" : "",
-              ].filter(Boolean).join(" ")}
-              onClick={() => topic.available && onTopicSelect(topic)}
-              disabled={!topic.available}
-            >
-              <span className="pz-lobby__topic-name">{topic.label}</span>
-              <span className="pz-lobby__topic-sub">{topic.sub}</span>
-              {!topic.available && (
-                <span className="pz-lobby__topic-lock">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
-                </span>
-              )}
-            </button>
+        <div className="pz-lobby__xp-card">
+          <p className="pz-lobby__xp-card-label">XP per correct answer</p>
+          <div className="pz-lobby__xp-rows">
+            <div className="pz-lobby__xp-row">
+              <span className="pz-lobby__xp-pill pz-lobby__xp-pill--base">+5</span>
+              <span>Base</span>
+            </div>
+            <div className="pz-lobby__xp-row">
+              <span className="pz-lobby__xp-pill pz-lobby__xp-pill--streak">+5</span>
+              <span>Streak (max, stacks per answer)</span>
+            </div>
+            <div className="pz-lobby__xp-row">
+              <span className="pz-lobby__xp-pill pz-lobby__xp-pill--speed">+3</span>
+              <span>Speed (&gt;60% time left)</span>
+            </div>
+          </div>
+          <div className="pz-lobby__xp-max">Max <strong>13 XP</strong> per question</div>
+        </div>
+      </div>
+
+      <div className="pz-lobby__divider" />
+
+      <div className="pz-lobby__section">
+        <div className="pz-lobby__section-header">
+          <h2 className="pz-lobby__section-title">Select topic</h2>
+          <p className="pz-lobby__section-sub">Questions are drawn from the selected topic's gap pool.</p>
+        </div>
+
+        <div className="pz-lobby__topics">
+          {availableTopics.map(topic => {
+            const isActive = topic.id === selectedTopic.id;
+            return (
+              <button key={topic.id}
+                className={`pz-topic-card${isActive ? " pz-topic-card--active" : ""}`}
+                onClick={() => onTopicSelect(topic)}>
+                <div className="pz-topic-card__icon">
+                  {topic.icon && <topic.icon size={20} strokeWidth={1.7} />}
+                </div>
+                <div className="pz-topic-card__body">
+                  <span className="pz-topic-card__name">{topic.title}</span>
+                  <span className="pz-topic-card__desc">{topic.description}</span>
+                </div>
+                {isActive && (
+                  <div className="pz-topic-card__check">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+          {lockedTopics.map(topic => (
+            <div key={topic.id} className="pz-topic-card pz-topic-card--locked">
+              <div className="pz-topic-card__icon">
+                {topic.icon && <topic.icon size={20} strokeWidth={1.7} />}
+              </div>
+              <div className="pz-topic-card__body">
+                <span className="pz-topic-card__name">{topic.title}</span>
+                <span className="pz-topic-card__desc">Coming soon</span>
+              </div>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
           ))}
         </div>
       </div>
 
-      <div className="pz-lobby__rules">
-        {[
-          { icon: "⚡", text: "Answer fast — more XP for speed" },
-          { icon: "🔥", text: "Build streak — each right answer adds bonus XP" },
-          { icon: "⏱", text: "Timeout counts as wrong and breaks streak" },
-        ].map((r, i) => (
-          <div key={i} className="pz-lobby__rule">
-            <span>{r.icon}</span>
-            <span>{r.text}</span>
+      <div className="pz-lobby__divider" />
+
+      <div className="pz-lobby__bottom">
+        <div className="pz-lobby__rules">
+          <p className="pz-lobby__rules-label">Streak rules</p>
+          <div className="pz-lobby__rules-list">
+            <div className="pz-lobby__rule pz-lobby__rule--good"><span />Correct answer — streak grows</div>
+            <div className="pz-lobby__rule pz-lobby__rule--bad"><span />Wrong answer — streak resets</div>
+            <div className="pz-lobby__rule pz-lobby__rule--bad"><span />Timeout (40 s) — counts as wrong</div>
           </div>
-        ))}
+        </div>
+
+        <div className="pz-lobby__start-block">
+          <div className="pz-lobby__start-info">
+            <p className="pz-lobby__start-topic">{selectedTopic.title}</p>
+            <p className="pz-lobby__start-meta">Infinite · 40 s each · quit anytime for results</p>
+          </div>
+          <button className="pz-lobby__start" onClick={onStart}>
+            Begin session
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <button className="pz-lobby__start" onClick={onStart}>
-        Start <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
     </div>
-  </div>
-);
+  );
+};
 
 /* ── Results Screen ────────────────────────────────────────── */
 const ResultsScreen = ({ correct, total, sessionXP, bestStreak, results, onRestart, onLobby }) => {
-  const perf = getPerf(correct);
+  const perf = getPerf(correct, total);
+  // Show last 20 results max in the dots
+  const displayResults = results.slice(-20);
+
   return (
     <div className="pz-results">
       <div className="pz-results__card" style={{ "--perf-color": perf.color }}>
@@ -177,22 +232,28 @@ const ResultsScreen = ({ correct, total, sessionXP, bestStreak, results, onResta
         </div>
         <div className="pz-results__grid">
           {[
-            { val: `${correct}/${total}`,                      label: "Correct"     },
-            { val: `${Math.round((correct/total)*100)}%`,      label: "Accuracy"    },
-            { val: bestStreak,                                  label: "Best streak" },
+            { val: total,                                  label: "Answered"    },
+            { val: `${correct}/${total}`,                  label: "Correct"     },
+            { val: total > 0 ? `${Math.round((correct/total)*100)}%` : "—", label: "Accuracy" },
+            { val: bestStreak,                             label: "Best streak" },
           ].map(s => (
             <div key={s.label} className="pz-results__stat">
               <strong>{s.val}</strong><span>{s.label}</span>
             </div>
           ))}
         </div>
-        <div className="pz-results__dots">
-          {results.map((r, i) => (
-            <div key={i} className={`pz-rdot pz-rdot--${r ? "ok" : "no"}`}>
-              {r ? "✓" : "✗"}
-            </div>
-          ))}
-        </div>
+        {displayResults.length > 0 && (
+          <div className="pz-results__dots">
+            {results.length > 20 && (
+              <span className="pz-results__dots-note">Last 20</span>
+            )}
+            {displayResults.map((r, i) => (
+              <div key={i} className={`pz-rdot pz-rdot--${r ? "ok" : "no"}`}>
+                {r ? "✓" : "✗"}
+              </div>
+            ))}
+          </div>
+        )}
         <div className="pz-results__btns">
           <button className="pz-rbtn pz-rbtn--primary" onClick={onRestart}>Play again</button>
           <button className="pz-rbtn pz-rbtn--ghost" onClick={onLobby}>← Change topic</button>
@@ -210,19 +271,23 @@ const PuzzlesPage = () => {
   const [screen,        setScreen]        = useState("lobby");
   const [bestStreak,    setBestStreak]    = useState(0);
   const [bestScore,     setBestScore]     = useState(0);
+  const [bestTotal,     setBestTotal]     = useState(0);
 
-  const [tasks,     setTasks]     = useState([]);
-  const [idx,       setIdx]       = useState(0);
-  const [selected,  setSelected]  = useState(null);
-  const [revealed,  setRevealed]  = useState(false);
-  const [results,   setResults]   = useState([]);
-  const [streak,    setStreak]    = useState(0);
+  // Game state
+  const [tasks,       setTasks]       = useState([]);
+  const [idx,         setIdx]         = useState(0);
+  const [selected,    setSelected]    = useState(null);
+  const [revealed,    setRevealed]    = useState(false);
+  const [results,     setResults]     = useState([]);  // full history
+  const [streak,      setStreak]      = useState(0);
   const [sessionBest, setSessionBest] = useState(0);
   const [sessionXP,   setSessionXP]   = useState(0);
-  const [correct,   setCorrect]   = useState(0);
-  const [timeLeft,  setTimeLeft]  = useState(TIMER_SECS);
-  const [streakAnim, setStreakAnim] = useState(false);
-  const [xpPop,     setXpPop]     = useState(null);
+  const [correct,     setCorrect]     = useState(0);
+  const [total,       setTotal]       = useState(0);
+  const [timeLeft,    setTimeLeft]    = useState(TIMER_SECS);
+  const [streakAnim,  setStreakAnim]  = useState(false);
+  const [xpPop,       setXpPop]      = useState(null);
+
   const timerRef = useRef(null);
   const xpKey    = useRef(0);
 
@@ -233,7 +298,8 @@ const PuzzlesPage = () => {
     getDoc(doc(db, "users", user.uid)).then(snap => {
       const d = snap.data() || {};
       setBestStreak(d.bestStreak || 0);
-      setBestScore(d.bestScore || 0);
+      setBestScore(d.bestScore   || 0);
+      setBestTotal(d.bestTotal   || 0);
     });
   }, [user]);
 
@@ -243,7 +309,7 @@ const PuzzlesPage = () => {
     catch (e) { console.error("XP:", e); }
   }, [user]);
 
-  const saveBests = useCallback(async (streak, score) => {
+  const saveBests = useCallback(async (streak, score, totalAnswered) => {
     if (!user) return;
     try {
       const ref  = doc(db, "users", user.uid);
@@ -252,9 +318,20 @@ const PuzzlesPage = () => {
       const updates = {};
       if (streak > (d.bestStreak || 0)) { updates.bestStreak = streak; setBestStreak(streak); }
       if (score  > (d.bestScore  || 0)) { updates.bestScore  = score;  setBestScore(score);   }
+      if (totalAnswered > (d.bestTotal || 0)) { updates.bestTotal = totalAnswered; setBestTotal(totalAnswered); }
       if (Object.keys(updates).length) await updateDoc(ref, updates);
     } catch (e) { console.error("bests:", e); }
   }, [user]);
+
+  // Auto-refill pool when running low
+  useEffect(() => {
+    if (screen !== "game" || !tasks.length) return;
+    const remaining = tasks.length - idx;
+    if (remaining <= REFILL_THRESHOLD) {
+      const more = generatePracticeSession(selectedTopic.id, REFILL_BATCH);
+      setTasks(prev => [...prev, ...more]);
+    }
+  }, [idx, tasks.length, screen, selectedTopic]);
 
   useEffect(() => { if (screen === "game") setTimeLeft(TIMER_SECS); }, [idx, screen]);
 
@@ -262,20 +339,31 @@ const PuzzlesPage = () => {
     if (screen !== "game" || revealed) { clearTimeout(timerRef.current); return; }
     if (timeLeft <= 0) {
       setRevealed(true); setSelected(null);
-      setResults(r => [...r, false]); setStreak(0); return;
+      setResults(r => [...r, false]);
+      setTotal(t => t + 1);
+      setStreak(0);
+      return;
     }
     timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
     return () => clearTimeout(timerRef.current);
   }, [timeLeft, revealed, screen]);
 
   const startGame = useCallback(() => {
-    const newTasks = generatePracticeSession(selectedTopic.id, TASKS_PER_SESSION);
-    setTasks(newTasks);
+    const initial = generatePracticeSession(selectedTopic.id, REFILL_BATCH);
+    setTasks(initial);
     setIdx(0); setSelected(null); setRevealed(false);
     setResults([]); setStreak(0); setSessionBest(0);
-    setSessionXP(0); setCorrect(0); setTimeLeft(TIMER_SECS);
+    setSessionXP(0); setCorrect(0); setTotal(0);
+    setTimeLeft(TIMER_SECS);
     setScreen("game");
   }, [selectedTopic]);
+
+  // Quit → show results
+  const handleQuit = useCallback(() => {
+    clearTimeout(timerRef.current);
+    saveBests(sessionBest, correct, total);
+    setScreen("results");
+  }, [sessionBest, correct, total, saveBests]);
 
   const handleSelect = useCallback(async (label) => {
     if (revealed || !task) return;
@@ -283,6 +371,7 @@ const PuzzlesPage = () => {
     setSelected(label); setRevealed(true);
     const isOk = label === task.correct;
     setResults(r => [...r, isOk]);
+    setTotal(t => t + 1);
     if (isOk) {
       const ns = streak + 1;
       const xp = getXP(ns, timeLeft);
@@ -296,21 +385,19 @@ const PuzzlesPage = () => {
       setXpPop({ amount: xp, key: xpKey.current });
       setTimeout(() => setXpPop(null), 1600);
       await saveXP(xp);
+      if (user?.uid) {
+        try { await markPuzzleSolved(user.uid); } catch (e) { console.error("puzzle count:", e); }
+      }
     } else {
       setStreak(0);
     }
-  }, [revealed, task, streak, timeLeft, saveXP]);
+  }, [revealed, task, streak, timeLeft, saveXP, user]);
 
   const handleNext = useCallback(() => {
-    if (idx + 1 >= TASKS_PER_SESSION) {
-      saveBests(sessionBest, correct + (selected === task?.correct ? 1 : 0));
-      setScreen("results");
-    } else {
-      setIdx(i => i + 1);
-      setSelected(null);
-      setRevealed(false);
-    }
-  }, [idx, sessionBest, correct, selected, task, saveBests]);
+    setIdx(i => i + 1);
+    setSelected(null);
+    setRevealed(false);
+  }, []);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -335,6 +422,9 @@ const PuzzlesPage = () => {
     : selected === task.correct ? "ok"
     : selected === null ? "timeout" : "no";
 
+  // Rolling last-10 results for the mini strip
+  const recentResults = results.slice(-10);
+
   return (
     <div className="page-shell">
       <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(v => !v)} />
@@ -349,6 +439,7 @@ const PuzzlesPage = () => {
             onStart={startGame}
             bestStreak={bestStreak}
             bestScore={bestScore}
+            bestTotal={bestTotal}
           />
         )}
 
@@ -371,24 +462,29 @@ const PuzzlesPage = () => {
                     </svg>
                     +{sessionXP} XP
                   </div>
+                  <div className="pz-game__counter-inf">
+                    <span className="pz-game__counter-num">{correct}</span>
+                    <span className="pz-game__counter-sep">/</span>
+                    <span className="pz-game__counter-num">{total}</span>
+                    <span className="pz-game__counter-label">correct</span>
+                  </div>
                 </div>
                 <div className="pz-game__top-right">
-                  <span className="pz-game__counter">{idx + 1} / {TASKS_PER_SESSION}</span>
-                  <button className="pz-game__quit" onClick={() => setScreen("lobby")}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
+                  <button className="pz-game__quit-btn" onClick={handleQuit}>
+                    Stop &amp; see results
                   </button>
                 </div>
               </div>
 
-              <div className="pz-game__dots">
-                {Array.from({ length: TASKS_PER_SESSION }, (_, i) => {
-                  let s = "idle";
-                  if (i < results.length) s = results[i] ? "ok" : "no";
-                  else if (i === idx)     s = "active";
-                  return <div key={i} className={`pz-gdot pz-gdot--${s}`} />;
-                })}
+              {/* Rolling last-10 strip instead of fixed dots */}
+              <div className="pz-game__strip">
+                {recentResults.length > 0 ? (
+                  recentResults.map((r, i) => (
+                    <div key={i} className={`pz-gdot pz-gdot--${r ? "ok" : "no"}`} />
+                  ))
+                ) : (
+                  <div className="pz-game__strip-empty">answer to start tracking</div>
+                )}
               </div>
 
               <div className="pz-qcard" key={`q-${idx}`}
@@ -417,7 +513,7 @@ const PuzzlesPage = () => {
                         : `Wrong — correct: ${task.correct}`}
                     </span>
                     <button className="pz-feedback__next" onClick={handleNext}>
-                      {idx + 1 < TASKS_PER_SESSION ? "Next →" : "Results →"}
+                      Next →
                     </button>
                   </div>
                 )}
@@ -445,12 +541,10 @@ const PuzzlesPage = () => {
                     else                             state = "dim";
                   }
                   return (
-                    <button
-                      key={opt.label}
+                    <button key={opt.label}
                       className={`pz-tile pz-tile--${state}`}
                       onClick={() => handleSelect(opt.label)}
-                      disabled={revealed}
-                    >
+                      disabled={revealed}>
                       <span className="pz-tile__lbl">{opt.label}</span>
                       <span className="pz-tile__val">{opt.value}</span>
                       {revealed && opt.label === task.correct && (
@@ -480,7 +574,7 @@ const PuzzlesPage = () => {
         {screen === "results" && (
           <ResultsScreen
             correct={correct}
-            total={TASKS_PER_SESSION}
+            total={total}
             sessionXP={sessionXP}
             bestStreak={sessionBest}
             results={results}

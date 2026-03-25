@@ -8,8 +8,8 @@ import {
   getDoc,
   setDoc,
   serverTimestamp,
+  limit,
 } from "firebase/firestore";
-import { limit } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
 /* ─────────────────────────────────────────────
@@ -46,19 +46,20 @@ export const getPractice = async (userId) => {
    Diagnostics
 ───────────────────────────────────────────── */
 export const saveDiagnostic = async (userId, data) => {
-  // Save the session
   await addDoc(collection(db, "users", userId, "diagnostic_sessions"), {
     ...data,
     date: new Date().toISOString(),
   });
 
-  // Record today's local date for daily limit check
   const today = new Date().toLocaleDateString();
   await setDoc(
     doc(db, "users", userId),
     { lastDiagnosticDate: today },
     { merge: true }
   );
+
+  // Update gap closure tracking
+  await updateGapStatus(userId, data.gaps ?? []);
 };
 
 export const getLastDiagnosticDate = async (uid) => {
@@ -78,6 +79,116 @@ export const getDiagnostics = async (userId) => {
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map(d => d.data());
+};
+
+/* ─────────────────────────────────────────────
+   Gap status tracking
+───────────────────────────────────────────── */
+
+/*
+  gapStatus shape (stored flat on users/{uid}):
+  {
+    [coreGapId]: {
+      status:           "active" | "closed" | "reopened",
+      consecutiveClean: number,
+      closedAt:         string | null,  // ISO date
+      lastDetected:     string | null,  // ISO date
+      lastChecked:      string,         // ISO date
+    }
+  }
+*/
+
+export const updateGapStatus = async (uid, currentGaps = []) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  const activeNow = new Set(
+    currentGaps.map(g => g.coreGapId).filter(Boolean)
+  );
+
+  const userRef  = doc(db, "users", uid);
+  const userSnap = await getDoc(userRef);
+  const existing = userSnap.exists()
+    ? (userSnap.data().gapStatus ?? {})
+    : {};
+
+  const allTrackedIds = new Set([
+    ...Object.keys(existing),
+    ...activeNow,
+  ]);
+
+  const updated = { ...existing };
+
+  allTrackedIds.forEach(coreGapId => {
+    const prev = updated[coreGapId] ?? {
+      status:           "active",
+      consecutiveClean: 0,
+      closedAt:         null,
+      lastDetected:     null,
+      lastChecked:      today,
+    };
+
+    if (activeNow.has(coreGapId)) {
+      const wasClose = prev.status === "closed";
+      updated[coreGapId] = {
+        ...prev,
+        status:           wasClose ? "reopened" : "active",
+        consecutiveClean: 0,
+        lastDetected:     today,
+        lastChecked:      today,
+        closedAt:         wasClose ? null : prev.closedAt,
+      };
+    } else {
+      const newConsecutiveClean = (prev.consecutiveClean ?? 0) + 1;
+      const nowClosed = newConsecutiveClean >= 2;
+
+      updated[coreGapId] = {
+        ...prev,
+        consecutiveClean: newConsecutiveClean,
+        lastChecked:      today,
+        status:   nowClosed ? "closed" : prev.status,
+        closedAt: nowClosed && !prev.closedAt ? today : prev.closedAt,
+      };
+    }
+  });
+
+  await setDoc(userRef, { gapStatus: updated }, { merge: true });
+  return updated;
+};
+
+export const getGapStatus = async (uid) => {
+  try {
+    const ref  = doc(db, "users", uid);
+    const snap = await getDoc(ref);
+    return snap.exists() ? (snap.data().gapStatus ?? {}) : {};
+  } catch {
+    return {};
+  }
+};
+
+/*
+  Returns one of:
+    "active"   — currently detected
+    "closed"   — clean for 2+ sessions, < 7 days
+    "clean7"   — clean for 7+ days
+    "reopened" — was closed, fired again
+    null       — not tracked yet
+*/
+export const getGapDisplayState = (coreGapId, gapStatus) => {
+  const entry = gapStatus?.[coreGapId];
+  if (!entry) return null;
+
+  if (entry.status === "reopened") return "reopened";
+  if (entry.status === "active")   return "active";
+
+  if (entry.status === "closed") {
+    if (!entry.closedAt) return "closed";
+    const daysSinceClosed = Math.floor(
+      (Date.now() - new Date(entry.closedAt).getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysSinceClosed >= 7 ? "clean7" : "closed";
+  }
+
+  return null;
 };
 
 /* ─────────────────────────────────────────────

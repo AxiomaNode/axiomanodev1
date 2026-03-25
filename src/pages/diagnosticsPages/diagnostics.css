@@ -684,3 +684,17 @@
   .diag-rest-hint { flex-wrap: wrap; }
   .diag-rest-hint__actions { margin-left: 0; }
 }
+
+/* ══════════════════════════════════════════════════════
+   APPEND TO diagnostics.css
+   Gap title as subtext in header row
+══════════════════════════════════════════════════════ */
+
+.rsl-gap-card__gap-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-light);
+  font-family: 'Courier New', monospace;
+  margin-left: auto;
+  letter-spacing: 0.02em;
+}
