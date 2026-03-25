@@ -7,15 +7,37 @@ import {
   updateProfile,
   sendEmailVerification,
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebaseConfig";
 
 const googleProvider = new GoogleAuthProvider();
+
+// ── Write safe public display data ──────────────────────────────────────────
+const writePublicProfile = async (uid, data) => {
+  await setDoc(
+    doc(db, "publicProfiles", uid),
+    {
+      displayName:  data.displayName  || "Anonymous",
+      photoURL:     data.photoURL     || "",
+      ratingPoints: data.ratingPoints || 0,
+      createdAt:    data.createdAt    || new Date().toISOString(),
+      stats: {
+        diagnosticsCompleted: 0,
+        practiceCompleted:    0,
+        avgScore:             null,
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
 
 export const registerUser = async (email, password, displayName, language) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName });
+
+    const now = new Date().toISOString();
 
     await setDoc(doc(db, "users", userCredential.user.uid), {
       displayName,
@@ -23,14 +45,20 @@ export const registerUser = async (email, password, displayName, language) => {
       language: language || "ru",
       ratingPoints: 0,
       stats: {
-        practiceSessions: 0,
+        practiceSessions:     0,
         diagnosticsCompleted: 0,
-        puzzlesSolved: 0,
-        homeworkCompleted: 0,
-        feedbackSent: 0,
+        puzzlesSolved:        0,
+        homeworkCompleted:    0,
+        feedbackSent:         0,
       },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await writePublicProfile(userCredential.user.uid, {
+      displayName,
+      photoURL:  "",
+      createdAt: now,
     });
 
     await sendEmailVerification(userCredential.user).catch(() => null);
@@ -45,32 +73,45 @@ export const registerUser = async (email, password, displayName, language) => {
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
+    const user   = result.user;
 
     const profileRef = doc(db, "users", user.uid);
-    const existing = await getDoc(profileRef);
+    const existing   = await getDoc(profileRef);
+    const now        = new Date().toISOString();
 
     if (!existing.exists()) {
       await setDoc(profileRef, {
         displayName: user.displayName || "",
-        email: user.email || "",
-        photoURL: user.photoURL || null,
-        language: "ru",
+        email:       user.email       || "",
+        photoURL:    user.photoURL    || null,
+        language:    "ru",
         ratingPoints: 0,
         stats: {
-          practiceSessions: 0,
+          practiceSessions:     0,
           diagnosticsCompleted: 0,
-          puzzlesSolved: 0,
-          homeworkCompleted: 0,
-          feedbackSent: 0,
+          puzzlesSolved:        0,
+          homeworkCompleted:    0,
+          feedbackSent:         0,
         },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await writePublicProfile(user.uid, {
+        displayName: user.displayName || "",
+        photoURL:    user.photoURL    || "",
+        createdAt:   now,
       });
     } else {
       const data = existing.data();
       if (!data.photoURL && user.photoURL) {
         await setDoc(profileRef, { photoURL: user.photoURL }, { merge: true });
+        // Also update public profile photo
+        await setDoc(
+          doc(db, "publicProfiles", user.uid),
+          { photoURL: user.photoURL, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
       }
     }
 
@@ -114,7 +155,7 @@ export const resendVerificationEmail = async () => {
 
 export const getUserProfile = async (uid) => {
   try {
-    const docRef = doc(db, "users", uid);
+    const docRef  = doc(db, "users", uid);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? docSnap.data() : null;
   } catch (error) {

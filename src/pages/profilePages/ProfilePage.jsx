@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import { getPractice, getDiagnostics, getAllTopicNotes, getTopicProgress } from "../../services/db";
+import { getPractice, getDiagnostics, getAllTopicNotes, getTopicProgress, savePublicProfile } from "../../services/db";
 import { getUserProfile } from "../../firebase/auth";
 import ResultsSection  from "../../components/sections/ResultsSection";
 import ProgressSection from "../../components/sections/ProgressSections";
@@ -251,13 +251,31 @@ const ProfilePage = () => {
       getAllTopicNotes(user.uid),
       getTopicProgress(user.uid),
     ]).then(([diags, pracs, prof, notes, progress]) => {
-      setDiagnostics(diags     ?? []);
-      setPractice(pracs        ?? []);
-      setProfile(prof);
-      setTopicNotes(notes      ?? []);
-      setTopicProgress(progress ?? []);
-      setLoading(false);
-    });
+  setDiagnostics(diags ?? []);
+  setPractice(pracs ?? []);
+  setProfile(prof);
+  setTopicNotes(notes ?? []);
+  setTopicProgress(progress ?? []);
+  setLoading(false);
+
+  const avgScore = (diags?.length ?? 0) > 0
+    ? Math.round(
+        diags.reduce((s, d) => s + (d.score.correct / d.score.total) * 100, 0) / diags.length
+      )
+    : null;
+
+  savePublicProfile(user.uid, {
+    displayName: prof?.displayName || user?.displayName || "Anonymous",
+    photoURL: user?.photoURL || "",
+    ratingPoints: prof?.ratingPoints || 0,
+    createdAt: prof?.createdAt || new Date().toISOString(),
+    stats: {
+      diagnosticsCompleted: diags?.length || 0,
+      practiceCompleted: pracs?.length || 0,
+      avgScore,
+    },
+  }).catch(console.error);
+});
   }, [user]);
 
   const handleDiagnosticClick = (idx) => {

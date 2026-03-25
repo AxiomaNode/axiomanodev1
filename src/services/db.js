@@ -72,6 +72,25 @@ export const getLastDiagnosticDate = async (uid) => {
   }
 };
 
+export const savePublicProfile = async (uid, data) => {
+  await setDoc(
+    doc(db, "publicProfiles", uid),
+    {
+      displayName:  data.displayName || "Anonymous",
+      photoURL:     data.photoURL    || "",
+      ratingPoints: data.ratingPoints || 0,
+      createdAt:    data.createdAt   || new Date().toISOString(),
+      stats: {
+        diagnosticsCompleted: data.stats?.diagnosticsCompleted || 0,
+        practiceCompleted:    data.stats?.practiceCompleted    || 0,
+        avgScore:             data.stats?.avgScore             ?? null,
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
+
 export const getDiagnostics = async (userId) => {
   const q = query(
     collection(db, "users", userId, "diagnostic_sessions"),
