@@ -285,7 +285,7 @@ const CardPopup = ({ x, y, onEdit, onDelete, onClose }) => {
     const pw = 170, ph = 96;
     const vw = window.innerWidth, vh = window.innerHeight;
     let left = x;
-    let top  = y + 8;
+    let top  = y - 150;
     if (left + pw > vw - 8) left = x - pw;
     if (top  + ph > vh - 8) top  = y - ph - 8;
     if (top < 8) top = 8;
@@ -617,9 +617,10 @@ const loadFeedback = useCallback(async () => {
     snap.docs.map(async (d) => {
       const item = { id: d.id, ...d.data() };
       try {
-        const prof = await getUserProfile(item.uid);
-        if (prof?.photoURL) item.photoURL = prof.photoURL;
-        if (prof?.displayName) item.displayName = prof.displayName;
+        // Read from publicProfiles — not private users collection
+        const pub = await getPublicProfile(item.uid);
+        if (pub?.photoURL)    item.photoURL    = pub.photoURL;
+        if (pub?.displayName) item.displayName = pub.displayName;
       } catch { /* non-critical */ }
       return item;
     })
@@ -628,7 +629,6 @@ const loadFeedback = useCallback(async () => {
   setOwnReview(data.find((i) => i.uid === user?.uid) || null);
   setLoading(false);
 }, [user?.uid]);
-
   useEffect(() => { loadFeedback(); }, [loadFeedback]);
 
   const handleDelete = async () => {

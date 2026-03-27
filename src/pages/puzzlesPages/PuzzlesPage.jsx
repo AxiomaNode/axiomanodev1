@@ -12,6 +12,7 @@ import { markPuzzleSolved } from "../../services/dailyTodos";
 import "./puzzles.css";
 import "../../styles/layout.css";
 import NotesPanel from "../../components/NotesPanel";
+import { awardPoints } from "../../core/scoringEngine";
 
 /* ── Constants ─────────────────────────────────────────────── */
 const REFILL_THRESHOLD  = 5;   // generate more when this many questions left
@@ -303,11 +304,6 @@ const PuzzlesPage = () => {
     });
   }, [user]);
 
-  const saveXP = useCallback(async (amount) => {
-    if (!user) return;
-    try { await updateDoc(doc(db, "users", user.uid), { ratingPoints: increment(amount) }); }
-    catch (e) { console.error("XP:", e); }
-  }, [user]);
 
   const saveBests = useCallback(async (streak, score, totalAnswered) => {
     if (!user) return;
@@ -384,14 +380,14 @@ const PuzzlesPage = () => {
       xpKey.current++;
       setXpPop({ amount: xp, key: xpKey.current });
       setTimeout(() => setXpPop(null), 1600);
-      await saveXP(xp);
+      await awardPoints(user.uid, "puzzle_solved", { streak: ns });
       if (user?.uid) {
         try { await markPuzzleSolved(user.uid); } catch (e) { console.error("puzzle count:", e); }
       }
     } else {
       setStreak(0);
     }
-  }, [revealed, task, streak, timeLeft, saveXP, user]);
+  }, [revealed, task, streak, timeLeft, user]);
 
   const handleNext = useCallback(() => {
     setIdx(i => i + 1);

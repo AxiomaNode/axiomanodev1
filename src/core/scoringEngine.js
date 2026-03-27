@@ -8,46 +8,62 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
-/* ════════════════════════════════════════════════════
-   POINT TABLE
-   Централизованная таблица — меняй значения здесь
-════════════════════════════════════════════════════ */
 const POINTS = {
-  // За правильный ответ на вопрос
   QUESTION_CORRECT:       10,
-  // За неправильный (можно оставить 0 или небольшой бонус "за попытку")
   QUESTION_WRONG:          0,
-
-  // Бонус за завершение полной сессии практики
   PRACTICE_SESSION_BONUS:  5,
-
-  // Диагностика
   DIAGNOSTIC_COMPLETE:    20,
-
-  // Домашняя работа
-  HOMEWORK_HIGH:          50,   // >= 80%
-  HOMEWORK_MID:           30,   // >= 60%
-  HOMEWORK_LOW:           10,   // < 60%
-
-  // Puzzle streak
+  HOMEWORK_HIGH:          50,
+  HOMEWORK_MID:           30,
+  HOMEWORK_LOW:           10,
   PUZZLE_BASE:             5,
   PUZZLE_PER_STREAK:       3,
   PUZZLE_MAX:             40,
-
-  // Обратная связь
   FEEDBACK_SENT:           5,
 };
 
-/* ════════════════════════════════════════════════════
-   MAIN EXPORT
-   eventType:
-     "question_answered"    — каждый ответ в Practice
-     "practice_complete"    — бонус за завершение сессии
-     "diagnostic_complete"  — диагностика пройдена
-     "homework_complete"    — ДЗ сдано
-     "puzzle_solved"        — пазл решён
-     "feedback_sent"        — отправлена обратная связь
-════════════════════════════════════════════════════ */
+// Events that count as "active day" for streak
+const STREAK_EVENTS = new Set([
+  "diagnostic_complete",
+  "practice_complete",
+  "puzzle_solved",
+]);
+
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const yesterdayStr = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const buildStreakUpdate = (userData, eventType) => {
+  if (!STREAK_EVENTS.has(eventType)) return {};
+
+  const today     = todayStr();
+  const yesterday = yesterdayStr();
+  const last      = userData.lastActiveDate ?? null;
+  const current   = userData.currentStreak  ?? 0;
+  const best      = userData.bestStreak     ?? 0;
+
+  if (last === today) {
+    // Already active today — no change
+    return {};
+  }
+
+  const newStreak = last === yesterday ? current + 1 : 1;
+  const newBest   = Math.max(best, newStreak);
+
+  return {
+    currentStreak:  newStreak,
+    bestStreak:     newBest,
+    lastActiveDate: today,
+  };
+};
+
 export const awardPoints = async (uid, eventType, meta = {}) => {
   if (!uid) return;
 
@@ -55,23 +71,17 @@ export const awardPoints = async (uid, eventType, meta = {}) => {
   const snap    = await getDoc(userRef);
   if (!snap.exists()) return;
 
+  const userData = snap.data();
   const { points, statField, logEntry } = buildAward(eventType, meta);
+  const streakUpdate = buildStreakUpdate(userData, eventType);
 
-  if (points <= 0 && !logEntry) return;
+  if (points <= 0 && !logEntry && Object.keys(streakUpdate).length === 0) return;
 
-  const update = {
-    updatedAt: serverTimestamp(),
-  };
+  const update = { updatedAt: serverTimestamp() };
 
-  if (points > 0) {
-    update.ratingPoints = increment(points);
-  }
+  if (points > 0)  update.ratingPoints = increment(points);
+  if (statField)   update[`stats.${statField}`] = increment(1);
 
-  if (statField) {
-    update[`stats.${statField}`] = increment(1);
-  }
-
-  // Лог последних начислений (последние 50 событий)
   if (logEntry) {
     update["pointsLog"] = arrayUnion({
       ...logEntry,
@@ -80,18 +90,16 @@ export const awardPoints = async (uid, eventType, meta = {}) => {
     });
   }
 
-  await updateDoc(userRef, update);
+  // Merge streak fields
+  Object.assign(update, streakUpdate);
 
+  await updateDoc(userRef, update);
   return points;
 };
 
-/* ════════════════════════════════════════════════════
-   BUILDER — возвращает { points, statField, logEntry }
-════════════════════════════════════════════════════ */
 const buildAward = (eventType, meta) => {
   switch (eventType) {
 
-    /* ── Ответ на один вопрос в Practice ── */
     case "question_answered": {
       const correct = meta.correct === true;
       const points  = correct ? POINTS.QUESTION_CORRECT : POINTS.QUESTION_WRONG;
@@ -100,25 +108,21 @@ const buildAward = (eventType, meta) => {
         statField: correct ? "questionsCorrect" : "questionsWrong",
         logEntry:  correct
           ? { event: "question_answered", label: "Correct answer" }
-          : null,  // неправильный ответ не логируем, чтобы не засорять
+          : null,
       };
     }
 
-    /* ── Завершение сессии практики (бонус) ── */
     case "practice_complete": {
-      const bonus = POINTS.PRACTICE_SESSION_BONUS;
       return {
-        points:    bonus,
+        points:    POINTS.PRACTICE_SESSION_BONUS,
         statField: "practiceSessions",
         logEntry:  { event: "practice_complete", label: "Practice session bonus" },
       };
     }
 
-    /* ── Диагностика ── */
     case "diagnostic_complete": {
-      const score   = meta.percent ?? 0;
-      const points  = Math.round(POINTS.DIAGNOSTIC_COMPLETE * (1 + score / 100));
-      // Чем лучше результат, тем больше очков (от 20 до 40)
+      const score  = meta.percent ?? 0;
+      const points = Math.round(POINTS.DIAGNOSTIC_COMPLETE * (1 + score / 100));
       return {
         points,
         statField: "diagnosticsCompleted",
@@ -126,7 +130,6 @@ const buildAward = (eventType, meta) => {
       };
     }
 
-    /* ── Домашняя работа ── */
     case "homework_complete": {
       const percent = meta.percent ?? 0;
       const points  =
@@ -140,7 +143,6 @@ const buildAward = (eventType, meta) => {
       };
     }
 
-    /* ── Puzzle ── */
     case "puzzle_solved": {
       const streak = Math.max(meta.streak ?? 1, 1);
       const points = Math.min(
@@ -154,7 +156,6 @@ const buildAward = (eventType, meta) => {
       };
     }
 
-    /* ── Обратная связь ── */
     case "feedback_sent": {
       return {
         points:    POINTS.FEEDBACK_SENT,
@@ -164,11 +165,10 @@ const buildAward = (eventType, meta) => {
     }
 
     case "todo_complete": {
-      const points = meta.xp ?? 10;
       return {
-        points,
+        points:    meta.xp ?? 10,
         statField: null,
-        logEntry: { event: "todo_complete", label: meta.label ?? "Daily todo completed" },
+        logEntry:  { event: "todo_complete", label: meta.label ?? "Daily todo completed" },
       };
     }
 

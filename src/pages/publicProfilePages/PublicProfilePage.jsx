@@ -1,368 +1,333 @@
-// src/pages/profilePages/ProfilePage.jsx
-import { useState, useEffect, useMemo } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import Header from "../../components/layout/Header";
+// src/pages/publicProfilePages/PublicProfilePage.jsx
+import { useState, useEffect } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db }       from "../../firebase/firebaseConfig";
+import { useAuth }  from "../../context/AuthContext";
+import Header  from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import { getPractice, getDiagnostics, getAllTopicNotes, getTopicProgress, savePublicProfile } from "../../services/db";
-import { getUserProfile } from "../../firebase/auth";
-import ResultsSection  from "../../components/sections/ResultsSection";
-import ProgressSection from "../../components/sections/ProgressSections";
-import NotesSection    from "../../components/sections/NotesSection";
-import GapsSection     from "../../components/sections/GapsSection";
-import ProfileEditModal from "../../components/profile/ProfileEditModal";
 import "./public-profile.css";
-import "../progressPages/progress.css";
-import '../resultsPages/results.css';
 import "../../styles/layout.css";
 
-// ── XP / level helpers ──────────────────────────────────────────────────────
 const XP_PER_LEVEL = 200;
 const getLevel    = (xp) => Math.floor((xp || 0) / XP_PER_LEVEL) + 1;
 const getLevelXp  = (xp) => (xp || 0) % XP_PER_LEVEL;
 const getLevelPct = (xp) => Math.round((getLevelXp(xp) / XP_PER_LEVEL) * 100);
 
-const getTier = (level) => {
-  if (level >= 20) return { label: "Master",   color: "#9b59b6" };
-  if (level >= 10) return { label: "Expert",   color: "#d35400" };
-  if (level >= 5)  return { label: "Learner",  color: "#2a8fa0" };
-  return               { label: "Beginner", color: "rgba(255,255,255,0.3)" };
+const getTier = (lvl) => {
+  if (lvl >= 20) return { label: "Master",  color: "#9b59b6" };
+  if (lvl >= 10) return { label: "Expert",  color: "#d35400" };
+  if (lvl >= 5)  return { label: "Learner", color: "#2a8fa0" };
+  return               { label: "Beginner", color: "rgba(120,140,160,0.9)" };
 };
 
-// ── Avatar ──────────────────────────────────────────────────────────────────
-const Avatar = ({ name, photoURL, size = 68 }) => {
-  const initials = (name || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+const initials = (name = "?") =>
+  name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
-  if (photoURL) {
-    return (
-      <img src={photoURL} alt={name} className="profile-avatar__img"
-        style={{ width: size, height: size, borderRadius: "50%" }} />
-    );
-  }
-  return (
-    <div className="profile-avatar__initials"
-      style={{ width: size, height: size, fontSize: size * 0.34 }}>
-      {initials}
-    </div>
-  );
+const formatJoin = (str) => {
+  if (!str) return null;
+  const d = new Date(str);
+  return isNaN(d) ? null
+    : d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 };
 
-// ── Hero Card ────────────────────────────────────────────────────────────────
-const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, activeGapCount, onTabChange }) => {
-  const xp       = profile?.ratingPoints || 0;
-  const level    = getLevel(xp);
-  const levelXp  = getLevelXp(xp);
-  const levelPct = getLevelPct(xp);
-  const tier     = getTier(level);
-
-  const avgScore = diagnostics.length
-    ? Math.round(
-        diagnostics.reduce((s, d) => s + (d.score.correct / d.score.total) * 100, 0) /
-        diagnostics.length
-      )
-    : null;
-
-  const scoreCol = (p) => (p >= 70 ? "#27ae60" : p >= 40 ? "#d35400" : "#c0392b");
-
-  const lastDiagDate = useMemo(() => {
-    if (!diagnostics.length) return null;
-    const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
-    const d = new Date(sorted[0].date);
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  }, [diagnostics]);
-
-  const statusLine = useMemo(() => {
-    const parts = [];
-    if (activeGapCount > 0) parts.push(`${activeGapCount} active gap${activeGapCount !== 1 ? "s" : ""}`);
-    else if (diagnostics.length > 0) parts.push("no active gaps");
-    if (lastDiagDate) parts.push(`last run ${lastDiagDate}`);
-    if (diagnostics.length > 0) parts.push(`${diagnostics.length} session${diagnostics.length !== 1 ? "s" : ""}`);
-    return parts.join(" · ");
-  }, [activeGapCount, lastDiagDate, diagnostics.length]);
-
-  return (
-    <div className="profile-hero">
-      <div className="profile-hero__left">
-        <div className="profile-avatar-wrap">
-          <Avatar name={profile?.displayName || user?.displayName} photoURL={user?.photoURL} size={68} />
-          <div className="profile-avatar__lvl">{level}</div>
-        </div>
-
-        <div className="profile-hero__identity">
-          <div className="profile-hero__name-row">
-            <h1 className="profile-hero__name">{profile?.displayName || user?.displayName || "Anonymous"}</h1>
-            <span className="profile-hero__tier"
-              style={{ color: tier.color, borderColor: tier.color + "35", background: tier.color + "0e" }}>
-              {tier.label}
-            </span>
-          </div>
-
-          {statusLine && (
-            <p className="profile-hero__status">{statusLine}</p>
-          )}
-
-          <div className="profile-xp">
-            <div className="profile-xp__bar-outer">
-              <div className="profile-xp__bar-inner" style={{ width: `${levelPct}%` }} />
-            </div>
-            <div className="profile-xp__meta">
-              <span className="profile-xp__total">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                {xp} xp
-              </span>
-              <span className="profile-xp__next">{levelXp} / {XP_PER_LEVEL} to level {level + 1}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="profile-hero__right">
-        <div className="profile-hero__stats">
-          <button className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("gaps")} title="View your active gaps">
-            <strong style={{ color: activeGapCount > 0 ? "#d35400" : undefined }}>
-              {activeGapCount}
-            </strong>
-            <span>gaps</span>
-          </button>
-
-          <div className="profile-hero__stat-sep" />
-
-          <button className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("results")} title="View diagnostic results">
-            <strong style={{ color: avgScore != null ? scoreCol(avgScore) : undefined }}>
-              {avgScore != null ? `${avgScore}%` : "—"}
-            </strong>
-            <span>avg score</span>
-          </button>
-
-          <div className="profile-hero__stat-sep" />
-
-          <button className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("results")} title="View latest diagnostic">
-            <strong style={{ fontSize: "0.95rem" }}>
-              {lastDiagDate ?? "—"}
-            </strong>
-            <span>last run</span>
-          </button>
-
-          <div className="profile-hero__stat-sep" />
-
-          <button className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("results")} title="View all diagnostic sessions">
-            <strong>{profile?.stats?.diagnosticsCompleted ?? diagnostics.length}</strong>
-            <span>diagnostics</span>
-          </button>
-        </div>
-
-        <button className="profile-hero__edit-btn" onClick={onEditClick} type="button">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/>
-          </svg>
-          Edit profile
-        </button>
-      </div>
-    </div>
-  );
+const formatReviewDate = (ts) => {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 };
 
-// ── ProfilePage ──────────────────────────────────────────────────────────────
-const VALID_TABS = ["progress", "gaps", "results", "notes"];
+const scoreColor = (p) => p >= 70 ? "#27ae60" : p >= 40 ? "#d35400" : "#c0392b";
 
-const ProfilePage = () => {
-  const { user }  = useAuth();
-  const location  = useLocation();
+const Stars = ({ rating, size = 14 }) => (
+  <div className="pub-stars">
+    {[1,2,3,4,5].map(n => (
+      <svg key={n} width={size} height={size} viewBox="0 0 24 24"
+        className={`pub-star ${n <= rating ? "pub-star--on" : "pub-star--off"}`}>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+          strokeWidth="1.5" strokeLinejoin="round"/>
+      </svg>
+    ))}
+  </div>
+);
 
-  const initialTab = VALID_TABS.includes(location.state?.tab)
-    ? location.state.tab : "progress";
-  const initialIdx = location.state?.selectedIdx ?? 0;
+const PublicProfilePage = () => {
+  const { uid }  = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const [sidebarOpen,   setSidebarOpen]   = useState(false);
-  const [activeTab,     setActiveTab]     = useState(initialTab);
-  const [topicProgress, setTopicProgress] = useState([]);
-  const [editOpen,      setEditOpen]      = useState(false);
-  const [resultIdx,     setResultIdx]     = useState(initialIdx);
-  const [diagnostics,   setDiagnostics]   = useState([]);
-  const [practice,      setPractice]      = useState([]);
-  const [profile,       setProfile]       = useState(null);
-  const [topicNotes,    setTopicNotes]    = useState([]);
-  const [loading,       setLoading]       = useState(true);
-
-  const activeGapCount = useMemo(() => {
-    const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
-    for (const s of sorted) {
-      if (s.gaps?.length > 0) return s.gaps.length;
-    }
-    return 0;
-  }, [diagnostics]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [notFound,    setNotFound]    = useState(false);
+  const [profile,     setProfile]     = useState(null);
+  const [review,      setReview]      = useState(null);
 
   useEffect(() => {
-    const tab = location.state?.tab;
-    if (tab && VALID_TABS.includes(tab)) setActiveTab(tab);
-    if (location.state?.selectedIdx != null) setResultIdx(location.state.selectedIdx);
-  }, [location.state]);
+    if (user && uid === user.uid) navigate("/profile", { replace: true });
+  }, [uid, user, navigate]);
 
   useEffect(() => {
-    document.body.classList.add("axioma-profile-bg");
-    return () => document.body.classList.remove("axioma-profile-bg");
-  }, []);
+    if (!uid) return;
+    const load = async () => {
+      setLoading(true);
+      setNotFound(false);
+      try {
+        const profSnap = await getDoc(doc(db, "publicProfiles", uid));
+        if (!profSnap.exists()) {
+          // Fallback — build minimal profile from feedback doc
+          const revSnap = await getDoc(doc(db, "feedback", uid));
+          if (!revSnap.exists()) { setNotFound(true); setLoading(false); return; }
+          const rev = revSnap.data();
+          setProfile({
+            displayName:  rev.displayName || "Unknown",
+            photoURL:     rev.photoURL    || "",
+            ratingPoints: 0,
+            createdAt:    null,
+            stats: { diagnosticsCompleted: 0, practiceCompleted: 0, avgScore: null },
+          });
+          setReview(rev);
+          setLoading(false);
+          return;
+        }
+        setProfile(profSnap.data());
+        const revSnap = await getDoc(doc(db, "feedback", uid));
+        if (revSnap.exists()) setReview(revSnap.data());
+      } catch (err) {
+        console.error("PublicProfile load error:", err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [uid]);
 
-  useEffect(() => {
-    if (!user) return;
-    Promise.all([
-      getDiagnostics(user.uid),
-      getPractice(user.uid),
-      getUserProfile(user.uid),
-      getAllTopicNotes(user.uid),
-      getTopicProgress(user.uid),
-    ]).then(async ([diags, pracs, prof, notes, progress]) => {
-      setDiagnostics(diags      ?? []);
-      setPractice(pracs         ?? []);
-      setProfile(prof);
-      setTopicNotes(notes       ?? []);
-      setTopicProgress(progress ?? []);
-      setLoading(false);
+  const xp          = profile?.ratingPoints || 0;
+  const level       = getLevel(xp);
+  const levelXp     = getLevelXp(xp);
+  const levelPct    = getLevelPct(xp);
+  const tier        = getTier(level);
+  const diagCount   = profile?.stats?.diagnosticsCompleted || 0;
+  const practCount  = profile?.stats?.practiceCompleted    || 0;
+  const avgScore    = profile?.stats?.avgScore             ?? null;
+  const displayName = profile?.displayName || "Unknown";
+  const joinDate    = formatJoin(profile?.createdAt);
 
-      // Backfill / refresh publicProfiles so public page always has current stats
-      const avgScore = (diags?.length ?? 0) > 0
-        ? Math.round(
-            diags.reduce((s, d) => s + (d.score.correct / d.score.total) * 100, 0) / diags.length
-          )
-        : null;
-
-      savePublicProfile(user.uid, {
-        displayName:  prof?.displayName  || user?.displayName || "Anonymous",
-        photoURL:     user?.photoURL     || "",
-        ratingPoints: prof?.ratingPoints || 0,
-        createdAt:    prof?.createdAt    || new Date().toISOString(),
-        stats: {
-          diagnosticsCompleted: diags?.length  || 0,
-          practiceCompleted:    pracs?.length  || 0,
-          avgScore,
-        },
-      }).catch(console.error); // non-blocking — don't hold up the UI
-    });
-  }, [user]);
-
-  const handleDiagnosticClick = (idx) => {
-    setResultIdx(idx);
-    setActiveTab("results");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleNoteUpdated = (topicId, newContent) => {
-    setTopicNotes((prev) =>
-      prev.map((n) => (n.topicId === topicId ? { ...n, content: newContent } : n))
-    );
-  };
-
-  const TABS = [
-    { id: "progress", label: "Progress" },
-    { id: "gaps",     label: "Gaps",    badge: activeGapCount || null },
-    { id: "results",  label: "Results", badge: diagnostics.length || null },
-    { id: "notes",    label: "Notes",   badge: topicNotes.length  || null },
+  const stats = [
+    { val: level,                                      label: "Level"       },
+    { val: xp.toLocaleString(),                        label: "Total XP"    },
+    { val: diagCount  || "—",                          label: "Diagnostics" },
+    { val: practCount || "—",                          label: "Practice"    },
+    { val: avgScore != null ? `${avgScore}%` : "—",   label: "Avg Score",
+      color: avgScore != null ? scoreColor(avgScore) : undefined },
   ];
 
   return (
     <div className="page-shell">
-      <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen((v) => !v)} />
+      <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(v => !v)} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="page-main">
-        <div className="profile-page">
+        <div className="pub-page">
 
-          <nav className="profile-breadcrumb" aria-label="breadcrumb">
-            <Link to="/home" className="profile-breadcrumb__item">Home</Link>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-            <span className="profile-breadcrumb__item profile-breadcrumb__item--active">Profile</span>
-          </nav>
-
-          {loading ? (
-            <div className="profile-loading">
-              <div className="profile-loading__ring" />
-              <p>Loading profile…</p>
+          {loading && (
+            <div className="pub-loading">
+              <div className="pub-loading__ring" />
+              <span>Loading profile…</span>
             </div>
-          ) : (
-            <>
-              <ProfileHeroCard
-                user={user}
-                profile={profile}
-                diagnostics={diagnostics}
-                practice={practice}
-                onEditClick={() => setEditOpen(true)}
-                activeGapCount={activeGapCount}
-                onTabChange={setActiveTab}
-              />
+          )}
 
-              <div className="profile-tabs" role="tablist">
-                {TABS.map((t) => (
-                  <button key={t.id} role="tab"
-                    aria-selected={activeTab === t.id}
-                    className={`profile-tab ${activeTab === t.id ? "profile-tab--active" : ""}`}
-                    onClick={() => setActiveTab(t.id)}>
-                    {t.label}
-                    {t.badge > 0 && (
-                      <span className="profile-tab__badge">{t.badge}</span>
+          {!loading && notFound && (
+            <div className="pub-not-found">
+              <svg width="52" height="52" viewBox="0 0 24 24" fill="none"
+                stroke="var(--border)" strokeWidth="1.2" strokeLinecap="round">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+              </svg>
+              <h3>Profile not found</h3>
+              <p>This user doesn't exist or has been removed.</p>
+              <Link to="/feedback" className="pub-back">← Back to Feedback</Link>
+            </div>
+          )}
+
+          {!loading && !notFound && profile && (
+            <>
+              {/* ── Hero ── */}
+              <div className="pub-hero">
+                <div className="pub-hero__accent" />
+
+                <nav className="pub-breadcrumb">
+                  <Link to="/home" className="pub-breadcrumb__item">Home</Link>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                  <Link to="/feedback" className="pub-breadcrumb__item">Feedback</Link>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                  <span className="pub-breadcrumb__item pub-breadcrumb__item--cur">{displayName}</span>
+                </nav>
+
+                <div className="pub-hero__body">
+                  <div className="pub-av-wrap">
+                    {profile.photoURL ? (
+                      <img src={profile.photoURL} alt={displayName} className="pub-av pub-av--img" />
+                    ) : (
+                      <div className="pub-av">{initials(displayName)}</div>
                     )}
-                  </button>
+                    <div className="pub-av__lvl">{level}</div>
+                  </div>
+
+                  <div className="pub-identity">
+                    <div className="pub-name-row">
+                      <h1 className="pub-name">{displayName}</h1>
+                      <span className="pub-tier" style={{
+                        color: tier.color,
+                        borderColor: tier.color + "35",
+                        background:  tier.color + "0e",
+                      }}>{tier.label}</span>
+                    </div>
+
+                    {joinDate && (
+                      <p className="pub-join">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                          <line x1="16" y1="2" x2="16" y2="6"/>
+                          <line x1="8"  y1="2" x2="8"  y2="6"/>
+                          <line x1="3"  y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Joined {joinDate}
+                      </p>
+                    )}
+
+                    <div className="pub-xp">
+                      <div className="pub-xp__bar-outer">
+                        <div className="pub-xp__bar-inner" style={{ width: `${levelPct}%` }} />
+                      </div>
+                      <div className="pub-xp__meta">
+                        <span className="pub-xp__total">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                          </svg>
+                          {xp.toLocaleString()} xp
+                        </span>
+                        <span className="pub-xp__next">{levelXp} / {XP_PER_LEVEL} to level {level + 1}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Stats ── */}
+              <div className="pub-stats">
+                {stats.map(({ val, label, color }) => (
+                  <div key={label} className="pub-stat">
+                    <span className="pub-stat__val" style={color ? { color } : undefined}>{val}</span>
+                    <span className="pub-stat__key">{label}</span>
+                  </div>
                 ))}
               </div>
 
-              <div className="profile-section" role="tabpanel">
-                {activeTab === "progress" && (
-                  <ProgressSection
-                    diagnostics={diagnostics}
-                    practice={practice}
-                    onDiagnosticClick={handleDiagnosticClick}
-                  />
-                )}
-                {activeTab === "results" && (
-                  <ResultsSection
-                    sessions={diagnostics}
-                    initialIdx={resultIdx}
-                  />
-                )}
-                {activeTab === "gaps" && (
-                  <GapsSection
-                    diagnostics={diagnostics}
-                    topicProgress={topicProgress}
-                  />
-                )}
-                {activeTab === "notes" && (
-                  <NotesSection
-                    notes={topicNotes}
-                    uid={user?.uid}
-                    onNoteUpdated={handleNoteUpdated}
-                  />
-                )}
+              {/* ── Review ── */}
+              <div className="pub-section-head">
+                <div className="pub-section-head__line" />
+                <span className="pub-section-head__text">Their review</span>
+                <div className="pub-section-head__line" />
               </div>
+
+              {review ? (
+                <div className="pub-review">
+                  <div className="pub-review__accent" />
+
+                  <div className="pub-review__top">
+                    <Stars rating={review.rating} size={16} />
+                    <span className="pub-review__rating-num">{review.rating}.0</span>
+                    <span className="pub-review__date">{formatReviewDate(review.createdAt)}</span>
+                  </div>
+
+                  {(review.strongSides || review.weakSides || review.comment) && (
+                    <div className="pub-review__sections">
+                      {review.strongSides && (
+                        <div className="pub-review__section">
+                          <span className="pub-review__label pub-review__label--strong">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+                            </svg>
+                            Strong
+                          </span>
+                          <p className="pub-review__text">{review.strongSides}</p>
+                        </div>
+                      )}
+                      {review.weakSides && (
+                        <div className="pub-review__section">
+                          <span className="pub-review__label pub-review__label--weak">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+                              stroke="currentColor" strokeWidth="2.5">
+                              <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Weak
+                          </span>
+                          <p className="pub-review__text">{review.weakSides}</p>
+                        </div>
+                      )}
+                      {review.comment && (
+                        <div className="pub-review__section">
+                          <span className="pub-review__label">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+                              stroke="currentColor" strokeWidth="2.5">
+                              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            Comment
+                          </span>
+                          <p className="pub-review__text">{review.comment}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(review.yesCount > 0 || review.noCount > 0) && (
+                    <div className="pub-review__votes">
+                      <span className="pub-review__votes-label">Community found this</span>
+                      {review.yesCount > 0 && (
+                        <span className="pub-review__vote pub-review__vote--yes">
+                          👍 {review.yesCount} helpful
+                        </span>
+                      )}
+                      {review.noCount > 0 && (
+                        <span className="pub-review__vote">
+                          👎 {review.noCount}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="pub-no-review">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  This user hasn't left a review yet.
+                </div>
+              )}
+
+              <Link to="/feedback" className="pub-back pub-back--bottom">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="19" y1="12" x2="5" y2="12"/>
+                  <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                All reviews
+              </Link>
             </>
           )}
         </div>
       </main>
-
-      {editOpen && (
-        <ProfileEditModal
-          user={user}
-          profile={profile}
-          onClose={() => setEditOpen(false)}
-          onSaved={(updated) => setProfile(updated)}
-        />
-      )}
     </div>
   );
 };
 
-export default ProfilePage;
+export default PublicProfilePage;

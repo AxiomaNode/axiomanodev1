@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { updateProfile } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { savePublicProfile } from "../../services/db";
 import { auth, db } from "../../firebase/firebaseConfig";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -65,12 +66,25 @@ const ProfileEditModal = ({ user, profile, onClose, onSaved }) => {
       const updated = snap.exists() ? snap.data() : null;
       setSuccess(true);
       setTimeout(() => { onSaved?.(updated); onClose(); }, 900);
+      await savePublicProfile(user.uid, {
+      displayName:  trimmed,
+      photoURL:     user?.photoURL     || "",
+      ratingPoints: profile?.ratingPoints || 0,
+      createdAt:    profile?.createdAt    || new Date().toISOString(),
+      stats: {
+        diagnosticsCompleted: profile?.stats?.diagnosticsCompleted || 0,
+        practiceCompleted:    profile?.stats?.practiceCompleted    || 0,
+        avgScore:             profile?.stats?.avgScore             ?? null,
+      },
+      });
     } catch (err) {
       console.error(err);
       setError("Failed to save changes. Please try again.");
     } finally {
       setSaving(false);
     }
+
+
   };
 
   const handleBackdrop = (e) => {

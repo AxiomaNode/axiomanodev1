@@ -49,7 +49,7 @@ const AppRouter = () => (
     <Route path="/diagnostics"  element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
     <Route path="/practice"     element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
     <Route path="/puzzles"     element={<ProtectedRoute><PuzzlesPage /></ProtectedRoute>} />
-    <Route path="/profile/:uid" element={<PublicProfilePage />} />
+    <Route path="/profile/:uid" element={<ProtectedRoute><PublicProfilePage /></ProtectedRoute>}/>
     <Route path="/progress"     element={<ProtectedRoute><ProgressPage/></ProtectedRoute>} />
     <Route path="/results"      element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"      element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />

@@ -798,3 +798,71 @@ body.axioma-profile-bg::after {
   .profile-empty-state__actions { flex-direction: column; align-items: stretch; }
   .profile-empty-state__btn { justify-content: center; }
 }
+
+.profile-hero__streak {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  color: var(--text-light);
+  padding: 6px 12px;
+  background: var(--card-bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+.profile-hero__streak-val {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1;
+}
+.profile-hero__streak-label {
+  color: var(--text-light);
+  font-size: 0.68rem;
+}
+.profile-hero__streak-best {
+  font-size: 0.62rem;
+  color: var(--text-light);
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+  margin-left: 2px;
+}
+
+/* ══════════════════════════════════════════════════════
+   APPEND TO profile.css — streak pill
+══════════════════════════════════════════════════════ */
+
+.profile-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 10px;
+  background: var(--card-bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: 'Courier New', monospace;
+  width: fit-content;
+  transition: border-color 0.2s;
+}
+
+.profile-streak__val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: color 0.3s;
+}
+
+.profile-streak__label {
+  font-size: 0.62rem;
+  color: var(--text-light);
+  letter-spacing: 0.04em;
+}
+
+.profile-streak__best {
+  font-size: 0.58rem;
+  color: var(--text-light);
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+  margin-left: 2px;
+}

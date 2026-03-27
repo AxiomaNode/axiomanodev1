@@ -4,7 +4,10 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import { getPractice, getDiagnostics, getAllTopicNotes, getTopicProgress, savePublicProfile } from "../../services/db";
+import {
+  getPractice, getDiagnostics, getAllTopicNotes,
+  getTopicProgress, savePublicProfile,
+} from "../../services/db";
 import { getUserProfile } from "../../firebase/auth";
 import ResultsSection  from "../../components/sections/ResultsSection";
 import ProgressSection from "../../components/sections/ProgressSections";
@@ -13,32 +16,40 @@ import GapsSection     from "../../components/sections/GapsSection";
 import ProfileEditModal from "../../components/profile/ProfileEditModal";
 import "./profile.css";
 import "../progressPages/progress.css";
-import '../resultsPages/results.css';
+import "../resultsPages/results.css";
 import "../../styles/layout.css";
 import "./profile.gaps.css";
 
-// ── XP / level helpers ──────────────────────────────────────────────────────
 const XP_PER_LEVEL = 200;
 const getLevel    = (xp) => Math.floor((xp || 0) / XP_PER_LEVEL) + 1;
 const getLevelXp  = (xp) => (xp || 0) % XP_PER_LEVEL;
 const getLevelPct = (xp) => Math.round((getLevelXp(xp) / XP_PER_LEVEL) * 100);
 
 const getTier = (level) => {
-  if (level >= 20) return { label: "Master",   color: "#9b59b6" };
-  if (level >= 10) return { label: "Expert",   color: "#d35400" };
-  if (level >= 5)  return { label: "Learner",  color: "#2a8fa0" };
+  if (level >= 20) return { label: "Master",  color: "#9b59b6" };
+  if (level >= 10) return { label: "Expert",  color: "#d35400" };
+  if (level >= 5)  return { label: "Learner", color: "#2a8fa0" };
   return               { label: "Beginner", color: "rgba(255,255,255,0.3)" };
 };
 
-// ── Avatar ──────────────────────────────────────────────────────────────────
+const todayStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
+
+// Color progression by streak length — only active if used today
+const getStreakColor = (streak, activeToday) => {
+  if (!activeToday || streak === 0) return null; // grey / inactive
+  if (streak >= 30) return "#9b59b6"; // purple
+  if (streak >= 14) return "#e74c3c"; // red
+  if (streak >= 7)  return "#e67e22"; // orange
+  if (streak >= 3)  return "#f39c12"; // amber
+  return "#f1c40f";                   // yellow
+};
+
 const Avatar = ({ name, photoURL, size = 68 }) => {
   const initials = (name || "?")
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
+    .split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   if (photoURL) {
     return (
       <img src={photoURL} alt={name} className="profile-avatar__img"
@@ -53,8 +64,44 @@ const Avatar = ({ name, photoURL, size = 68 }) => {
   );
 };
 
+// ── Streak pill ──────────────────────────────────────────────────────────────
+const StreakPill = ({ profile }) => {
+  const streak      = profile?.currentStreak  ?? 0;
+  const best        = profile?.bestStreak     ?? 0;
+  const lastActive  = profile?.lastActiveDate ?? null;
+  const activeToday = lastActive === todayStr();
+  const color       = getStreakColor(streak, activeToday);
+  const dimColor    = "var(--text-light)";
+
+  return (
+    <div
+      className="profile-streak"
+      style={{ borderColor: color ? color + "40" : undefined }}
+    >
+      {/* Flame SVG */}
+      <svg width="15" height="15" viewBox="0 0 24 24"
+        fill={color ?? dimColor} style={{ flexShrink: 0 }}>
+        <path d="M12 2C10 5.5 6 9 6 13.5a6 6 0 0 0 12 0C18 9 14 5.5 12 2z"/>
+        <path d="M12 22a3.5 3.5 0 0 1-3.5-3.5c0-2 2-4.5 3.5-6 1.5 1.5 3.5 4 3.5 6A3.5 3.5 0 0 1 12 22z"
+          fill={color ? "rgba(255,255,255,0.4)" : "transparent"}/>
+      </svg>
+
+      <span className="profile-streak__val" style={{ color: color ?? dimColor }}>
+        {streak}
+      </span>
+      <span className="profile-streak__label">
+        {activeToday ? "day streak" : "streak · inactive"}
+      </span>
+
+      {best > 0 && best !== streak && (
+        <span className="profile-streak__best">best {best}</span>
+      )}
+    </div>
+  );
+};
+
 // ── Hero Card ────────────────────────────────────────────────────────────────
-const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, activeGapCount, onTabChange }) => {
+const ProfileHeroCard = ({ user, profile, diagnostics, onEditClick, activeGapCount, onTabChange }) => {
   const xp       = profile?.ratingPoints || 0;
   const level    = getLevel(xp);
   const levelXp  = getLevelXp(xp);
@@ -70,15 +117,12 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, ac
 
   const scoreCol = (p) => (p >= 70 ? "#27ae60" : p >= 40 ? "#d35400" : "#c0392b");
 
-  // Last diagnostic date — formatted short
   const lastDiagDate = useMemo(() => {
     if (!diagnostics.length) return null;
     const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
-    const d = new Date(sorted[0].date);
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    return new Date(sorted[0].date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   }, [diagnostics]);
 
-  // One-line status summary
   const statusLine = useMemo(() => {
     const parts = [];
     if (activeGapCount > 0) parts.push(`${activeGapCount} active gap${activeGapCount !== 1 ? "s" : ""}`);
@@ -90,7 +134,6 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, ac
 
   return (
     <div className="profile-hero">
-      {/* Left: avatar + identity */}
       <div className="profile-hero__left">
         <div className="profile-avatar-wrap">
           <Avatar name={profile?.displayName || user?.displayName} photoURL={user?.photoURL} size={68} />
@@ -99,19 +142,18 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, ac
 
         <div className="profile-hero__identity">
           <div className="profile-hero__name-row">
-            <h1 className="profile-hero__name">{profile?.displayName || user?.displayName || "Anonymous"}</h1>
-            <span className="profile-hero__tier"
-              style={{ color: tier.color, borderColor: tier.color + "35", background: tier.color + "0e" }}>
+            <h1 className="profile-hero__name">
+              {profile?.displayName || user?.displayName || "Anonymous"}
+            </h1>
+            <span className="profile-hero__tier" style={{
+              color: tier.color, borderColor: `${tier.color}35`, background: `${tier.color}0e`,
+            }}>
               {tier.label}
             </span>
           </div>
 
-          {/* Status line — replaces email */}
-          {statusLine && (
-            <p className="profile-hero__status">{statusLine}</p>
-          )}
+          {statusLine && <p className="profile-hero__status">{statusLine}</p>}
 
-          {/* XP bar */}
           <div className="profile-xp">
             <div className="profile-xp__bar-outer">
               <div className="profile-xp__bar-inner" style={{ width: `${levelPct}%` }} />
@@ -126,19 +168,16 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, ac
               <span className="profile-xp__next">{levelXp} / {XP_PER_LEVEL} to level {level + 1}</span>
             </div>
           </div>
+
+          {/* Streak — below XP bar, part of identity */}
+          <StreakPill profile={profile} />
         </div>
       </div>
 
-      {/* Right: stats + edit */}
       <div className="profile-hero__right">
         <div className="profile-hero__stats">
-
-          {/* GAPS — clickable → Gaps tab */}
-          <button
-            className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("gaps")}
-            title="View your active gaps"
-          >
+          <button className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("gaps")} title="View your active gaps">
             <strong style={{ color: activeGapCount > 0 ? "#d35400" : undefined }}>
               {activeGapCount}
             </strong>
@@ -147,12 +186,8 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, ac
 
           <div className="profile-hero__stat-sep" />
 
-          {/* AVG SCORE — clickable → Results tab */}
-          <button
-            className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("results")}
-            title="View diagnostic results"
-          >
+          <button className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("results")} title="View diagnostic results">
             <strong style={{ color: avgScore != null ? scoreCol(avgScore) : undefined }}>
               {avgScore != null ? `${avgScore}%` : "—"}
             </strong>
@@ -161,30 +196,19 @@ const ProfileHeroCard = ({ user, profile, diagnostics, practice, onEditClick, ac
 
           <div className="profile-hero__stat-sep" />
 
-          {/* LAST RUN — clickable → Results tab */}
-          <button
-            className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("results")}
-            title="View latest diagnostic"
-          >
-            <strong style={{ fontSize: "0.95rem" }}>
-              {lastDiagDate ?? "—"}
-            </strong>
+          <button className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("results")} title="View latest diagnostic">
+            <strong style={{ fontSize: "0.95rem" }}>{lastDiagDate ?? "—"}</strong>
             <span>last run</span>
           </button>
 
           <div className="profile-hero__stat-sep" />
 
-          {/* DIAGNOSTICS — clickable → Results tab */}
-          <button
-            className="profile-hero__stat profile-hero__stat--btn"
-            onClick={() => onTabChange("results")}
-            title="View all diagnostic sessions"
-          >
+          <button className="profile-hero__stat profile-hero__stat--btn"
+            onClick={() => onTabChange("results")} title="View all diagnostic sessions">
             <strong>{profile?.stats?.diagnosticsCompleted ?? diagnostics.length}</strong>
             <span>diagnostics</span>
           </button>
-
         </div>
 
         <button className="profile-hero__edit-btn" onClick={onEditClick} type="button">
@@ -207,21 +231,19 @@ const ProfilePage = () => {
   const { user }  = useAuth();
   const location  = useLocation();
 
-  const initialTab = VALID_TABS.includes(location.state?.tab)
-    ? location.state.tab
-    : "progress";
+  const initialTab = VALID_TABS.includes(location.state?.tab) ? location.state.tab : "progress";
   const initialIdx = location.state?.selectedIdx ?? 0;
 
-  const [sidebarOpen,    setSidebarOpen]    = useState(false);
-  const [activeTab,      setActiveTab]      = useState(initialTab);
-  const [topicProgress,  setTopicProgress]  = useState([]);
-  const [editOpen,       setEditOpen]       = useState(false);
-  const [resultIdx,      setResultIdx]      = useState(initialIdx);
-  const [diagnostics,    setDiagnostics]    = useState([]);
-  const [practice,       setPractice]       = useState([]);
-  const [profile,        setProfile]        = useState(null);
-  const [topicNotes,     setTopicNotes]     = useState([]);
-  const [loading,        setLoading]        = useState(true);
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [activeTab,     setActiveTab]     = useState(initialTab);
+  const [topicProgress, setTopicProgress] = useState([]);
+  const [editOpen,      setEditOpen]      = useState(false);
+  const [resultIdx,     setResultIdx]     = useState(initialIdx);
+  const [diagnostics,   setDiagnostics]   = useState([]);
+  const [practice,      setPractice]      = useState([]);
+  const [profile,       setProfile]       = useState(null);
+  const [topicNotes,    setTopicNotes]    = useState([]);
+  const [loading,       setLoading]       = useState(true);
 
   const activeGapCount = useMemo(() => {
     const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -251,31 +273,31 @@ const ProfilePage = () => {
       getAllTopicNotes(user.uid),
       getTopicProgress(user.uid),
     ]).then(([diags, pracs, prof, notes, progress]) => {
-  setDiagnostics(diags ?? []);
-  setPractice(pracs ?? []);
-  setProfile(prof);
-  setTopicNotes(notes ?? []);
-  setTopicProgress(progress ?? []);
-  setLoading(false);
+      setDiagnostics(diags      ?? []);
+      setPractice(pracs         ?? []);
+      setProfile(prof);
+      setTopicNotes(notes       ?? []);
+      setTopicProgress(progress ?? []);
+      setLoading(false);
 
-  const avgScore = (diags?.length ?? 0) > 0
-    ? Math.round(
-        diags.reduce((s, d) => s + (d.score.correct / d.score.total) * 100, 0) / diags.length
-      )
-    : null;
+      const avgScore = (diags?.length ?? 0) > 0
+        ? Math.round(
+            diags.reduce((s, d) => s + (d.score.correct / d.score.total) * 100, 0) / diags.length
+          )
+        : null;
 
-  savePublicProfile(user.uid, {
-    displayName: prof?.displayName || user?.displayName || "Anonymous",
-    photoURL: user?.photoURL || "",
-    ratingPoints: prof?.ratingPoints || 0,
-    createdAt: prof?.createdAt || new Date().toISOString(),
-    stats: {
-      diagnosticsCompleted: diags?.length || 0,
-      practiceCompleted: pracs?.length || 0,
-      avgScore,
-    },
-  }).catch(console.error);
-});
+      savePublicProfile(user.uid, {
+        displayName:  prof?.displayName  || user?.displayName || "Anonymous",
+        photoURL:     user?.photoURL     || "",
+        ratingPoints: prof?.ratingPoints || 0,
+        createdAt:    prof?.createdAt    || new Date().toISOString(),
+        stats: {
+          diagnosticsCompleted: diags?.length  || 0,
+          practiceCompleted:    pracs?.length  || 0,
+          avgScore,
+        },
+      }).catch(console.error);
+    });
   }, [user]);
 
   const handleDiagnosticClick = (idx) => {
@@ -304,7 +326,6 @@ const ProfilePage = () => {
 
       <main className="page-main">
         <div className="profile-page">
-
           <nav className="profile-breadcrumb" aria-label="breadcrumb">
             <Link to="/home" className="profile-breadcrumb__item">Home</Link>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -325,7 +346,6 @@ const ProfilePage = () => {
                 user={user}
                 profile={profile}
                 diagnostics={diagnostics}
-                practice={practice}
                 onEditClick={() => setEditOpen(true)}
                 activeGapCount={activeGapCount}
                 onTabChange={setActiveTab}
@@ -338,9 +358,7 @@ const ProfilePage = () => {
                     className={`profile-tab ${activeTab === t.id ? "profile-tab--active" : ""}`}
                     onClick={() => setActiveTab(t.id)}>
                     {t.label}
-                    {t.badge > 0 && (
-                      <span className="profile-tab__badge">{t.badge}</span>
-                    )}
+                    {t.badge > 0 && <span className="profile-tab__badge">{t.badge}</span>}
                   </button>
                 ))}
               </div>
@@ -354,16 +372,10 @@ const ProfilePage = () => {
                   />
                 )}
                 {activeTab === "results" && (
-                  <ResultsSection
-                    sessions={diagnostics}
-                    initialIdx={resultIdx}
-                  />
+                  <ResultsSection sessions={diagnostics} initialIdx={resultIdx} />
                 )}
                 {activeTab === "gaps" && (
-                  <GapsSection
-                    diagnostics={diagnostics}
-                    topicProgress={topicProgress}
-                  />
+                  <GapsSection diagnostics={diagnostics} topicProgress={topicProgress} />
                 )}
                 {activeTab === "notes" && (
                   <NotesSection

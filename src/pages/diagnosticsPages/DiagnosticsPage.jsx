@@ -14,6 +14,11 @@ import { awardPoints } from "../../core/scoringEngine";
 import { buildFullDiagnostic, detectAllGaps } from "../../core/diagnosticEngine";
 import { questionTemplates } from "../../data/questionTemplates";
 
+
+const ADMIN_UIDS = ["mVixaP1MTROHi6PlhzAJTHkppu43"];
+
+const isPrivilegedUser = (uid) => ADMIN_UIDS.includes(uid);
+
 const ChevronRight = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <polyline points="9 18 15 12 9 6" />
@@ -34,6 +39,9 @@ const AlertIcon = () => (
     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
+
+
+
 
 /* ── Confirm modal ── */
 const ConfirmModal = ({ answeredCount, totalCount, onConfirm, onCancel }) => {
@@ -898,15 +906,16 @@ const DiagnosticsPage = () => {
   // Check daily limit + fetch active gap for block screen
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      getLastDiagnosticDate(user.uid),
-      getActiveGaps(user.uid),
-    ]).then(([lastDate, gaps]) => {
-      const today = new Date().toLocaleDateString();
-      setDiagStatus(lastDate === today ? "blocked" : "available");
-      setActiveGap(gaps?.[0] ?? null);
-    });
-  }, [user]);
+   Promise.all([
+    getLastDiagnosticDate(user.uid),
+    getActiveGaps(user.uid),
+  ]).then(([lastDate, gaps]) => {
+    const today = new Date().toLocaleDateString();
+    const isAdmin = isPrivilegedUser(user.uid);
+
+    setDiagStatus(isPrivilegedUser(user.uid) ? "available" : "blocked");
+    setActiveGap(gaps?.[0] ?? null);
+  });})
 
   const handleTopicStart = (selectedTopicIds) => {
     const qs = buildFullDiagnostic(selectedTopicIds);
