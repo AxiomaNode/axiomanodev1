@@ -860,9 +860,217 @@ body.axioma-profile-bg::after {
 }
 
 .profile-streak__best {
+  /* ─────────────────────────────────────────────────────────────────────────────
+   profile.edit.photo.css
+   Append these rules to your existing profile.css (or pedit modal stylesheet).
+   They extend the existing .pedit-* system with photo-specific styles.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Photo field layout ─────────────────────────────────────────────────── */
+.pedit-field--photo {
+  /* Give the photo row a little extra breathing room */
+  padding-bottom: 0.25rem;
+}
+
+.pedit-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.45rem;
+}
+
+/* ── Clickable avatar wrapper ───────────────────────────────────────────── */
+.pedit-photo-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  cursor: pointer;
+  outline: none;
+  /* subtle ring so it feels interactive */
+  box-shadow: 0 0 0 2px var(--border, rgba(255,255,255,0.12));
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.pedit-photo-avatar:hover,
+.pedit-photo-avatar:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent, #2a8fa0);
+  transform: scale(1.04);
+}
+
+.pedit-photo-avatar--locked {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.pedit-photo-avatar--locked:hover,
+.pedit-photo-avatar--locked:focus-visible {
+  box-shadow: 0 0 0 2px var(--border, rgba(255,255,255,0.12));
+  transform: none;
+}
+
+/* ── Camera overlay (appears on hover) ─────────────────────────────────── */
+.pedit-photo-avatar__overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.46);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+
+.pedit-photo-avatar:hover  .pedit-photo-avatar__overlay,
+.pedit-photo-avatar:focus-visible .pedit-photo-avatar__overlay {
+  opacity: 1;
+}
+
+/* ── Actions beside the avatar ──────────────────────────────────────────── */
+.pedit-photo-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+/* ── Small button variant ───────────────────────────────────────────────── */
+.pedit-btn--sm {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+
+/* ── Danger ghost variant (for "Remove") ────────────────────────────────── */
+.pedit-btn--danger {
+  color: #e74c3c;
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+.pedit-btn--danger:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 0.08);
+  border-color: rgba(231, 76, 60, 0.55);
+  color: #e74c3c;
+}
+
+/* ── Responsive: stack on very narrow modals ────────────────────────────── */
+@media (max-width: 360px) {
+  .pedit-photo-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
   font-size: 0.58rem;
   color: var(--text-light);
   padding-left: 8px;
   border-left: 1px solid var(--border);
   margin-left: 2px;
+}
+/* ─────────────────────────────────────────────────────────────────────────────
+   profile.edit.photo.css
+   Append these rules to your existing profile.css (or pedit modal stylesheet).
+   They extend the existing .pedit-* system with photo-specific styles.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Photo field layout ─────────────────────────────────────────────────── */
+.pedit-field--photo {
+  /* Give the photo row a little extra breathing room */
+  padding-bottom: 0.25rem;
+}
+
+.pedit-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.45rem;
+}
+
+/* ── Clickable avatar wrapper ───────────────────────────────────────────── */
+.pedit-photo-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  cursor: pointer;
+  outline: none;
+  /* subtle ring so it feels interactive */
+  box-shadow: 0 0 0 2px var(--border, rgba(255,255,255,0.12));
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.pedit-photo-avatar:hover,
+.pedit-photo-avatar:focus-visible {
+  box-shadow: 0 0 0 3px var(--accent, #2a8fa0);
+  transform: scale(1.04);
+}
+
+.pedit-photo-avatar--locked {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.pedit-photo-avatar--locked:hover,
+.pedit-photo-avatar--locked:focus-visible {
+  box-shadow: 0 0 0 2px var(--border, rgba(255,255,255,0.12));
+  transform: none;
+}
+
+/* ── Camera overlay (appears on hover) ─────────────────────────────────── */
+.pedit-photo-avatar__overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.46);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+
+.pedit-photo-avatar:hover  .pedit-photo-avatar__overlay,
+.pedit-photo-avatar:focus-visible .pedit-photo-avatar__overlay {
+  opacity: 1;
+}
+
+/* ── Actions beside the avatar ──────────────────────────────────────────── */
+.pedit-photo-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+/* ── Small button variant ───────────────────────────────────────────────── */
+.pedit-btn--sm {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+
+/* ── Danger ghost variant (for "Remove") ────────────────────────────────── */
+.pedit-btn--danger {
+  color: #e74c3c;
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+.pedit-btn--danger:hover:not(:disabled) {
+  background: rgba(231, 76, 60, 0.08);
+  border-color: rgba(231, 76, 60, 0.55);
+  color: #e74c3c;
+}
+
+/* ── Responsive: stack on very narrow modals ────────────────────────────── */
+@media (max-width: 360px) {
+  .pedit-photo-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

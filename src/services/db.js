@@ -16,52 +16,80 @@ import { db } from "../firebase/firebaseConfig";
    Theory progress
 ───────────────────────────────────────────── */
 export const getTheoryProgress = async (uid, topicId) => {
-  const ref = doc(db, "users", uid, "theoryProgress", topicId);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
+  try {
+    const ref = doc(db, "users", uid, "theoryProgress", topicId);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.error("[db] getTheoryProgress:", e);
+    return null;
+  }
 };
 
 export const saveTheoryProgress = async (uid, topicId, payload) => {
-  const ref = doc(db, "users", uid, "theoryProgress", topicId);
-  await setDoc(ref, { topicId, ...payload, updatedAt: serverTimestamp() }, { merge: true });
+  try {
+    const ref = doc(db, "users", uid, "theoryProgress", topicId);
+    await setDoc(
+      ref,
+      { topicId, ...payload, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error("[db] saveTheoryProgress:", e);
+    throw e;
+  }
 };
-
 /* ─────────────────────────────────────────────
    Practice sessions
 ───────────────────────────────────────────── */
 export const savePractice = async (userId, data) => {
-  await addDoc(collection(db, "users", userId, "practice_sessions"), {
-    ...data,
-    date: new Date().toISOString(),
-  });
+  try {
+    await addDoc(collection(db, "users", userId, "practice_sessions"), {
+      ...data,
+      date: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error("[db] savePractice:", e);
+    throw e;
+  }
 };
 
 export const getPractice = async (userId) => {
-  const q = query(
-    collection(db, "users", userId, "practice_sessions"),
-    orderBy("date", "desc")
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => d.data());
+  try {
+    const q = query(
+      collection(db, "users", userId, "practice_sessions"),
+      orderBy("date", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => d.data());
+  } catch (e) {
+    console.error("[db] getPractice:", e);
+    return [];
+  }
 };
 
 /* ─────────────────────────────────────────────
    Diagnostics
 ───────────────────────────────────────────── */
 export const saveDiagnostic = async (userId, data) => {
-  await addDoc(collection(db, "users", userId, "diagnostic_sessions"), {
-    ...data,
-    date: new Date().toISOString(),
-  });
+  try {
+    await addDoc(collection(db, "users", userId, "diagnostic_sessions"), {
+      ...data,
+      date: new Date().toISOString(),
+    });
 
-  const today = new Date().toLocaleDateString();
-  await setDoc(
-    doc(db, "users", userId),
-    { lastDiagnosticDate: today },
-    { merge: true }
-  );
+    const today = new Date().toLocaleDateString();
+    await setDoc(
+      doc(db, "users", userId),
+      { lastDiagnosticDate: today },
+      { merge: true }
+    );
 
-  await updateGapStatus(userId, data.gaps ?? []);
+    await updateGapStatus(userId, data.gaps ?? []);
+  } catch (e) {
+    console.error("[db] saveDiagnostic:", e);
+    throw e;
+  }
 };
 
 export const getLastDiagnosticDate = async (uid) => {
@@ -75,41 +103,52 @@ export const getLastDiagnosticDate = async (uid) => {
 };
 
 export const getDiagnostics = async (userId) => {
-  const q = query(
-    collection(db, "users", userId, "diagnostic_sessions"),
-    orderBy("date", "desc")
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((d) => d.data());
+  try {
+    const q = query(
+      collection(db, "users", userId, "diagnostic_sessions"),
+      orderBy("date", "desc")
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((d) => d.data());
+  } catch (e) {
+    console.error("[db] getDiagnostics:", e);
+    return [];
+  }
 };
 
 /* ─────────────────────────────────────────────
    Public profiles
 ───────────────────────────────────────────── */
 export const savePublicProfile = async (uid, data) => {
-  await setDoc(
-    doc(db, "publicProfiles", uid),
-    {
-      displayName:  data.displayName  || "Anonymous",
-      photoURL:     data.photoURL     || "",
-      ratingPoints: data.ratingPoints || 0,
-      createdAt:    data.createdAt    || new Date().toISOString(),
-      stats: {
-        diagnosticsCompleted: data.stats?.diagnosticsCompleted || 0,
-        practiceCompleted:    data.stats?.practiceCompleted    || 0,
-        avgScore:             data.stats?.avgScore             ?? null,
+  try {
+    await setDoc(
+      doc(db, "publicProfiles", uid),
+      {
+        displayName: data.displayName || "Anonymous",
+        photoURL: data.photoURL || "",
+        ratingPoints: data.ratingPoints || 0,
+        createdAt: data.createdAt || new Date().toISOString(),
+        stats: {
+          diagnosticsCompleted: data.stats?.diagnosticsCompleted || 0,
+          practiceCompleted: data.stats?.practiceCompleted || 0,
+          avgScore: data.stats?.avgScore ?? null,
+        },
+        updatedAt: serverTimestamp(),
       },
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+      { merge: true }
+    );
+  } catch (e) {
+    console.error("[db] savePublicProfile:", e);
+    throw e;
+  }
 };
 
 export const getPublicProfile = async (uid) => {
   try {
     const snap = await getDoc(doc(db, "publicProfiles", uid));
     return snap.exists() ? snap.data() : null;
-  } catch {
+  } catch (e) {
+    console.error("[db] getPublicProfile:", e);
     return null;
   }
 };
@@ -141,11 +180,11 @@ export const updateGapStatus = async (uid, currentGaps = []) => {
       const wasClose = prev.status === "closed";
       updated[coreGapId] = {
         ...prev,
-        status:           wasClose ? "reopened" : "active",
+        status: wasClose ? "reopened" : "active",
         consecutiveClean: 0,
-        lastDetected:     today,
-        lastChecked:      today,
-        closedAt:         wasClose ? null : prev.closedAt,
+        lastDetected: today,
+        lastChecked: today,
+        closedAt: wasClose ? null : prev.closedAt,
       };
     } else {
       const newConsecutiveClean = (prev.consecutiveClean ?? 0) + 1;
@@ -153,8 +192,8 @@ export const updateGapStatus = async (uid, currentGaps = []) => {
       updated[coreGapId] = {
         ...prev,
         consecutiveClean: newConsecutiveClean,
-        lastChecked:      today,
-        status:   nowClosed ? "closed" : prev.status,
+        lastChecked: today,
+        status: nowClosed ? "closed" : prev.status,
         closedAt: nowClosed && !prev.closedAt ? today : prev.closedAt,
       };
     }
@@ -168,7 +207,8 @@ export const getGapStatus = async (uid) => {
   try {
     const snap = await getDoc(doc(db, "users", uid));
     return snap.exists() ? (snap.data().gapStatus ?? {}) : {};
-  } catch {
+  } catch (e) {
+    console.error("[db] getGapStatus:", e);
     return {};
   }
 };
@@ -177,7 +217,7 @@ export const getGapDisplayState = (coreGapId, gapStatus) => {
   const entry = gapStatus?.[coreGapId];
   if (!entry) return null;
   if (entry.status === "reopened") return "reopened";
-  if (entry.status === "active")   return "active";
+  if (entry.status === "active") return "active";
   if (entry.status === "closed") {
     if (!entry.closedAt) return "closed";
     const days = Math.floor(
@@ -192,105 +232,151 @@ export const getGapDisplayState = (coreGapId, gapStatus) => {
    Homework / Tasks
 ───────────────────────────────────────────── */
 export const getHomeworkDoc = async (uid, topicId) => {
-  const ref = doc(db, "users", uid, "homework", topicId);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
+  try {
+    const ref = doc(db, "users", uid, "homework", topicId);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.error("[db] getHomeworkDoc:", e);
+    return null;
+  }
 };
 
 export const assignHomework = async (uid, topicId, payload, force = false) => {
-  const ref = doc(db, "users", uid, "homework", topicId);
-  const snap = await getDoc(ref);
-  if (snap.exists() && !force) return snap.data();
+  try {
+    const ref = doc(db, "users", uid, "homework", topicId);
+    const snap = await getDoc(ref);
+    if (snap.exists() && !force) return snap.data();
 
-  const docData = {
-    topicId,
-    topicTitle: payload.topicTitle || topicId,
-    status: "assigned",
-    tasks: (payload.tasks || []).map((t) => ({
-      id: t.id, text: t.text, options: t.options,
-      correct: t.correct, explanation: t.explanation,
-      userAnswer: null, isCorrect: null,
-    })),
-    createdAt:   serverTimestamp(),
-    updatedAt:   serverTimestamp(),
-    completedAt: null,
-    score: { correct: 0, wrong: 0, total: (payload.tasks || []).length, percent: 0 },
-  };
+    const docData = {
+      topicId,
+      topicTitle: payload.topicTitle || topicId,
+      status: "assigned",
+      tasks: (payload.tasks || []).map((t) => ({
+        id: t.id,
+        text: t.text,
+        options: t.options,
+        correct: t.correct,
+        explanation: t.explanation,
+        userAnswer: null,
+        isCorrect: null,
+      })),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      completedAt: null,
+      score: {
+        correct: 0,
+        wrong: 0,
+        total: (payload.tasks || []).length,
+        percent: 0,
+      },
+    };
 
-  await setDoc(ref, docData, { merge: false });
+    await setDoc(ref, docData, { merge: false });
 
-  await setDoc(
-    doc(db, "users", uid, "topicProgress", topicId),
-    {
-      topicId, topicTitle: payload.topicTitle || topicId,
-      status: "in_progress", homeworkAssigned: true,
-      homeworkCompleted: false, percent: 0,
-      updatedAt: serverTimestamp(), createdAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+    await setDoc(
+      doc(db, "users", uid, "topicProgress", topicId),
+      {
+        topicId,
+        topicTitle: payload.topicTitle || topicId,
+        status: "in_progress",
+        homeworkAssigned: true,
+        homeworkCompleted: false,
+        percent: 0,
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
-  const after = await getDoc(ref);
-  return after.exists() ? after.data() : null;
+    const after = await getDoc(ref);
+    return after.exists() ? after.data() : null;
+  } catch (e) {
+    console.error("[db] assignHomework:", e);
+    throw e;
+  }
 };
 
 export const saveHomeworkAnswer = async (uid, topicId, taskId, answerLabel) => {
-  const ref = doc(db, "users", uid, "homework", topicId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
+  try {
+    const ref = doc(db, "users", uid, "homework", topicId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
 
-  const hw = snap.data();
-  const updatedTasks = (Array.isArray(hw.tasks) ? hw.tasks.slice() : []).map((t) => {
-    if (t.id !== taskId) return t;
-    return { ...t, userAnswer: answerLabel, isCorrect: answerLabel === t.correct };
-  });
+    const hw = snap.data();
+    const updatedTasks = (Array.isArray(hw.tasks) ? hw.tasks.slice() : []).map((t) => {
+      if (t.id !== taskId) return t;
+      return { ...t, userAnswer: answerLabel, isCorrect: answerLabel === t.correct };
+    });
 
-  let correctCount = 0, wrongCount = 0;
-  updatedTasks.forEach((t) => {
-    if (t.isCorrect === true)  correctCount++;
-    if (t.isCorrect === false) wrongCount++;
-  });
+    let correctCount = 0;
+    let wrongCount = 0;
+    updatedTasks.forEach((t) => {
+      if (t.isCorrect === true) correctCount++;
+      if (t.isCorrect === false) wrongCount++;
+    });
 
-  const total = updatedTasks.length;
-  const percent = total ? Math.floor((correctCount / total) * 100) : 0;
+    const total = updatedTasks.length;
+    const percent = total ? Math.floor((correctCount / total) * 100) : 0;
 
-  await setDoc(ref, {
-    tasks: updatedTasks,
-    status: hw.status === "assigned" ? "in_progress" : hw.status,
-    updatedAt: serverTimestamp(),
-    score: { correct: correctCount, wrong: wrongCount, total, percent },
-  }, { merge: true });
+    await setDoc(
+      ref,
+      {
+        tasks: updatedTasks,
+        status: hw.status === "assigned" ? "in_progress" : hw.status,
+        updatedAt: serverTimestamp(),
+        score: { correct: correctCount, wrong: wrongCount, total, percent },
+      },
+      { merge: true }
+    );
 
-  const after = await getDoc(ref);
-  return after.exists() ? after.data() : null;
+    const after = await getDoc(ref);
+    return after.exists() ? after.data() : null;
+  } catch (e) {
+    console.error("[db] saveHomeworkAnswer:", e);
+    throw e;
+  }
 };
 
 export const completeHomework = async (uid, topicId) => {
-  const ref = doc(db, "users", uid, "homework", topicId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
+  try {
+    const ref = doc(db, "users", uid, "homework", topicId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
 
-  const hw = snap.data();
-  const tasks = Array.isArray(hw.tasks) ? hw.tasks : [];
-  const allAnswered = tasks.length > 0 && tasks.every((t) => t.userAnswer != null);
-  if (!allAnswered) return { ...hw, _error: "NOT_ALL_ANSWERED" };
+    const hw = snap.data();
+    const tasks = Array.isArray(hw.tasks) ? hw.tasks : [];
+    const allAnswered = tasks.length > 0 && tasks.every((t) => t.userAnswer != null);
+    if (!allAnswered) return { ...hw, _error: "NOT_ALL_ANSWERED" };
 
-  await setDoc(ref, {
-    status: "completed", completedAt: serverTimestamp(), updatedAt: serverTimestamp(),
-  }, { merge: true });
+    await setDoc(
+      ref,
+      {
+        status: "completed",
+        completedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
-  await setDoc(
-    doc(db, "users", uid, "topicProgress", topicId),
-    {
-      status: "completed", homeworkCompleted: true,
-      percent: hw?.score?.percent ?? 0,
-      updatedAt: serverTimestamp(), completedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+    await setDoc(
+      doc(db, "users", uid, "topicProgress", topicId),
+      {
+        status: "completed",
+        homeworkCompleted: true,
+        percent: hw?.score?.percent ?? 0,
+        updatedAt: serverTimestamp(),
+        completedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
-  const after = await getDoc(ref);
-  return after.exists() ? after.data() : null;
+    const after = await getDoc(ref);
+    return after.exists() ? after.data() : null;
+  } catch (e) {
+    console.error("[db] completeHomework:", e);
+    throw e;
+  }
 };
 
 export const getTopicProgress = async (uid) => {
@@ -308,178 +394,252 @@ export const getTopicProgress = async (uid) => {
    Homework Results
 ───────────────────────────────────────────── */
 export const getHomeworkResult = async (uid, topicId) => {
-  const snap = await getDoc(doc(db, "users", uid, "homeworkResults", topicId));
-  return snap.exists() ? snap.data() : null;
+  try {
+    const snap = await getDoc(doc(db, "users", uid, "homeworkResults", topicId));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.error("[db] getHomeworkResult:", e);
+    return null;
+  }
 };
 
 export const saveHomeworkResult = async (uid, topicId, payload) => {
-  await setDoc(
-    doc(db, "users", uid, "homeworkResults", topicId),
-    {
-      topicId,
-      pct:         payload.pct,
-      correct:     payload.correct,
-      total:       payload.total,
-      completedAt: payload.completedAt ?? new Date().toISOString(),
-      updatedAt:   serverTimestamp(),
-    },
-    { merge: false }
-  );
+  try {
+    await setDoc(
+      doc(db, "users", uid, "homeworkResults", topicId),
+      {
+        topicId,
+        pct: payload.pct,
+        correct: payload.correct,
+        total: payload.total,
+        completedAt: payload.completedAt ?? new Date().toISOString(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: false }
+    );
+  } catch (e) {
+    console.error("[db] saveHomeworkResult:", e);
+    throw e;
+  }
 };
 
 export const getActiveGaps = async (uid, topicId = null) => {
-  const q = query(
-    collection(db, "users", uid, "diagnostic_sessions"),
-    orderBy("date", "desc"),
-    limit(10)
-  );
-  const snapshot = await getDocs(q);
+  try {
+    const q = query(
+      collection(db, "users", uid, "diagnostic_sessions"),
+      orderBy("date", "desc"),
+      limit(10)
+    );
+    const snapshot = await getDocs(q);
 
-  for (const d of snapshot.docs) {
-    const data = d.data();
+    for (const d of snapshot.docs) {
+      const data = d.data();
 
-    if (data.coreGapProfile) {
-      const activeGaps = Object.values(data.coreGapProfile).filter(
-        (cg) => cg.strength !== null && cg.evidence?.length > 0
-      );
-      if (!activeGaps.length) continue;
-      if (topicId) {
-        const filtered = activeGaps.filter((cg) =>
-          cg.evidence.some((ev) => ev.topicId === topicId)
+      if (data.coreGapProfile) {
+        const activeGaps = Object.values(data.coreGapProfile).filter(
+          (cg) => cg.strength !== null && cg.evidence?.length > 0
         );
-        return filtered.length > 0 ? filtered : activeGaps;
+        if (!activeGaps.length) continue;
+
+        if (topicId) {
+          const filtered = activeGaps.filter((cg) =>
+            cg.evidence.some((ev) => ev.topicId === topicId)
+          );
+          return filtered.length > 0 ? filtered : activeGaps;
+        }
+
+        return activeGaps;
       }
-      return activeGaps;
+
+      if (data.gapsByTopic) {
+        if (topicId) {
+          const topicGaps = data.gapsByTopic[topicId];
+          if (Array.isArray(topicGaps) && topicGaps.length > 0) return topicGaps;
+        } else {
+          const all = Object.values(data.gapsByTopic).flat();
+          if (all.length > 0) return all;
+        }
+      }
     }
 
-    if (data.gapsByTopic) {
-      if (topicId) {
-        const topicGaps = data.gapsByTopic[topicId];
-        if (Array.isArray(topicGaps) && topicGaps.length > 0) return topicGaps;
-      } else {
-        const all = Object.values(data.gapsByTopic).flat();
-        if (all.length > 0) return all;
-      }
-    }
+    return [];
+  } catch (e) {
+    console.error("[db] getActiveGaps:", e);
+    return [];
   }
-
-  return [];
 };
 
 /* ─────────────────────────────────────────────
    Topic Notes
 ───────────────────────────────────────────── */
 export const getTopicNote = async (uid, topicId) => {
-  const snap = await getDoc(doc(db, "users", uid, "topicNotes", topicId));
-  return snap.exists() ? snap.data() : null;
+  try {
+    const snap = await getDoc(doc(db, "users", uid, "topicNotes", topicId));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.error("[db] getTopicNote:", e);
+    return null;
+  }
 };
 
 export const saveTopicNote = async (uid, topicId, { topicTitle, content }) => {
-  const ref = doc(db, "users", uid, "topicNotes", topicId);
-  const snap = await getDoc(ref);
-  const isNew = !snap.exists();
-  if (isNew && (!content || !content.trim())) return;
+  try {
+    const ref = doc(db, "users", uid, "topicNotes", topicId);
+    const snap = await getDoc(ref);
+    const isNew = !snap.exists();
+    if (isNew && (!content || !content.trim())) return;
 
-  await setDoc(ref, {
-    topicId,
-    topicTitle: topicTitle || topicId,
-    content,
-    updatedAt: serverTimestamp(),
-    ...(isNew ? { createdAt: serverTimestamp() } : {}),
-  }, { merge: true });
+    await setDoc(
+      ref,
+      {
+        topicId,
+        topicTitle: topicTitle || topicId,
+        content,
+        updatedAt: serverTimestamp(),
+        ...(isNew ? { createdAt: serverTimestamp() } : {}),
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    console.error("[db] saveTopicNote:", e);
+    throw e;
+  }
 };
 
 export const getAllTopicNotes = async (uid) => {
-  const snap = await getDocs(collection(db, "users", uid, "topicNotes"));
-  return snap.docs.map((d) => d.data()).filter((n) => n.content && n.content.trim());
+  try {
+    const snap = await getDocs(collection(db, "users", uid, "topicNotes"));
+    return snap.docs.map((d) => d.data()).filter((n) => n.content && n.content.trim());
+  } catch (e) {
+    console.error("[db] getAllTopicNotes:", e);
+    return [];
+  }
 };
 
 /* ─────────────────────────────────────────────
    Mastery Tests
 ───────────────────────────────────────────── */
 export const getMasteryTest = async (uid, topicId) => {
-  const snap = await getDoc(doc(db, "users", uid, "masteryTests", topicId));
-  return snap.exists() ? snap.data() : null;
+  try {
+    const snap = await getDoc(doc(db, "users", uid, "masteryTests", topicId));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.error("[db] getMasteryTest:", e);
+    return null;
+  }
 };
 
 export const assignMasteryTest = async (uid, topicId, payload) => {
-  const ref = doc(db, "users", uid, "masteryTests", topicId);
-  if (!payload.forceNew) {
-    const existing = await getDoc(ref);
-    if (existing.exists() && existing.data().status === "in_progress") return existing.data();
+  try {
+    const ref = doc(db, "users", uid, "masteryTests", topicId);
+    if (!payload.forceNew) {
+      const existing = await getDoc(ref);
+      if (existing.exists() && existing.data().status === "in_progress") {
+        return existing.data();
+      }
+    }
+
+    const newDoc = {
+      topicId,
+      topicTitle: payload.topicTitle,
+      tasks: payload.tasks.map((t) => ({ ...t, userAnswer: null })),
+      status: "in_progress",
+      timeSecs: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await setDoc(ref, newDoc);
+    return newDoc;
+  } catch (e) {
+    console.error("[db] assignMasteryTest:", e);
+    throw e;
   }
-  const newDoc = {
-    topicId,
-    topicTitle: payload.topicTitle,
-    tasks:      payload.tasks.map((t) => ({ ...t, userAnswer: null })),
-    status:     "in_progress",
-    timeSecs:   0,
-    createdAt:  new Date().toISOString(),
-    updatedAt:  new Date().toISOString(),
-  };
-  await setDoc(ref, newDoc);
-  return newDoc;
 };
 
 export const saveMasteryAnswer = async (uid, topicId, taskId, answerLabel) => {
-  const ref = doc(db, "users", uid, "masteryTests", topicId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
+  try {
+    const ref = doc(db, "users", uid, "masteryTests", topicId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
 
-  const hw = snap.data();
-  const updatedTasks = (Array.isArray(hw.tasks) ? hw.tasks.slice() : []).map((t) => {
-    if (t.id !== taskId) return t;
-    return { ...t, userAnswer: answerLabel, isCorrect: answerLabel === t.correct };
-  });
+    const hw = snap.data();
+    const updatedTasks = (Array.isArray(hw.tasks) ? hw.tasks.slice() : []).map((t) => {
+      if (t.id !== taskId) return t;
+      return { ...t, userAnswer: answerLabel, isCorrect: answerLabel === t.correct };
+    });
 
-  let correctCount = 0, wrongCount = 0;
-  updatedTasks.forEach((t) => {
-    if (t.isCorrect === true)  correctCount++;
-    if (t.isCorrect === false) wrongCount++;
-  });
+    let correctCount = 0;
+    let wrongCount = 0;
+    updatedTasks.forEach((t) => {
+      if (t.isCorrect === true) correctCount++;
+      if (t.isCorrect === false) wrongCount++;
+    });
 
-  const total = updatedTasks.length;
-  const percent = total ? Math.floor((correctCount / total) * 100) : 0;
+    const total = updatedTasks.length;
+    const percent = total ? Math.floor((correctCount / total) * 100) : 0;
 
-  await setDoc(ref, {
-    tasks: updatedTasks,
-    status: hw.status === "assigned" ? "in_progress" : hw.status,
-    updatedAt: serverTimestamp(),
-    score: { correct: correctCount, wrong: wrongCount, total, percent },
-  }, { merge: true });
-
-  const after = await getDoc(ref);
-  return after.exists() ? after.data() : null;
-};
-
-export const completeMasteryTest = async (uid, topicId, timeSecs = 0) => {
-  const ref = doc(db, "users", uid, "masteryTests", topicId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-
-  const hw = snap.data();
-  const tasks = Array.isArray(hw.tasks) ? hw.tasks : [];
-  const allAnswered = tasks.length > 0 && tasks.every((t) => t.userAnswer != null);
-  if (!allAnswered) return { ...hw, _error: "NOT_ALL_ANSWERED" };
-
-  await setDoc(ref, {
-    status: "completed", completedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(), timeSecs,
-  }, { merge: true });
-
-  const pct = hw.score?.percent ?? 0;
-  if (pct >= 80) {
     await setDoc(
-      doc(db, "users", uid, "topicProgress", topicId),
+      ref,
       {
-        topicId, topicTitle: hw.topicTitle || topicId,
-        masteryUnlocked: true, masteryPct: pct,
-        masteryCompletedAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        tasks: updatedTasks,
+        status: hw.status === "assigned" ? "in_progress" : hw.status,
+        updatedAt: serverTimestamp(),
+        score: { correct: correctCount, wrong: wrongCount, total, percent },
       },
       { merge: true }
     );
-  }
 
-  const after = await getDoc(ref);
-  return after.exists() ? after.data() : null;
+    const after = await getDoc(ref);
+    return after.exists() ? after.data() : null;
+  } catch (e) {
+    console.error("[db] saveMasteryAnswer:", e);
+    throw e;
+  }
+};
+
+export const completeMasteryTest = async (uid, topicId, timeSecs = 0) => {
+  try {
+    const ref = doc(db, "users", uid, "masteryTests", topicId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+
+    const hw = snap.data();
+    const tasks = Array.isArray(hw.tasks) ? hw.tasks : [];
+    const allAnswered = tasks.length > 0 && tasks.every((t) => t.userAnswer != null);
+    if (!allAnswered) return { ...hw, _error: "NOT_ALL_ANSWERED" };
+
+    await setDoc(
+      ref,
+      {
+        status: "completed",
+        completedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        timeSecs,
+      },
+      { merge: true }
+    );
+
+    const pct = hw.score?.percent ?? 0;
+    if (pct >= 80) {
+      await setDoc(
+        doc(db, "users", uid, "topicProgress", topicId),
+        {
+          topicId,
+          topicTitle: hw.topicTitle || topicId,
+          masteryUnlocked: true,
+          masteryPct: pct,
+          masteryCompletedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+
+    const after = await getDoc(ref);
+    return after.exists() ? after.data() : null;
+  } catch (e) {
+    console.error("[db] completeMasteryTest:", e);
+    throw e;
+  }
 };
