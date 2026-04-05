@@ -164,8 +164,7 @@ const initials = displayName
               
               <Link to="/profile">
                 <div className="header__user-menu-info">
-                <HeaderAvatar photoURL={user?.photoURL} initials={initials} className="header__avatar--lg" />
-
+                <HeaderAvatar photoURL={profile?.photoURL || user?.photoURL} initials={initials} className="header__avatar--lg"/>
                 <div className="header__user-menu-text">
                   <p className="header__user-menu-name">{profile?.displayName || user?.displayName || "—"}</p>
                   <p className="header__user-menu-email">{user?.email}</p>
