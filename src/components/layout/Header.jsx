@@ -147,7 +147,7 @@ const initials = displayName
         </button>
 
         <div className="header__user" onClick={() => setUserMenuOpen(v => !v)}>
-          <HeaderAvatar photoURL={user?.photoURL} initials={initials} />
+          <HeaderAvatar photoURL={profile?.photoURL || user?.photoURL} initials={initials} />
           <span className="header__username">
   {(profile?.displayName || user?.displayName)?.split(" ")[0] ?? "Account"}
 </span>

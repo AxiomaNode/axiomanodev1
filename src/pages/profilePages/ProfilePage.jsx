@@ -50,6 +50,16 @@ const getStreakColor = (streak, activeToday) => {
   return "#f1c40f";
 };
 
+const normalizePhotoURL = (url) => {
+  if (!url) return null;
+  if (url.includes("googleusercontent.com")) {
+    // Remove size param and request 200px — avoids expiry issues
+    return url.split("=")[0] + "=s200-c";
+  }
+  return url;
+};
+ 
+
 const Avatar = ({ name, photoURL, size = 68 }) => {
   const initials = (name || "?")
     .split(" ")
@@ -58,12 +68,10 @@ const Avatar = ({ name, photoURL, size = 68 }) => {
     .join("")
     .toUpperCase();
 
-  if (photoURL) {
+  const src = normalizePhotoURL(photoURL);
+  if (src) {
     return (
-      <img
-        src={photoURL}
-        alt={name}
-        className="profile-avatar__img"
+      <img src={src} alt={name} className="profile-avatar__img"
         style={{ width: size, height: size, borderRadius: "50%" }}
       />
     );
@@ -165,7 +173,7 @@ const ProfileHeroCard = ({
         <div className="profile-avatar-wrap">
           <Avatar
             name={profile?.displayName || user?.displayName}
-            photoURL={forcedPhotoURL || user?.photoURL}
+            photoURL={profile?.photoURL || user?.photoURL}
             size={68}
           />
           <div className="profile-avatar__lvl">{level}</div>
@@ -370,7 +378,7 @@ const ProfilePage = () => {
         try {
           await savePublicProfile(user.uid, {
             displayName: prof?.displayName || user?.displayName || "Anonymous",
-            photoURL: user?.photoURL || "",
+            photoURL:     prof?.photoURL     || user?.photoURL    || "",
             ratingPoints: prof?.ratingPoints || 0,
             createdAt: prof?.createdAt || new Date().toISOString(),
             stats: {

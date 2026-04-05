@@ -13,6 +13,7 @@ import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
 import "./feedback.css";
 import "../../styles/layout.css";
+import { getPublicProfile } from "../../services/db";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getTier = (level) => {
@@ -31,6 +32,14 @@ const formatDate = (ts) => {
 
 const initials = (name = "?") =>
   name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
+const normalizePhotoURL = (url) => {
+  if (!url) return null;
+  if (url.includes("googleusercontent.com")) {
+    return url.split("=")[0] + "=s200-c";
+  }
+  return url;
+};
 
 // ── Grid background ───────────────────────────────────────────────────────────
 const GridBg = () => <div className="fb-hero__grid" aria-hidden="true" />;
@@ -354,20 +363,15 @@ const DeleteConfirmModal = ({ onConfirm, onCancel, deleting }) => (
     </div>
   </div>
 );
-
 const FeedbackAvatar = ({ name, photoURL }) => {
-  if (photoURL) {
+  const src = normalizePhotoURL(photoURL);
+  if (src) {
     return (
-      <img
-        src={photoURL}
-        alt={name}
-        className="fb-card__av fb-card__av--photo"
-      />
+      <img src={src} alt={name} className="fb-card__av fb-card__av--photo" />
     );
   }
   return <div className="fb-card__av">{initials(name)}</div>;
 };
-
 // ── Card ──────────────────────────────────────────────────────────────────────
 const FeedbackCard = ({ item, isOwn, onEdit, onDelete, onVote }) => {
   const [popup,      setPopup]      = useState(null);
@@ -596,7 +600,10 @@ const SORTS = [
   { key: "helpful",  label: "Most helpful" },
 ];
 
+
+
 const FeedbackPage = () => {
+
   const { user }             = useAuth();
   const { toasts, addToast } = useToast();
 

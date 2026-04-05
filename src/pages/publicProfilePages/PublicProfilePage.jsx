@@ -24,6 +24,15 @@ const getTier = (lvl) => {
 const initials = (name = "?") =>
   name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
+  const normalizePhotoURL = (url) => {
+    if (!url) return null;
+    if (url.includes("googleusercontent.com")) {
+      // Remove size param and request 200px — avoids expiry issues
+      return url.split("=")[0] + "=s200-c";
+    }
+    return url;
+  };
+
 const formatJoin = (str) => {
   if (!str) return null;
   const d = new Date(str);
@@ -52,6 +61,7 @@ const Stars = ({ rating, size = 14 }) => (
 );
 
 const PublicProfilePage = () => {
+ 
   const { uid }  = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -172,8 +182,8 @@ const PublicProfilePage = () => {
 
                 <div className="pub-hero__body">
                   <div className="pub-av-wrap">
-                    {profile.photoURL ? (
-                      <img src={profile.photoURL} alt={displayName} className="pub-av pub-av--img" />
+                    {normalizePhotoURL(profile.photoURL) ? (
+                      <img src={normalizePhotoURL(profile.photoURL)} alt={displayName} className="pub-av pub-av--img" />
                     ) : (
                       <div className="pub-av">{initials(displayName)}</div>
                     )}

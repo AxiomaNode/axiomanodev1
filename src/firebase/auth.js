@@ -18,7 +18,7 @@ const writePublicProfile = async (uid, data) => {
     doc(db, "publicProfiles", uid),
     {
       displayName:  data.displayName  || "Anonymous",
-      photoURL:     data.photoURL     || "",
+      photoURL:     prof?.photoURL     || user?.photoURL    || "",
       ratingPoints: data.ratingPoints || 0,
       createdAt:    data.createdAt    || new Date().toISOString(),
       stats: {
