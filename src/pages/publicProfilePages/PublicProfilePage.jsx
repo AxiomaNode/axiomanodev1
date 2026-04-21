@@ -6,6 +6,8 @@ import { db }       from "../../firebase/firebaseConfig";
 import { useAuth }  from "../../context/AuthContext";
 import Header  from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
+import { topics } from "../../data/topics";
+import { MasterySeal } from "../../components/sections/CredentialsSection";
 import "./public-profile.css";
 import "../../styles/layout.css";
 
@@ -59,6 +61,55 @@ const Stars = ({ rating, size = 14 }) => (
     ))}
   </div>
 );
+
+const PublicMasteryCards = ({ masteryCards }) => {
+  if (!masteryCards || Object.keys(masteryCards).length === 0) return null;
+ 
+  const cards = Object.values(masteryCards);
+ 
+  return (
+    <div className="pub-credentials">
+      <div className="pub-section-head">
+        <div className="pub-section-head__line" />
+        <span className="pub-section-head__text">Credentials</span>
+        <div className="pub-section-head__line" />
+      </div>
+      <div className="pub-cred-list">
+        {cards.map((card) => {
+          const topicMeta = topics.find(t => t.id === card.topicId);
+          return (
+            <div key={card.topicId} className="pub-cred-card" style={{ "--card-color": card.titleColor }}>
+              <div className="pub-cred-card__seal">
+                <MasterySeal
+                  title={card.title}
+                  titleColor={card.titleColor}
+                  topicIcon={topicMeta?.icon}
+                  size={72}
+                />
+              </div>
+              <div className="pub-cred-card__body">
+                <div className="pub-cred-card__meta">
+                  <span className="pub-cred-card__title" style={{ color: card.titleColor }}>
+                    {card.title}
+                  </span>
+                  <span className="pub-cred-card__score">{card.score}%</span>
+                </div>
+                <p className="pub-cred-card__topic">{card.topicTitle}</p>
+                {card.earnedAt && (
+                  <span className="pub-cred-card__date">
+                    {new Date(card.earnedAt).toLocaleDateString("en-GB", {
+                      day: "numeric", month: "long", year: "numeric"
+                    })}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const PublicProfilePage = () => {
  
@@ -240,6 +291,8 @@ const PublicProfilePage = () => {
                   </div>
                 ))}
               </div>
+
+              <PublicMasteryCards masteryCards={profile.masteryCards} />
 
               {/* ── Review ── */}
               <div className="pub-section-head">

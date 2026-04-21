@@ -43,10 +43,8 @@ const ChevronDown = () => (
   </svg>
 );
 
-/* ── Gap strength ordering (used by primaryGap sort) ── */
 const STRENGTH_ORDER = { critical: 0, strong: 1, moderate: 2 };
 
-/* ── Gap dismiss key helper ── */
 const gapDismissKey = (topicId, gap) =>
   `gap_dismissed_${topicId}_${gap?.id ?? gap?.title ?? "unknown"}`;
 
@@ -318,13 +316,11 @@ const Chalkboard = ({ scene, revealKey }) => {
       h: vh = 2, k: vk = 3,
       xRange = [-1, 5],
     } = scene;
-
     const padL = 52, padR = 28, padT = 28, padB = 44;
     const cw = w - padL - padR;
     const ch = h - padT - padB;
     const xMin = xRange[0], xMax = xRange[1];
     const scaleX = cw / (xMax - xMin);
-
     let yMin = Infinity, yMax = -Infinity;
     for (let xi = xMin; xi <= xMax; xi += 0.05) {
       const y = a * xi * xi + b * xi + c;
@@ -337,10 +333,8 @@ const Chalkboard = ({ scene, revealKey }) => {
     const ox = padL + (-xMin) * scaleX;
     const oy = padT + yMax * scaleY;
     const toC = (x, y) => [ox + x * scaleX, oy - y * scaleY];
-
     drawAxesLines(ctx, ox, oy, w, h, scaleX, xMin, xMax);
     drawAxesLabels(ctx, ox, oy, w, h, scaleX, scaleY, xMin, xMax);
-
     const SAMPLES = 120;
     const curveEnd = Math.floor(SAMPLES * Math.min(1, t / 0.6));
     if (curveEnd > 1) {
@@ -363,7 +357,6 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.stroke();
       ctx.restore();
     }
-
     if (t > 0.6) {
       const dotT = Math.min(1, (t - 0.6) / 0.15);
       const [vpx, vpy] = toC(vh, vk);
@@ -383,7 +376,6 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.beginPath(); ctx.arc(vpx, vpy, 5 * dotT, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
-
     if (t > 0.75) {
       const lineT = Math.min(1, (t - 0.75) / 0.13);
       const [vpx, vpy] = toC(vh, vk);
@@ -396,7 +388,6 @@ const Chalkboard = ({ scene, revealKey }) => {
       ctx.beginPath(); ctx.moveTo(vpx, vpy); ctx.lineTo(ox, vpy); ctx.stroke();
       ctx.restore();
     }
-
     if (t > 0.88) {
       const labelT = Math.min(1, (t - 0.88) / 0.12);
       const [vpx, vpy] = toC(vh, vk);
@@ -667,9 +658,7 @@ const renderCard = (c, i, revealKey) => {
 };
 
 /* ════════════════════════════════════════
-   Gap Recommendation Banner — Option A style
-   Left teal accent bar, icon, eyebrow + title + desc, strength pill, dismiss X.
-   Dismissed state is persisted to localStorage so it survives page reloads.
+   Gap Recommendation Banner
 ════════════════════════════════════════ */
 const STRENGTH_META = {
   moderate: { label: "moderate gap", bg: "#FAEEDA", color: "#854F0B" },
@@ -679,19 +668,15 @@ const STRENGTH_META = {
 
 const GapRecommendationBanner = ({ gap, onDismiss }) => {
   if (!gap) return null;
-
   const meta = STRENGTH_META[gap.strength];
-
   return (
     <div className="th-gap-rec">
-      {/* teal pencil icon */}
       <div className="th-gap-rec__icon">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 20h9"/>
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
         </svg>
       </div>
-
       <div className="th-gap-rec__body">
         <div className="th-gap-rec__eyebrow">Recommended for you</div>
         <div className="th-gap-rec__title">{gap.title}</div>
@@ -699,7 +684,6 @@ const GapRecommendationBanner = ({ gap, onDismiss }) => {
           <div className="th-gap-rec__desc">{gap.recommendationText}</div>
         )}
       </div>
-
       <div className="th-gap-rec__right">
         {meta && (
           <span
@@ -740,16 +724,12 @@ const TheoryPage = () => {
   const [loading,       setLoading]       = useState(true);
   const [userGrade,     setUserGrade]     = useState(null);
 
-  /* ── Notes state ── */
   const [noteContent,   setNoteContent]   = useState(null);
   const [noteLoadedFor, setNoteLoadedFor] = useState(null);
 
-  /* ── Active gaps state ── */
   const [activeGaps,        setActiveGaps]        = useState([]);
   const [activeGapsLoading, setActiveGapsLoading] = useState(false);
 
-  /* ── Gap dismiss: tracks the localStorage key of the dismissed gap so the
-        banner hides immediately without a re-render from localStorage alone. ── */
   const [dismissedKey, setDismissedKey] = useState(null);
 
   const boardRef = useRef(null);
@@ -763,12 +743,9 @@ const TheoryPage = () => {
     })[0];
   }, [activeGaps]);
 
-  /* Derive whether the current primaryGap has been dismissed this session
-     (or persisted in localStorage from a previous visit). */
   const isDismissed = useMemo(() => {
     if (!primaryGap) return false;
     const key = gapDismissKey(topicId, primaryGap);
-    // dismissedKey causes a re-render when the user clicks dismiss
     return dismissedKey === key || !!localStorage.getItem(key);
   }, [primaryGap, topicId, dismissedKey]);
 
@@ -779,8 +756,6 @@ const TheoryPage = () => {
     setDismissedKey(key);
   }, [primaryGap, topicId]);
 
-  /* Reset dismiss tracking whenever topic or gaps change so a genuinely new
-     gap isn't hidden because the key happened to match a stale dismissed one. */
   useEffect(() => {
     setDismissedKey(null);
   }, [topicId, activeGaps]);
@@ -844,7 +819,6 @@ const TheoryPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topicId, user?.uid]);
 
-  /* ── Load topic note ── */
   useEffect(() => {
     setNoteContent(null);
     setNoteLoadedFor(null);
@@ -862,7 +836,6 @@ const TheoryPage = () => {
     return () => { cancelled = true; };
   }, [topicId, user?.uid]);
 
-  /* ── Fetch active gaps when topic or user changes ── */
   useEffect(() => {
     if (!user?.uid) { setActiveGaps([]); return; }
     let cancelled = false;
@@ -875,7 +848,6 @@ const TheoryPage = () => {
     return () => { cancelled = true; };
   }, [topicId, user?.uid]);
 
-  /* ── Save note callback ── */
   const handleNoteSave = useCallback(async (html) => {
     if (!user?.uid) return;
     await saveTopicNote(user.uid, topicId, { topicTitle: tData?.title || topicId, content: html });
@@ -884,9 +856,8 @@ const TheoryPage = () => {
 
   const isPracticeMode = false;
   const currSection    = tData?.sections?.[secIdx] ?? null;
-  const stepsCount  = currSection?.steps?.length || 0;
+  const stepsCount     = currSection?.steps?.length || 0;
 
-  /* Clamp step index whenever the section or topic changes. */
   useEffect(() => {
     if (stepIdx > Math.max(stepsCount - 1, 0)) setStepIdx(0);
     if (stepIdx < 0) setStepIdx(0);
@@ -934,7 +905,9 @@ const TheoryPage = () => {
     await saveProgress(secIdx, stepIdx, neo);
   };
 
-  const handleGoHomework  = () => navigate("/homework", { state: { topicId } });
+  /* FIX #16 — was navigating to /homework (dead route).
+     Changed to /practice so theory completion has a valid next step. */
+  const handleGoNext = () => navigate("/practice", { state: { topicId } });
 
   const handleRestartTheory = async () => {
     setSecIdx(0); setStepIdx(0); setPassedChecks({});
@@ -962,24 +935,18 @@ const TheoryPage = () => {
   const notesReady = noteLoadedFor === topicId;
 
   const showGapBanner = useMemo(() => {
-  if (activeGapsLoading || !primaryGap || isDismissed) return false;
-  if (stepIdx !== 0) return false;
-  const relevantSections = primaryGap.recommendation?.theorySectionIds;
-  if (!relevantSections?.length) return secIdx === 0; // fallback to intro
-  const currentSectionId = currSection?.id;
-  return currentSectionId && relevantSections.includes(currentSectionId);
-}, [activeGapsLoading, primaryGap, isDismissed, stepIdx, secIdx, currSection]);
+    if (activeGapsLoading || !primaryGap || isDismissed) return false;
+    if (stepIdx !== 0) return false;
+    const relevantSections = primaryGap.recommendation?.theorySectionIds;
+    if (!relevantSections?.length) return secIdx === 0;
+    const currentSectionId = currSection?.id;
+    return currentSectionId && relevantSections.includes(currentSectionId);
+  }, [activeGapsLoading, primaryGap, isDismissed, stepIdx, secIdx, currSection]);
 
-  /* ── Keyboard navigation ─────────────────────────────────────────────────
-     Keep a ref to the latest values so the single stable listener never
-     closes over stale state.  Re-adding the listener on every render (the
-     old approach with an incomplete deps array) caused missed key-presses
-     and stale reads of passedChecks / tData inside the handlers.
-  ── */
   const keyNavRef = useRef({});
   keyNavRef.current = {
     secIdx, stepIdx, canGoNext, isFinished,
-    handleGoHomework, handleNextStep, handlePrevStep,
+    handleGoNext, handleNextStep, handlePrevStep,
   };
 
   useEffect(() => {
@@ -987,10 +954,10 @@ const TheoryPage = () => {
       if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
       if (e.target.contentEditable === "true") return;
       const { secIdx: si, stepIdx: sti, canGoNext: cg, isFinished: fin,
-              handleGoHomework: goHw, handleNextStep: next, handlePrevStep: prev } = keyNavRef.current;
+              handleGoNext: goNext, handleNextStep: next, handlePrevStep: prev } = keyNavRef.current;
       if (e.key === "ArrowRight" || e.key === "Enter") {
         e.preventDefault();
-        if (fin && cg) { goHw(); return; }
+        if (fin && cg) { goNext(); return; }
         if (cg && !fin) next();
       }
       if (e.key === "ArrowLeft") {
@@ -1000,7 +967,7 @@ const TheoryPage = () => {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []); // stable — reads fresh values through keyNavRef
+  }, []);
 
   return (
     <div className="page-shell">
@@ -1009,7 +976,6 @@ const TheoryPage = () => {
 
       <main className="page-main th-wrap">
 
-        {/* ── Hero ── */}
         <section className="th-hero th-hero--chalk">
           <div className="th-hero__content">
             <div className="th-hero__left">
@@ -1017,7 +983,7 @@ const TheoryPage = () => {
               <h1 className="th-title">{tData.title}</h1>
               <p className="th-sub">
                 We move step-by-step like a real teacher on a board: explanation → example → mini check.
-                Unlock homework at the end.
+                Practice after each section to lock it in.
               </p>
               <div className="th-stats">
                 <div className="th-stat">
@@ -1032,7 +998,7 @@ const TheoryPage = () => {
                 <div className="th-stat__div" />
                 <div className="th-stat">
                   <strong>{tData.homeworkCount || (taskBank?.[topicId]?.homework?.length || 0)}</strong>
-                  <span>Homework tasks</span>
+                  <span>Practice tasks</span>
                 </div>
               </div>
             </div>
@@ -1066,7 +1032,6 @@ const TheoryPage = () => {
           <div className="diag-shell__main">
             <section className="th-layout">
 
-              {/* Column 1: topic sidebar */}
               <aside className="th-side">
                 <div className="th-side__head">
                   <div>
@@ -1091,12 +1056,11 @@ const TheoryPage = () => {
                   ))}
                 </div>
                 <div className="th-side__footer">
-                  <Link to="/tasks"    className="th-side__link">Go to Tasks    <ChevronRight /></Link>
-                  <Link to="/practice" className="th-side__link">Practice mode  <ChevronRight /></Link>
+                  <Link to="/diagnostics" className="th-side__link">Run Diagnostic <ChevronRight /></Link>
+                  <Link to="/practice"    className="th-side__link">Practice mode  <ChevronRight /></Link>
                 </div>
               </aside>
 
-              {/* Column 2: theory board */}
               <section className="th-board th-board--chalk" ref={boardRef}>
                 <div className="th-board__top">
                   <div className="th-crumbs">
@@ -1144,8 +1108,8 @@ const TheoryPage = () => {
                             </div>
                           </div>
                           <div className="th-complete__actions">
-                            <button className="th-btn th-btn--primary" onClick={handleGoHomework}>
-                              Do homework <ChevronRight />
+                            <button className="th-btn th-btn--primary" onClick={handleGoNext}>
+                              Go to Practice <ChevronRight />
                             </button>
                             <button className="th-btn th-btn--ghost" onClick={handleRestartTheory}>
                               Restart from beginning
@@ -1176,7 +1140,6 @@ const TheoryPage = () => {
                       </span>
                     </div>
 
-                    {/* Next — visible whenever not finished, disabled if check unpassed */}
                     {!isFinished && (
                       <button
                         className="th-navbtn th-navbtn--primary"
@@ -1188,16 +1151,12 @@ const TheoryPage = () => {
                       </button>
                     )}
 
-                    {/* Homework — only appears once finished AND check passed.
-                        When finished but check is still locked we keep showing
-                        the disabled Next above so the user knows exactly why
-                        they're blocked (consistent with every other locked step). */}
                     {isFinished && canGoNext && (
                       <button
                         className="th-navbtn th-navbtn--primary"
-                        onClick={handleGoHomework}
+                        onClick={handleGoNext}
                       >
-                        <span>Homework</span>
+                        <span>Practice</span>
                         <span className="th-navbtn__ic">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
                             <polyline points="20 6 9 17 4 12" />
@@ -1206,11 +1165,15 @@ const TheoryPage = () => {
                       </button>
                     )}
 
+                    {/* FIX #27 — locked check hint so student knows why Next is disabled */}
+                    {!isFinished && hasCheck && !isPassed && (
+                      <p className="th-nav__locked-hint">
+                        Complete the section check above to continue.
+                      </p>
+                    )}
+
                     {isFinished && !canGoNext && (
-                      <button
-                        className="th-navbtn th-navbtn--primary"
-                        disabled
-                      >
+                      <button className="th-navbtn th-navbtn--primary" disabled>
                         <span>Next</span>
                         <span className="th-navbtn__ic"><ChevronRight /></span>
                       </button>

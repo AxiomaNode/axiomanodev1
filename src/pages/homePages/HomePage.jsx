@@ -7,6 +7,7 @@ import "./home.css";
 import '../../styles/layout.css'
 import Logo from '../../../src/AxiomaLogo.png'
 import DailyTodoPanel from "../../components/DailyTodoPanel";
+import { useTheme } from "../../context/ThemeContext";
 
 /* ── Radar Chart ── */
 const RadarChart = () => {
@@ -136,6 +137,7 @@ const HomePage = () => {
   const { user, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const firstName = (profile?.displayName || user?.displayName)?.split(" ")[0] ?? "there";
+  const { theme } = useTheme();
 
   return (
     <div className="page-shell">
@@ -270,7 +272,11 @@ const HomePage = () => {
           <div className="home-footer__left">
             <div className="home-footer__brand">
               <div className="">
-                <img src={Logo} className="axioma-logo" alt="" />
+                {theme === "light" ? (
+                  <img src={Logo} alt="Axioma logo" className="axioma-logo" />
+                ) : (
+                  <img src={Logo} alt="Axioma logo" className="axioma-logo" style={{ filter: "invert(1)" }} />
+                )}
               </div>
               <span>Axioma</span>
             </div>
@@ -279,7 +285,7 @@ const HomePage = () => {
           <div className="home-footer__links">
             <Link to='/about'>Studies</Link>
             <Link to="/support">Contact us axiomandnode@gmail.com</Link>
-            <a href="#">Privacy Policy</a>
+            <Link to="/privacy">Privacy Policy</Link>
           </div>
         </footer>
 

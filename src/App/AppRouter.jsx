@@ -26,6 +26,7 @@ import FeedbackPage from "../pages/feedbackPages/FeedbackPage";
 import PublicProfilePage from "../pages/publicProfilePages/PublicProfilePage";
 import PuzzlesPage from "../pages/puzzlesPages/PuzzlesPage";
 import MasteryTestPage from "../pages/masteryTestPages/MasteryTestPage";
+import PrivacyPage from "../pages/privacyPages/PrivacyPage";
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -48,14 +49,15 @@ const AppRouter = () => (
     <Route path="/home"         element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
     <Route path="/diagnostics"  element={<ProtectedRoute><DiagnosticsPage /></ProtectedRoute>} />
     <Route path="/practice"     element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
-    <Route path="/puzzles"     element={<ProtectedRoute><PuzzlesPage /></ProtectedRoute>} />
+    <Route path="/puzzles"      element={<ProtectedRoute><PuzzlesPage /></ProtectedRoute>} />
     <Route path="/profile/:uid" element={<ProtectedRoute><PublicProfilePage /></ProtectedRoute>}/>
     <Route path="/progress"     element={<ProtectedRoute><ProgressPage/></ProtectedRoute>} />
     <Route path="/results"      element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
     <Route path="/support"      element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
-    <Route path="/feedback"      element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
-    <Route path="/masteryTest"      element={<ProtectedRoute><MasteryTestPage /></ProtectedRoute>} />
+    <Route path="/feedback"     element={<ProtectedRoute><FeedbackPage /></ProtectedRoute>} />
+    <Route path="/masteryTest"  element={<ProtectedRoute><MasteryTestPage /></ProtectedRoute>} />
     <Route path="/theory"       element={<ProtectedRoute><TheoryPage /></ProtectedRoute>} />
+    <Route path="/privacy"      element={<ProtectedRoute><PrivacyPage /></ProtectedRoute>} />
     <Route path="/profile"      element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
     <Route path="/about"        element={<ProtectedRoute><AboutPage /></ProtectedRoute>} />
     <Route path="/auth/action"  element={<EmailActionPage />} />

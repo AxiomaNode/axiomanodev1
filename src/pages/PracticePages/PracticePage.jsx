@@ -6,7 +6,7 @@ import Sidebar from "../../components/layout/Sidebar";
 import NotesPanel from "../../components/NotesPanel";
 import { topics } from "../../data/topics";
 import { tasks as taskBank } from "../../data/tasks";
-import { savePractice, getActiveGaps } from "../../services/db";
+import { savePractice, savePracticeSession, getActiveGaps } from "../../services/db";
 import { awardPoints } from "../../core/scoringEngine";
 import { generatePracticeSession } from "../../data/questionTemplates";
 import "./practice.css";
@@ -53,7 +53,7 @@ const GapModeBanner = ({ gaps, practiceMode, onSwitch }) => {
 /* ── Gap Context Pill ── */
 const GapContextPill = ({ gaps, taskGapTag }) => {
   if (!gaps?.length || !taskGapTag) return null;
-  const gap = gaps.find((g) => g.recommendation?.practiceTag === taskGapTag);
+  const gap = gaps.find((g) => (g.gapId || g.id) === taskGapTag);
   if (!gap) return null;
   return (
     <div className="pr-gap-pill">
@@ -135,7 +135,7 @@ const PracticePage = () => {
     setPracticeMode("gap");
 
     // Generate targeted bank immediately
-    const generated = generatePracticeSession(incomingTopicId, 15, incomingGapId);
+    const generated = generatePracticeSession(incomingTopicId, 24, incomingGapId);
     setBank(generated);
     setStarted(false); // still show start modal so user can see what they're doing
   }, []); // eslint-disable-line — runs once on mount
@@ -146,8 +146,9 @@ const PracticePage = () => {
     let cancelled = false;
     getActiveGaps(user.uid, topicId).then((gaps) => {
       if (cancelled) return;
-      setActiveGaps(gaps);
-      if (gaps.length > 0 && !started) setPracticeMode("gap");
+      const safeGaps = Array.isArray(gaps) ? gaps : [];
+      setActiveGaps(safeGaps);
+      if (safeGaps.length > 0 && !started) setPracticeMode("gap");
     });
     return () => { cancelled = true; };
   }, [topicId, user?.uid]); // eslint-disable-line
@@ -191,13 +192,14 @@ const PracticePage = () => {
       return;
     }
 
-    const tag = isTargeted
-      ? targetedGapId
-      : practiceMode === "gap" && activeGaps.length > 0
-        ? activeGaps[0]?.recommendation?.practiceTag
-        : null;
+  const tag = isTargeted
+    ? targetedGapId
+    : practiceMode === "gap" && activeGaps.length > 0
+      ? (activeGaps[0]?.gapId || activeGaps[0]?.id)
+      : null;
 
-    const generated = generatePracticeSession(topicId, 15, tag);
+    const generated = generatePracticeSession(topicId, 24, tag);
+
     setBank(generated);
     setStarted(true);
     setTimeout(startTimer, 50);
@@ -210,9 +212,21 @@ const PracticePage = () => {
     setAnswers({});
   };
 
-  const selectAnswer = (task, label) => {
-    setAnswers((prev) => ({ ...prev, [task.id]: label }));
-  };
+const selectAnswer = (task, label) => {
+  setAnswers((prev) => {
+    const updated = { ...prev, [task.id]: label };
+
+    savePracticeSession({
+      uid: user?.uid,
+      topicId,
+      sessionId,
+      answers: updated,
+      idx,
+    });
+
+    return updated;
+  });
+};
 
   const goNext = () => {
     if (idx + 1 >= bank.length) {
@@ -260,7 +274,7 @@ const PracticePage = () => {
     setSessionId(`pr_${Date.now()}`);
     // Regenerate bank for targeted mode
     if (isTargeted && topicId) {
-      const generated = generatePracticeSession(topicId, 15, targetedGapId);
+      const generated = generatePracticeSession(topicId, 24, targetedGapId);
       setBank(generated);
     }
   };
@@ -400,7 +414,7 @@ const PracticePage = () => {
                           </div>
                           <div className="pr-topic__txt">
                             <p className="pr-topic__title">{t.title}</p>
-                            <p className="pr-topic__sub">{pickBank(t.id).length} tasks</p>
+                            <p className="pr-topic__sub">Practice available</p>
                           </div>
                         </button>
                       ))}
@@ -509,7 +523,7 @@ const PracticePage = () => {
                       <div className="pr-start-modal__meta">
                         <div className="pr-start-modal__pill">
                           <span>Questions</span>
-                          <strong>{bank.length}</strong>
+                          <strong>{bank.length || 24}</strong>
                         </div>
                         <div className="pr-start-modal__pill">
                           <span>Mode</span>
@@ -681,7 +695,22 @@ const PracticePage = () => {
                           ) : (
                             <button
                               className="pr-navbtn"
-                              onClick={() => { stopTimer(); setTopicId(null); }}
+                              onClick={() => {
+                                stopTimer();
+                                setTopicId(null);
+                                setBank([]);
+                                setIdx(0);
+                                setAnswers({});
+                                setDone(false);
+                                setSaved(false);
+                                setStarted(false);
+                                setElapsed(0);
+                                setActiveGaps([]);
+                                setPracticeMode("free");
+                                setTargetedGapId(null);
+                                setTargetedGapTitle(null);
+                                setSessionId(`pr_${Date.now()}`);
+                              }}
                             >
                               Change topic
                             </button>

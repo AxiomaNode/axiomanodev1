@@ -3,6 +3,8 @@ import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { topics } from "../../data/topics";
 import { coreGaps } from "../../data/coreGaps";
+import { useAuth } from "../../context/AuthContext";
+import { getActiveGaps } from "../../services/db";
 
 /* ── Constants ── */
 const GAP_COLOR = "#c0392b"; // single color — "detected" has no severity gradient
@@ -19,31 +21,20 @@ const MASTERY_COLOR = {
   Learner:  "#2a8fa0",
 };
 
-/* ── Data helpers ──
-   Defensive against both new shape (coreGap) and old flat shape.
-─────────────────────────────────────────────────────────────────── */
-const gapKey      = (g) => g.coreGapId || g.id;
-const gapDesc     = (g) => g.userFacingLabel ?? g.description ?? "";
+/* ── Data helpers ───────────────────────────────────────── */
+
+const gapKey      = (g) => g.gapId || g.id;
+const gapDesc     = (g) => g.userFacingLabel ?? g.description?.what ?? g.description ?? "";
 const gapTopicId  = (g) => g.evidence?.[0]?.topicId ?? g.topicId;
 const gapWrong    = (g) => g.evidence?.[0]?.wrongCount ?? g.wrongCount;
 const gapSignal   = (g) => g.evidence?.[0]?.signalCount ?? g.signalCount;
 const gapSeverity = (g) => g.evidence?.[0]?.severity ?? g.severity ?? 9;
 const gapRecText  = (g) => g.evidence?.[0]?.recommendationText ?? g.recommendationText;
 
-const deriveActiveGaps = (diagnostics) => {
-  const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
-  for (const s of sorted) {
-    if (s.gaps?.length > 0) return s.gaps;
-  }
-  return [];
-};
-
-// Derive cleanGaps from the most recent session that has a cleanGaps field
 const deriveCleanGaps = (diagnostics) => {
   const sorted = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
   for (const s of sorted) {
     if (Array.isArray(s.cleanGaps) && s.cleanGaps.length > 0) return s.cleanGaps;
-    // If session has gaps data, it's the right session — stop here even if no cleanGaps
     if (s.gaps?.length > 0 || Array.isArray(s.cleanGaps)) return s.cleanGaps ?? [];
   }
   return [];
@@ -172,6 +163,7 @@ const ActiveGapCard = ({ gap, isPrimary }) => {
 /* ── Clean Gaps Block ── */
 const CleanGapsBlock = ({ cleanGaps }) => {
   if (!cleanGaps?.length) return null;
+
   return (
     <div className="gaps-clean-gaps">
       <div className="gaps-section__header">
@@ -180,7 +172,7 @@ const CleanGapsBlock = ({ cleanGaps }) => {
       </div>
       <div className="gaps-clean-gaps__chips">
         {cleanGaps.map(cg => (
-          <span key={cg.coreGapId || cg.id} className="gaps-clean-gaps__chip">
+          <span key={cg.gapId || cg.id} className="gaps-clean-gaps__chip">
             <CheckIcon />
             {cg.shortLabel || cg.title}
           </span>
@@ -194,6 +186,7 @@ const CleanGapsBlock = ({ cleanGaps }) => {
 /* ── Most Common Block ── */
 const MostCommonBlock = ({ entry }) => {
   if (!entry) return null;
+
   return (
     <div className="gaps-common">
       <div className="gaps-common__header">
@@ -254,17 +247,6 @@ const ThemeCard = ({ progress }) => {
 };
 
 /* ── Empty State ── */
-/* ══════════════════════════════════════════════════════
-   PATCH — GapsSection.jsx
-
-   Find and replace the GapsEmpty component:
-     const GapsEmpty = () => (
-       <div className="gaps-empty">
-         ...
-       </div>
-     );
-══════════════════════════════════════════════════════ */
-
 const GapsEmpty = () => (
   <div className="profile-empty-state">
 
@@ -347,23 +329,60 @@ const GapsEmpty = () => (
 
 /* ── GapsSection ── */
 const GapsSection = ({ diagnostics = [], topicProgress = [] }) => {
-  const activeGaps    = useMemo(() => deriveActiveGaps(diagnostics), [diagnostics]);
-  const cleanGaps     = useMemo(() => deriveCleanGaps(diagnostics), [diagnostics]);
-  const mostCommon    = useMemo(() => deriveMostCommonGap(diagnostics), [diagnostics]);
-  const sortedGaps    = useMemo(() => sortGaps(activeGaps), [activeGaps]);
-  const primaryGap    = sortedGaps[0] ?? null;
-  const primaryKey    = primaryGap ? gapKey(primaryGap) : null;
+  const { user } = useAuth();
 
-  const grouped  = groupByTopic(sortedGaps);
-  const topicIds = Object.keys(grouped);
-
+  const [activeGaps, setActiveGaps] = useState([]);
   const [activeTopic, setActiveTopic] = useState(null);
+  const [loadingActive, setLoadingActive] = useState(true);
 
   useEffect(() => {
-    if (topicIds.length && !activeTopic) setActiveTopic(topicIds[0]);
-  }, [topicIds.length]);
+    let cancelled = false;
 
-  if (!diagnostics.length) return <GapsEmpty />;
+    const loadActiveGaps = async () => {
+      if (!user?.uid) {
+        if (!cancelled) {
+          setActiveGaps([]);
+          setLoadingActive(false);
+        }
+        return;
+      }
+
+      setLoadingActive(true);
+      const liveActiveGaps = await getActiveGaps(user.uid);
+
+      if (!cancelled) {
+        setActiveGaps(Array.isArray(liveActiveGaps) ? liveActiveGaps : []);
+        setLoadingActive(false);
+      }
+    };
+
+    loadActiveGaps();
+    return () => { cancelled = true; };
+  }, [user?.uid]);
+
+  const cleanGaps  = useMemo(() => deriveCleanGaps(diagnostics), [diagnostics]);
+  const mostCommon = useMemo(() => deriveMostCommonGap(diagnostics), [diagnostics]);
+  const sortedGaps = useMemo(() => sortGaps(activeGaps), [activeGaps]);
+  const primaryGap = sortedGaps[0] ?? null;
+  const primaryKey = primaryGap ? gapKey(primaryGap) : null;
+
+  const grouped  = useMemo(() => groupByTopic(sortedGaps), [sortedGaps]);
+  const topicIds = Object.keys(grouped);
+
+  useEffect(() => {
+    if (!topicIds.length) {
+      setActiveTopic(null);
+      return;
+    }
+
+    if (!activeTopic || !topicIds.includes(activeTopic)) {
+      setActiveTopic(topicIds[0]);
+    }
+  }, [topicIds, activeTopic]);
+
+  if (!loadingActive && !diagnostics.length && !activeGaps.length) {
+    return <GapsEmpty />;
+  }
 
   return (
     <div className="gaps-section">
@@ -376,7 +395,7 @@ const GapsSection = ({ diagnostics = [], topicProgress = [] }) => {
           <div className="gaps-clean__icon"><CheckIcon /></div>
           <div>
             <h3 className="gaps-clean__title">No active gaps</h3>
-            <p className="gaps-clean__sub">Your most recent diagnostic found no reasoning gaps. Run another to stay sharp.</p>
+            <p className="gaps-clean__sub">Your current gap status shows no active reasoning gaps. Run another diagnostic to stay sharp.</p>
             <Link to="/diagnostics" className="gaps-clean__link">Run Diagnostic <ChevronRight /></Link>
           </div>
         </div>
@@ -438,7 +457,6 @@ const GapsSection = ({ diagnostics = [], topicProgress = [] }) => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

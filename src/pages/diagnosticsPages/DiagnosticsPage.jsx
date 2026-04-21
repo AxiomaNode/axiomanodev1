@@ -18,6 +18,14 @@ import { questionTemplates } from "../../data/questionTemplates";
 const ADMIN_UIDS = ["mVixaP1MTROHi6PlhzAJTHkppu43"];
 
 const isPrivilegedUser = (uid) => ADMIN_UIDS.includes(uid);
+const getDiagnosticTemplates = (topicId) =>
+  (questionTemplates[topicId] || []).filter(t => t.diagnostic === true);
+
+const getDiagnosticGapCount = (topicId) =>
+  new Set(getDiagnosticTemplates(topicId).map(t => t.gapTag).filter(Boolean)).size;
+
+const getDiagnosticQuestionCount = (topicId) =>
+  getDiagnosticGapCount(topicId) * 4; // builder composes 4 questions per gap
 
 const ChevronRight = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -205,8 +213,8 @@ const BlockScreen = ({ activeGap }) => {
 
 /* ── Intro screen ── */
 const IntroScreen = ({ onConfigure }) => {
-  const activeTopics = topics.filter(t => questionTemplates[t.id]?.length > 0);
-  const totalQ = activeTopics.length * 20;
+  const activeTopics = topics.filter(t => getDiagnosticTemplates(t.id).length > 0);
+  const totalQ = activeTopics.reduce((sum, t) => sum + getDiagnosticQuestionCount(t.id), 0);
 
   return (
     <div className="diag-intro">
@@ -267,7 +275,7 @@ const IntroScreen = ({ onConfigure }) => {
 
 /* ── Topic select ── */
 const TopicSelectScreen = ({ onStart, onBack }) => {
-  const availableTopics = topics.filter(t => questionTemplates[t.id]?.length > 0);
+  const availableTopics = topics.filter(t => getDiagnosticTemplates(t.id).length > 0);
   const [selected, setSelected] = useState(new Set(availableTopics.map(t => t.id)));
 
   const toggleTopic = (id) => {
@@ -281,7 +289,10 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
 
   const selectAll = () => setSelected(new Set(availableTopics.map(t => t.id)));
   const clearAll  = () => { const f = availableTopics[0]; if (f) setSelected(new Set([f.id])); };
-  const estimatedQ   = selected.size * 20;
+  const estimatedQ = [...selected].reduce(
+    (sum, topicId) => sum + getDiagnosticQuestionCount(topicId),
+    0
+  );
   const estimatedMin = Math.round(estimatedQ * 0.5);
   const diffColor    = { easy: "easy", medium: "med", hard: "hard" };
 
@@ -321,7 +332,9 @@ const TopicSelectScreen = ({ onStart, onBack }) => {
               <h4 className="diag-topic-card__title">{topic.title}</h4>
               <p className="diag-topic-card__desc">{topic.description}</p>
               <div className="diag-topic-card__footer">
-                <span className="diag-topic-card__q-count">20q · {gapCount} gaps</span>
+                <span className="diag-topic-card__q-count">
+                  {getDiagnosticQuestionCount(topic.id)}q · {gapCount} gaps
+                </span>
                 <span className={`diag-topic-card__diff diag-topic-card__diff--${diffColor[diff] || "med"}`}>{diff}</span>
               </div>
             </button>
@@ -461,7 +474,11 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
   const [expandedGap,   setExpandedGap]   = useState(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [gapStatus, setGapStatus] = useState({});
-
+ 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" }); // FIX #22 — scroll on mount
+  }, []);
+ 
   useEffect(() => {
     if (!user?.uid) return;
     getGapStatus(user.uid).then(setGapStatus);
@@ -520,22 +537,22 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
   };
  
  
-  const GapStatusBadge = ({ coreGapId, gapStatus }) => {
-    const state = getGapDisplayState(coreGapId, gapStatus);
-    const config = GAP_STATUS_CONFIG[state];
-    if (!config) return null;
-  
-    return (
-      <span className="rsl-gap-status-badge" style={{
-        color:       config.color,
-        background:  config.bg,
-        borderColor: config.border,
-      }}>
-        {config.icon}
-        {config.label}
-      </span>
-    );
-  };
+const GapStatusBadge = ({ gapId, gapStatus }) => {
+  const state = getGapDisplayState(gapId, gapStatus);
+  const config = GAP_STATUS_CONFIG[state];
+  if (!config) return null;
+
+  return (
+    <span className="rsl-gap-status-badge" style={{
+      color:       config.color,
+      background:  config.bg,
+      borderColor: config.border,
+    }}>
+      {config.icon}
+      {config.label}
+    </span>
+  );
+};
 
   const gapStats = {};
   allQuestions.forEach(q => {
@@ -558,9 +575,18 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
     return () => window.removeEventListener("keydown", h);
   }, [resultType, activeGaps.length]);
 
-  const handleTrain = (ev) => {
-    navigate("/practice", { state: { gapId: ev.gapId, gapTitle: ev.gapTitle, topicId: ev.topicId } });
-  };
+  const handleTrain = (gap) => {
+    const ev = gap?.evidence?.[0];
+    if (!ev) return;
+
+    navigate("/practice", {
+      state: {
+        gapId: gap.gapId,
+        gapTitle: gap.title,
+        topicId: ev.topicId,
+      },
+    });
+  };  
 
   const getEvidenceItems = (cg) => {
     const ev = cg.evidence[0];
@@ -655,10 +681,10 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                   if (idx !== activeIdx) return null;
                   const ev0              = cg.evidence[0];
                   const { items, total } = getEvidenceItems(cg);
-                  const isExpanded       = expandedGap === cg.coreGapId;
+                  const isExpanded       = expandedGap === cg.gapId;
 
                   return (
-                    <div key={cg.coreGapId} className="rsl-gap-card" style={{ "--gap-color": GAP_COLOR }}>
+                   <div key={cg.gapId} className="rsl-gap-card" style={{ "--gap-color": GAP_COLOR }}>
                       <div className="rsl-gap-card__inner">
  
                         {/* Header: badge + gap title as subtext — item 14 */}
@@ -666,7 +692,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                           <div className="rsl-gap-card__badge" style={{ color: GAP_COLOR, borderColor: GAP_COLOR + "35", background: GAP_COLOR + "12" }}>
                             gap detected
                           </div>
-                          <GapStatusBadge coreGapId={cg.coreGapId} gapStatus={gapStatus} />
+                          <GapStatusBadge gapId={cg.gapId} gapStatus={gapStatus} />
                           <span className="rsl-gap-card__gap-label">{cg.title}</span>
                         </div>
  
@@ -698,7 +724,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                                 </div>
                               ))}
                               {total > 2 && (
-                                <button className="rsl-gap-card__more" onClick={() => setExpandedGap(isExpanded ? null : cg.coreGapId)}>
+                                <button className="rsl-gap-card__more" onClick={() => setExpandedGap(isExpanded ? null : cg.gapId)}>
                                   {isExpanded ? "Show less ↑" : `+${total - 2} more ↓`}
                                 </button>
                               )}
@@ -723,7 +749,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                         {/* Footer */}
                         {ev0 && (
                           <div className="rsl-gap-card__footer">
-                            <button className="rsl-gap-card__train" onClick={() => handleTrain(ev0)}>
+                          <button className="rsl-gap-card__train" onClick={() => handleTrain(cg)}>
                               Fix this gap
                               <span className="rsl-gap-card__train-arrow">→</span>
                             </button>
@@ -735,8 +761,8 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
                   );
                 })}
                 {(() => {
-                const clean7Gaps = activeGaps.filter(cg => {
-                  const state = getGapDisplayState(cg.coreGapId, gapStatus);
+                  const clean7Gaps = activeGaps.filter(cg => {
+                  const state = getGapDisplayState(cg.gapId, gapStatus);
                   return state === "clean7";
                 });
                 if (!clean7Gaps.length) return null;
@@ -828,7 +854,7 @@ const ResultsStep = ({ answers, allQuestions, onRetry }) => {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <polyline points={showBreakdown ? "18 15 12 9 6 15" : "6 9 12 15 18 9"} />
               </svg>
-              <span>All responses</span>
+              <span>All wrong responses</span>
               <span className="rsl-breakdown__toggle-count">{wrongQuestions.length} wrong · {correctCount} correct</span>
             </button>
             {showBreakdown && (
@@ -910,12 +936,15 @@ const DiagnosticsPage = () => {
     getLastDiagnosticDate(user.uid),
     getActiveGaps(user.uid),
   ]).then(([lastDate, gaps]) => {
-    const today = new Date().toLocaleDateString();
+    const today = new Date().toISOString().split("T")[0]; // ISO — locale-safe
     const isAdmin = isPrivilegedUser(user.uid);
-
-    setDiagStatus(isPrivilegedUser(user.uid) ? "available" : "blocked");
+    const isBlocked = !isAdmin && lastDate === today;
+ 
+    setDiagStatus(isBlocked ? "blocked" : "available");
     setActiveGap(gaps?.[0] ?? null);
-  });})
+  });
+  }, [user?.uid]); // also adds missing deps array
+ 
 
   const handleTopicStart = (selectedTopicIds) => {
     const qs = buildFullDiagnostic(selectedTopicIds);
@@ -927,8 +956,8 @@ const DiagnosticsPage = () => {
     if (savingRef.current) return;
     savingRef.current = true;
 
-    const { profile: coreGapProfile, cleanGaps } = detectAllGaps(answers, allQuestions);
-    const activeGaps = Object.values(coreGapProfile).filter(cg => cg.strength !== null);
+  const { profile: gapProfile, cleanGaps } = detectAllGaps(answers, allQuestions);
+  const activeGaps = Object.values(gapProfile).filter(cg => cg.strength !== null);
 
     const sanitizeProfile = (p) => {
       const out = {};
@@ -947,9 +976,13 @@ const DiagnosticsPage = () => {
     const result = {
       type:           "full",
       answers,
-      coreGapProfile: sanitizeProfile(coreGapProfile),
+      gapProfile: sanitizeProfile(gapProfile),
       gaps:           activeGaps,
-      cleanGaps:      cleanGaps.map(cg => ({ coreGapId: cg.id, title: cg.title, shortLabel: cg.shortLabel })),
+      cleanGaps: cleanGaps.map(cg => ({
+        gapId: cg.id,
+        title: cg.title,
+        shortLabel: cg.shortLabel,
+      })),
       topicId:        "full",
       topicTitle:     "Full Diagnostic",
       questions: allQuestions.map(q => ({ id: q.id, text: q.text, correct: q.correct, options: q.options, topicId: q.topicId })),
@@ -964,6 +997,7 @@ const DiagnosticsPage = () => {
     setDiagStatus("blocked");
     setStep("results");
     savingRef.current = false;
+    window.scrollTo({ top: 0, behavior: "smooth" });
     await awardPoints(user.uid, "diagnostic_complete", { correct: result.score.correct, total: result.score.total });
   };
 

@@ -37,7 +37,7 @@ export const gapsDatabase = {
       recommendation: {
         theorySectionIds: ["quadratic-discriminant", "quadratic-formula"],
         practiceMode: "gap_targeted",
-        practiceTag:  "discriminant",
+        practiceTag: "q-discriminant",
       },
     },
 
@@ -58,7 +58,7 @@ export const gapsDatabase = {
       recommendation: {
         theorySectionIds: ["quadratic-roots", "quadratic-discriminant", "quadratic-special-cases"],
         practiceMode: "gap_targeted",
-        practiceTag:  "double-root",
+        practiceTag: "q-double-root",
       },
     },
 
@@ -79,7 +79,7 @@ export const gapsDatabase = {
       recommendation: {
         theorySectionIds: ["quadratic-factoring"],
         practiceMode: "gap_targeted",
-        practiceTag:  "div-by-var",
+        practiceTag: "q-div-by-var",
       },
     },
 
@@ -100,7 +100,7 @@ export const gapsDatabase = {
       recommendation: {
         theorySectionIds: ["quadratic-factoring", "quadratic-special-cases"],
         practiceMode: "gap_targeted",
-        practiceTag:  "factoring",
+        practiceTag: "q-factoring",
       },
     },
 
@@ -121,53 +121,8 @@ export const gapsDatabase = {
       recommendation: {
         theorySectionIds: ["quadratic-vieta"],
         practiceMode: "gap_targeted",
-        practiceTag:  "vieta",
+        practiceTag: "q-vieta",
       },
     },
-
-    {
-      id:        "q-adaptive",
-      topicId:   "quadratic",
-      coreGapId: "adaptive",
-      severity:  2,
-      title:     "Failing when the equation looks unfamiliar",
-      description: {
-        what:  "You don't recognize the equation as quadratic when it isn't in standard form.",
-        why:   "Recognition depends on visual pattern matching rather than structural reasoning.",
-        check: "Ask: is the highest power of x equal to 2? If yes, rearrange to ax² + bx + c = 0 and proceed.",
-      },
-      recommendationText:
-        "Before solving, always rearrange to standard form: ax² + bx + c = 0. " +
-        "Ask: is the highest power 2? If yes, it's quadratic — regardless of how it looks. " +
-        "The form changes. The method doesn't.",
-      recommendation: {
-        theorySectionIds: ["quadratic-intro", "quadratic-methods"],
-        practiceMode: "gap_targeted",
-        practiceTag:  "adaptive",
-      },
-    },
-
-    {
-      id:        "q-relational",
-      topicId:   "quadratic",
-      coreGapId: "relational",
-      severity:  2,
-      title:     "Disconnecting symbolic results from geometric meaning",
-      description: {
-        what:  "You can compute D or find roots but can't describe what the result looks like on a graph.",
-        why:   "Algebraic results and geometric representations are stored as separate, unconnected ideas.",
-        check: "After every algebraic result, state its geometric meaning: roots = x-intercepts, D < 0 = no crossing.",
-      },
-      recommendationText:
-        "Connect every algebraic result to its geometric meaning. " +
-        "D > 0 means the parabola crosses the x-axis twice. D = 0 means it touches once. " +
-        "D < 0 means it never reaches the axis. Roots are x-intercepts — always.",
-      recommendation: {
-        theorySectionIds: ["quadratic-roots", "quadratic-discriminant"],
-        practiceMode: "gap_targeted",
-        practiceTag:  "relational",
-      },
-    },
-
   ],
 };

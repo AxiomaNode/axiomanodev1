@@ -387,7 +387,7 @@ const PuzzlesPage = () => {
     } else {
       setStreak(0);
     }
-  }, [revealed, task, streak, timeLeft, user]);pub
+  }, [revealed, task, streak, timeLeft, user]);
 
   const handleNext = useCallback(() => {
     setIdx(i => i + 1);

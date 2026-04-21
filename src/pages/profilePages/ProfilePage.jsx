@@ -16,10 +16,13 @@ import ProgressSection from "../../components/sections/ProgressSections";
 import NotesSection from "../../components/sections/NotesSection";
 import GapsSection from "../../components/sections/GapsSection";
 import ProfileEditModal from "../../components/profile/ProfileEditModal";
+import CredentialsSection from "../../components/sections/CredentialsSection";
 import "./profile.css";
 import "../progressPages/progress.css";
 import "../resultsPages/results.css";
 import "../../styles/layout.css";
+import "../../components/sections/credentials.css";
+ 
 import "./profile.gaps.css";
 
 const XP_PER_LEVEL = 200;
@@ -173,7 +176,7 @@ const ProfileHeroCard = ({
         <div className="profile-avatar-wrap">
           <Avatar
             name={profile?.displayName || user?.displayName}
-            photoURL={profile?.photoURL || user?.photoURL}
+            photoURL={forcedPhotoURL || profile?.photoURL || user?.photoURL}
             size={68}
           />
           <div className="profile-avatar__lvl">{level}</div>
@@ -288,7 +291,7 @@ const ProfileHeroCard = ({
   );
 };
 
-const VALID_TABS = ["progress", "gaps", "results", "notes"];
+const VALID_TABS = ["progress", "gaps", "results", "notes", "credentials"];
 
 const ProfilePage = () => {
   const { user } = useAuth();
@@ -425,10 +428,11 @@ const ProfilePage = () => {
   };
 
   const TABS = [
-    { id: "progress", label: "Progress" },
-    { id: "gaps", label: "Gaps", badge: activeGapCount || null },
-    { id: "results", label: "Results", badge: diagnostics.length || null },
-    { id: "notes", label: "Notes", badge: topicNotes.length || null },
+    { id: "progress",    label: "Progress" },
+    { id: "gaps",        label: "Gaps",        badge: activeGapCount || null },
+    { id: "results",     label: "Results",     badge: diagnostics.length || null },
+    { id: "notes",       label: "Notes",       badge: topicNotes.length || null },
+    { id: "credentials", label: "Credentials" },
   ];
 
   return (
@@ -520,6 +524,9 @@ const ProfilePage = () => {
                     uid={user?.uid}
                     onNoteUpdated={handleNoteUpdated}
                   />
+                )}
+                {activeTab === "credentials" && (
+                  <CredentialsSection uid={user?.uid} />
                 )}
               </div>
             </>

@@ -1,8 +1,7 @@
 // src/components/sections/ResultsSection.jsx
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { topics } from "../../data/topics";
-
+import { useState, useEffect } from "react";
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 const ChevronRight = () => (
@@ -31,6 +30,8 @@ const XIcon = () => (
 
 const scoreColor = (pct) => (pct >= 70 ? "#27ae60" : pct >= 40 ? "#d35400" : "#c0392b");
 
+const topicMap = Object.fromEntries(topics.map(t => [t.id, t]));
+
 const formatDate = (iso) =>
   new Date(iso).toLocaleDateString("en-GB", {
     weekday: "short", day: "numeric", month: "long", year: "numeric",
@@ -40,6 +41,7 @@ const TopicIcon = ({ topic, size = 16 }) => {
   const Icon = topic?.icon;
   if (typeof Icon === "function") return <Icon size={size} strokeWidth={2.5}/>;
   if (typeof Icon === "string")   return <span>{Icon}</span>;
+  return <span style={{ fontSize: size * 0.9 }}>•</span>;
 };
 
 // ── Score ring ────────────────────────────────────────────────────────────────
@@ -130,7 +132,7 @@ const AnswerBreakdown = ({ session }) => {
           const q = allQMap[qId];
           if (!q) return null;
           const isSkipped         = !userAns;
-          const topicMeta         = topics.find((t) => t.id === q?.topicId);
+          const topicMeta = topicMap[q?.topicId];
           const userAnswerText    = isSkipped ? null : resolveAnswerText(q, userAns);
           const correctAnswerText = resolveAnswerText(q, q.correct);
           return (
@@ -170,12 +172,10 @@ const AnswerBreakdown = ({ session }) => {
 const ResultsSection = ({ sessions = [], initialIdx = 0 }) => {
   const clampedInitial = Math.min(initialIdx, Math.max(sessions.length - 1, 0));
   const [selectedIdx,    setSelectedIdx]    = useState(clampedInitial);
-  const [prevInitialIdx, setPrevInitialIdx] = useState(initialIdx);
 
-  if (initialIdx !== prevInitialIdx) {
-    setPrevInitialIdx(initialIdx);
+  useEffect(() => {
     setSelectedIdx(Math.min(initialIdx, Math.max(sessions.length - 1, 0)));
-  }
+  }, [initialIdx, sessions.length]);
 
   if (sessions.length === 0) {
     return (
@@ -251,9 +251,11 @@ const ResultsSection = ({ sessions = [], initialIdx = 0 }) => {
   }
 
   const session = sessions[selectedIdx] || null;
-  const pct     = session ? Math.round((session.score.correct / session.score.total) * 100) : 0;
+  const pct = session && session.score.total > 0
+  ? Math.round((session.score.correct / session.score.total) * 100)
+  : 0;
   const color   = scoreColor(pct);
-  const topic   = session ? topics.find((t) => t.id === session.topicId) : null;
+  const topic   = session ? topicMap[session.topicId] : null;
 
   return (
     <div className="results-section-inner">
@@ -264,8 +266,10 @@ const ResultsSection = ({ sessions = [], initialIdx = 0 }) => {
           <p className="results-sidebar__label">Session History</p>
           <div className="results-sidebar__list">
             {sessions.map((s, i) => {
-              const p = Math.round((s.score.correct / s.score.total) * 100);
-              const t = topics.find((tt) => tt.id === s.topicId);
+              const p = s.score.total > 0
+              ? Math.round((s.score.correct / s.score.total) * 100)
+              : 0;
+              const t = topicMap[s.topicId];
               return (
                 <button key={i}
                   className={`results-session-btn ${i === selectedIdx ? "results-session-btn--active" : ""}`}
@@ -363,10 +367,10 @@ const ResultsSection = ({ sessions = [], initialIdx = 0 }) => {
                     const desc   = gap.userFacingLabel ?? gap.description ?? "";
                     const recTxt = ev0?.recommendationText ?? gap.recommendationText;
                     return (
-                      <div key={gap.coreGapId || gap.id} className="results-gap-card">
+                      <div key={gap.gapId || gap.id} className="results-gap-card">
                         <div className="results-gap-card__head">
                           <div className="results-gap-card__label-row">
-                            <span className="results-gap-card__tag">Gap</span>
+                            <span className="results-gap-card__tag">Detected gap</span>
                             <h4 className="results-gap-card__title">{gap.title}</h4>
                           </div>
                         </div>
@@ -413,8 +417,12 @@ const ResultsSection = ({ sessions = [], initialIdx = 0 }) => {
               <Link to="/diagnostics" className="results-btn results-btn--primary">
                 Retry topic <ChevronRight/>
               </Link>
-              <Link to="/practice" className="results-btn results-btn--ghost">
-                Go to Practice
+              <Link
+                to="/practice"
+                state={session.gaps?.[0]?.gapId ? { gapId: session.gaps[0].gapId } : undefined}
+                className="results-btn results-btn--ghost"
+              >
+                Practice this gap
               </Link>
             </div>
 

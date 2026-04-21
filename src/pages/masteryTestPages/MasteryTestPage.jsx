@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Header from "../../components/layout/Header";
 import Sidebar from "../../components/layout/Sidebar";
-import NotesPanel from "../../components/NotesPanel";
 import { topics } from "../../data/topics";
-import { generatePracticeSession } from "../../data/questionTemplates";
+import { generateMasterySession } from "../../data/templates/index";
+import NotesPanel from "../../components/NotesPanel";
 import {
   getMasteryTest,
   assignMasteryTest,
@@ -13,6 +13,16 @@ import {
   completeMasteryTest,
 } from "../../services/db";
 import { awardPoints } from "../../core/scoringEngine";
+import {
+  getPerf,
+  getMasteryTitle,
+  checkDailyLimit,
+  checkMasteryEligibility,
+  getMasteryCard,
+  decideSaveAction,
+  saveMasteryCard,
+  recordCompletionDate,
+} from "../../core/masteryEngine";
 import "./mastery.css";
 import "../../styles/layout.css";
 
@@ -20,21 +30,6 @@ const formatTime = (secs) => {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return m > 0 ? `${m}m ${s.toString().padStart(2, "0")}s` : `${s}s`;
-};
-
-const PERF = [
-  { min: 100, grade: "S", title: "Perfect",        sub: "Flawless. Every answer right.",   color: "#9b59b6" },
-  { min: 87,  grade: "A", title: "Excellent",       sub: "Sharp reasoning throughout.",     color: "#2a8fa0" },
-  { min: 73,  grade: "B", title: "Good",            sub: "Solid understanding overall.",    color: "#27ae60" },
-  { min: 60,  grade: "C", title: "Getting there",   sub: "Review weak areas and retry.",    color: "#d35400" },
-  { min: 0,   grade: "D", title: "Keep practising", sub: "Every expert started here.",      color: "#c0392b" },
-];
-const getPerf = (pct) => PERF.find(p => pct >= p.min);
-const getMasteryTitle = (pct) => {
-  if (pct >= 95) return "Expert";
-  if (pct >= 80) return "Advanced";
-  if (pct >= 60) return "Learner";
-  return null;
 };
 
 const ChevronRight = () => (
@@ -48,107 +43,196 @@ const ChevronLeft = () => (
   </svg>
 );
 const CheckIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
 const XIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
-
 const GridBg = () => <div className="ms-grid" aria-hidden="true" />;
 
-const ThresholdCard = ({ pct }) => {
-  if (pct >= 80) return (
-    <div className="ms-threshold ms-threshold--pass">
-      <div className="ms-threshold__icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-          <polyline points="20 6 9 17 4 12" />
+const BlockedScreen = ({ topicMeta, topicId }) => (
+  <div className="ms-blocked"><GridBg />
+    <div className="ms-blocked__inner">
+      <div className="ms-blocked__icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
         </svg>
       </div>
-      <div>
-        <p className="ms-threshold__title">Mastery card unlocked</p>
-        <p className="ms-threshold__sub">This topic has been added to your profile.</p>
+      <h2 className="ms-blocked__title">Come back tomorrow</h2>
+      <p className="ms-blocked__sub">You've already completed the {topicMeta?.title} mastery test today. Rest lets your reasoning consolidate — that's not a delay, it's how learning works.</p>
+      <div className="ms-blocked__actions">
+        <Link to="/practice" state={{ topicId }} className="ms-btn ms-btn--primary">Practice instead <ChevronRight /></Link>
+        <Link to="/diagnostics" className="ms-btn ms-btn--ghost">Run Diagnostic</Link>
       </div>
+    </div>
+  </div>
+);
+
+const GateScreen = ({ topicMeta, topicId, activeGapCount }) => (
+  <div className="ms-blocked"><GridBg />
+    <div className="ms-blocked__inner">
+      <div className="ms-blocked__icon ms-blocked__icon--gap">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h2 className="ms-blocked__title">Close your gaps first</h2>
+      <p className="ms-blocked__sub">You have <strong>{activeGapCount} active reasoning gap{activeGapCount !== 1 ? "s" : ""}</strong> on {topicMeta?.title}. The mastery test confirms you've closed them — not finds them.</p>
+      <div className="ms-blocked__actions">
+        <Link to="/diagnostics" className="ms-btn ms-btn--primary">Run Diagnostic <ChevronRight /></Link>
+        <Link to="/practice" state={{ topicId }} className="ms-btn ms-btn--ghost">Targeted Practice</Link>
+      </div>
+    </div>
+  </div>
+);
+
+const ThresholdCard = ({ pct }) => {
+  if (pct >= 75) return (
+    <div className="ms-threshold ms-threshold--pass">
+      <div className="ms-threshold__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg></div>
+      <div><p className="ms-threshold__title">Eligible for mastery card</p><p className="ms-threshold__sub">Save it to your profile to make it permanent.</p></div>
     </div>
   );
   if (pct >= 60) return (
     <div className="ms-threshold ms-threshold--close">
-      <div className="ms-threshold__icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-      </div>
-      <div>
-        <p className="ms-threshold__title">Almost there</p>
-        <p className="ms-threshold__sub">You're close — run a diagnostic to find what's holding you back.</p>
-      </div>
+      <div className="ms-threshold__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <div><p className="ms-threshold__title">Almost there</p><p className="ms-threshold__sub">Run a diagnostic to find what's holding you back.</p></div>
     </div>
   );
   return (
     <div className="ms-threshold ms-threshold--fail">
-      <div className="ms-threshold__icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
+      <div className="ms-threshold__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div><p className="ms-threshold__title">Reasoning gaps present</p><p className="ms-threshold__sub">Run a diagnostic to find exactly where.</p></div>
+    </div>
+  );
+};
+
+const SaveCardPanel = ({ decision, currentCard, newPct, onSave, saving, saved, cooldown }) => {
+  if (!decision || !decision.canSave) return null;
+  const isDowngrade   = decision.isDowngrade;
+  const noImprovement = decision.reason === "no_improvement";
+  return (
+    <div className={`ms-save-panel ${isDowngrade ? "ms-save-panel--warn" : ""}`}>
+      <div className="ms-save-panel__left">
+        {saved ? (
+          <p className="ms-save-panel__saved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>Card saved to your profile</p>
+        ) : (
+          <>
+            <p className="ms-save-panel__title">{isDowngrade ? `Save as ${decision.newTitle.title}? Your current card is ${currentCard.title}.` : noImprovement ? `Score didn't improve. Save anyway?` : `Save ${decision.newTitle.title} card to your profile?`}</p>
+            <p className="ms-save-panel__sub">{isDowngrade ? "This will replace your current card with a lower title." : "This credential will appear on your profile permanently."}</p>
+          </>
+        )}
       </div>
-      <div>
-        <p className="ms-threshold__title">Reasoning gaps likely present</p>
-        <p className="ms-threshold__sub">Run a diagnostic to find exactly where your reasoning breaks.</p>
+      {!saved && (
+        <button className="ms-save-btn" onClick={onSave} disabled={saving || cooldown > 0} style={{ "--title-color": decision.newTitle?.color }}>
+          {saving ? "Saving…" : cooldown > 0 ? `Wait ${cooldown}s` : isDowngrade ? "Save anyway" : "Save to profile"}
+        </button>
+      )}
+    </div>
+  );
+};
+
+/* ── Per-gap performance summary ── */
+const GapSummary = ({ tasks }) => {
+  const byGap = {};
+  tasks.forEach(t => {
+    const key = t.category || t.gapTag || "other";
+    if (!byGap[key]) byGap[key] = { correct: 0, total: 0 };
+    byGap[key].total++;
+    if (t.userAnswer === t.correct) byGap[key].correct++;
+  });
+
+  const gaps = Object.entries(byGap)
+    .map(([name, s]) => ({ name, correct: s.correct, total: s.total, wrong: s.total - s.correct }))
+    .sort((a, b) => b.wrong - a.wrong);
+
+  if (!gaps.length) return null;
+
+  return (
+    <div className="ms-gap-summary">
+      <p className="ms-gap-summary__label">By gap type</p>
+      <div className="ms-gap-summary__grid">
+        {gaps.map(g => {
+          const pct    = Math.round((g.correct / g.total) * 100);
+          const isWeak = g.wrong >= g.correct;
+          return (
+            <div key={g.name} className={`ms-gap-pill ${isWeak ? "ms-gap-pill--weak" : "ms-gap-pill--ok"}`}>
+              <div className="ms-gap-pill__top">
+                <span className="ms-gap-pill__name">{g.name}</span>
+                <span className="ms-gap-pill__score">{g.correct}/{g.total}</span>
+              </div>
+              <div className="ms-gap-pill__bar">
+                <div className="ms-gap-pill__fill" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
+/* ══════════════════════════════════════════════════════════════════════════
+   PAGE
+══════════════════════════════════════════════════════════════════════════ */
 const MasteryTestPage = () => {
-  const { user }  = useAuth();
-  const location  = useLocation();
-  const navigate  = useNavigate();
-
+  const { user } = useAuth();
+  const location = useLocation();
   const topicId   = location.state?.topicId || "quadratic";
   const topicMeta = topics.find(t => t.id === topicId);
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pageState,   setPageState]   = useState("loading");
-  const [hwDoc,       setHwDoc]       = useState(null);
-  const [currentIdx,  setCurrentIdx]  = useState(0);
-  const [completing,  setCompleting]  = useState(false);
-  const [lockedIdx,   setLockedIdx]   = useState(new Set());
+  const [sidebarOpen,    setSidebarOpen]    = useState(false);
+  const [pageState,      setPageState]      = useState("loading");
+  const [hwDoc,          setHwDoc]          = useState(null);
+  const [currentIdx,     setCurrentIdx]     = useState(0);
+  const [completing,     setCompleting]     = useState(false);
+  const [activeGapCount, setActiveGapCount] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [showAllAnswers,  setShowAllAnswers]  = useState(false);
+
+  const [currentCard,  setCurrentCard]  = useState(null);
+  const [saveDecision, setSaveDecision] = useState(null);
+  const [savingCard,   setSavingCard]   = useState(false);
+  const [cardSaved,    setCardSaved]    = useState(false);
+  const [saveCooldown, setSaveCooldown] = useState(0);
+  const [xpAwarded,    setXpAwarded]   = useState(0);
+  const cooldownRef  = useRef(null);
+  const saveQueueRef = useRef(Promise.resolve());
+  const autoAdvRef   = useRef(null);
 
   const [elapsed, setElapsed] = useState(0);
+  const elapsedRef = useRef(0);
   const timerRef = useRef(null);
-  const startTimer = () => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
-  };
-  const stopTimer = () => clearInterval(timerRef.current);
+  const startTimer = () => { clearInterval(timerRef.current); timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000); };
+  const stopTimer  = () => clearInterval(timerRef.current);
   useEffect(() => () => clearInterval(timerRef.current), []);
-
-  const savingRef  = useRef(false);
-  const autoAdvRef = useRef(null);
+ useEffect(() => { elapsedRef.current = elapsed; }, [elapsed]);
 
   useEffect(() => {
     if (!user?.uid) return;
     const load = async () => {
+      const { eligible, activeGapCount: gapCount } = await checkMasteryEligibility(user.uid, topicId);
+      if (!eligible) { setActiveGapCount(gapCount); setPageState("gate"); return; }
+      const { blocked } = await checkDailyLimit(user.uid, topicId);
+      if (blocked) { setPageState("blocked"); return; }
+      const card = await getMasteryCard(user.uid, topicId);
+      setCurrentCard(card);
       let doc = await getMasteryTest(user.uid, topicId);
       if (!doc) {
-        const masteryTasks = generatePracticeSession(topicId, 15);
-        if (!masteryTasks?.length) { setPageState("empty"); return; }
-        doc = await assignMasteryTest(user.uid, topicId, {
-          topicTitle: topicMeta?.title || topicId,
-          tasks: masteryTasks,
-        });
+        const tasks = generateMasterySession(topicId, 15);
+        if (!tasks?.length) { setPageState("empty"); return; }
+        doc = await assignMasteryTest(user.uid, topicId, { topicTitle: topicMeta?.title || topicId, tasks });
       }
       if (!doc) { setPageState("empty"); return; }
       setHwDoc(doc);
       if (doc.tasks) {
-        const answered = new Set(
-          doc.tasks.map((t, i) => t.userAnswer != null ? i : null).filter(i => i !== null)
-        );
-        setLockedIdx(answered);
+        const saved = {};
+        doc.tasks.forEach((t, i) => { if (t.userAnswer != null) saved[i] = t.userAnswer; });
+        setSelectedAnswers(saved);
       }
       if (doc.status === "in_progress") setElapsed(doc.timeSecs || 0);
       setPageState(doc.status === "completed" ? "results" : "intro");
@@ -156,34 +240,43 @@ const MasteryTestPage = () => {
     load();
   }, [user?.uid, topicId]); // eslint-disable-line
 
-  const tasks         = hwDoc?.tasks || [];
-  const totalTasks    = tasks.length;
-  const answeredCount = tasks.filter(t => t.userAnswer != null).length;
-  const allAnswered   = answeredCount === totalTasks && totalTasks > 0;
-  const currentTask   = tasks[currentIdx] || null;
-  const isLastTask    = currentIdx + 1 >= totalTasks;
-  const isLocked      = lockedIdx.has(currentIdx);
+  useEffect(() => {
+    if (pageState !== "solving" || !user?.uid) return;
+    const interval = setInterval(async () => {
+      try {
+        const { setDoc, doc } = await import("firebase/firestore");
+        const { db } = await import("../../firebase/firebaseConfig");
+        await setDoc(doc(db, "users", user.uid, "masteryTests", topicId), { timeSecs: elapsedRef.current }, { merge: true });
+      } catch (e) { console.warn("[mastery] timer persist failed:", e); }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [pageState, user?.uid, topicId]);
 
-  const handleSelectAnswer = async (taskId, label) => {
-    if (!user?.uid || isLocked) return;
-    setLockedIdx(prev => new Set([...prev, currentIdx]));
+  const tasks      = hwDoc?.tasks || [];
+  const totalTasks = tasks.length;
+
+  const effectiveTasks = tasks.map((t, i) => ({
+    ...t,
+    userAnswer: selectedAnswers[i] ?? t.userAnswer ?? null,
+  }));
+
+  const answeredCount = effectiveTasks.filter(t => t.userAnswer != null).length;
+  const allAnswered   = answeredCount === totalTasks && totalTasks > 0;
+  const currentTask   = effectiveTasks[currentIdx] || null;
+  const isLastTask    = currentIdx + 1 >= totalTasks;
+
+  const handleSelectAnswer = useCallback((taskId, label) => {
+    if (!user?.uid) return;
+    setSelectedAnswers(prev => ({ ...prev, [currentIdx]: label }));
     setHwDoc(prev => {
       if (!prev) return prev;
       return { ...prev, tasks: prev.tasks.map(t => t.id === taskId ? { ...t, userAnswer: label } : t) };
     });
-    if (!savingRef.current) {
-      savingRef.current = true;
-      try {
-        const updated = await saveMasteryAnswer(user.uid, topicId, taskId, label);
-        if (updated && !updated._error) setHwDoc(updated);
-      } finally { savingRef.current = false; }
-    }
-    if (!isLastTask) {
-      clearTimeout(autoAdvRef.current);
-      autoAdvRef.current = setTimeout(() => setCurrentIdx(i => i + 1), 800);
-    }
-  };
-  useEffect(() => () => clearTimeout(autoAdvRef.current), []);
+    saveQueueRef.current = saveQueueRef.current.then(async () => {
+      try { await saveMasteryAnswer(user.uid, topicId, taskId, label); }
+      catch (e) { console.error("[mastery] save error:", e); }
+    });
+  }, [user?.uid, topicId, currentIdx]);
 
   const handleNext = useCallback(() => {
     if (currentIdx + 1 < totalTasks) setCurrentIdx(i => i + 1);
@@ -193,51 +286,79 @@ const MasteryTestPage = () => {
     if (currentIdx > 0) setCurrentIdx(i => i - 1);
   }, [currentIdx]);
 
+  useEffect(() => () => clearTimeout(autoAdvRef.current), []);
+
   const handleFinish = async () => {
     if (!allAnswered || completing) return;
     setCompleting(true);
     stopTimer();
     try {
+      await saveQueueRef.current;
       const result = await completeMasteryTest(user.uid, topicId, elapsed);
-      if (result && !result._error) {
-        setHwDoc(result);
-        setPageState("results");
-        const pct = result.score?.percent ?? 0;
-        await awardPoints(user.uid, "mastery_complete", { percent: pct });
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      if (!result || result._error) { console.error("[mastery] complete error:", result?._error); return; }
+      setHwDoc(result);
+      setPageState("results");
+      const pct    = result.score?.percent ?? 0;
+      const earned = await awardPoints(user.uid, "mastery_complete", { percent: pct });
+      setXpAwarded(earned ?? 0);
+      await recordCompletionDate(user.uid, topicId);
+      setSaveDecision(decideSaveAction(currentCard, pct));
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally { setCompleting(false); }
   };
 
-  const handleStartSolving = () => {
-    const firstUnanswered = tasks.findIndex(t => t.userAnswer == null);
-    setCurrentIdx(firstUnanswered >= 0 ? firstUnanswered : 0);
-    startTimer();
-    setPageState("solving");
+  const handleSaveCard = async () => {
+    if (savingCard || cardSaved || saveCooldown > 0 || !saveDecision?.canSave) return;
+    setSavingCard(true);
+    try {
+      const pct = hwDoc?.score?.percent ?? 0;
+      const titleObj = saveDecision.newTitle;
+      await saveMasteryCard(user.uid, topicId, topicMeta?.title || topicId, pct, titleObj);
+      setCardSaved(true);
+      setCurrentCard({ title: titleObj.title, titleColor: titleObj.color, score: pct });
+    } catch (err) {
+      console.error("[mastery] save card error:", err);
+      setSaveCooldown(30);
+      const interval = setInterval(() => setSaveCooldown(prev => { if (prev <= 1) { clearInterval(interval); return 0; } return prev - 1; }), 1000);
+      cooldownRef.current = interval;
+    } finally { setSavingCard(false); }
   };
+  useEffect(() => () => clearInterval(cooldownRef.current), []);
 
   const handleRetry = async () => {
     if (!user?.uid) return;
+    const { blocked } = await checkDailyLimit(user.uid, topicId);
+    if (blocked) { setPageState("blocked"); return; }
     setPageState("loading");
-    const masteryTasks = generatePracticeSession(topicId, 15);
-    const doc = await assignMasteryTest(user.uid, topicId, {
-      topicTitle: topicMeta?.title || topicId,
-      tasks: masteryTasks,
-      forceNew: true,
-    });
+    setCardSaved(false); setSaveDecision(null); setSaveCooldown(0);
+    setSelectedAnswers({}); setShowAllAnswers(false);
+    saveQueueRef.current = Promise.resolve();
+    const newTasks = generateMasterySession(topicId, 15);
+    const doc = await assignMasteryTest(user.uid, topicId, { topicTitle: topicMeta?.title || topicId, tasks: newTasks, forceNew: true });
     if (!doc) { setPageState("empty"); return; }
-    setHwDoc(doc);
-    setLockedIdx(new Set());
-    setElapsed(0);
-    setCurrentIdx(0);
-    setPageState("intro");
+    setHwDoc(doc); setElapsed(0); setCurrentIdx(0); setPageState("intro");
   };
 
+  const handleStartSolving = () => {
+    const firstUnanswered = effectiveTasks.findIndex(t => t.userAnswer == null);
+    setCurrentIdx(firstUnanswered >= 0 ? firstUnanswered : 0);
+    startTimer(); setPageState("solving");
+  };
+
+  /* Keyboard nav + A/B/C/D shortcuts */
   useEffect(() => {
     if (pageState !== "solving") return;
     const handler = (e) => {
       if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
       if (e.target.contentEditable === "true") return;
+
+      /* A/B/C/D — select answer */
+      if (["a","b","c","d"].includes(e.key.toLowerCase()) && currentTask) {
+        const label = e.key.toUpperCase();
+        const opt   = currentTask.options?.find(o => o.label === label);
+        if (opt) { e.preventDefault(); handleSelectAnswer(currentTask.id, label); return; }
+      }
+
       if (e.key === "ArrowLeft")  { e.preventDefault(); handlePrev(); }
       if (e.key === "ArrowRight" || e.key === "Enter") {
         e.preventDefault();
@@ -247,14 +368,14 @@ const MasteryTestPage = () => {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [pageState, handleNext, handlePrev, isLastTask, allAnswered]); // eslint-disable-line
+  }, [pageState, handleNext, handlePrev, handleSelectAnswer, isLastTask, allAnswered, currentTask]); // eslint-disable-line
 
   const scoreData = (() => {
     if (!hwDoc || pageState !== "results") return null;
     const correct = tasks.filter(t => t.userAnswer === t.correct).length;
     const total   = tasks.length;
     const pct     = total ? Math.round((correct / total) * 100) : 0;
-    const xp      = Math.round(pct * 3.2);
+    const xp      = xpAwarded > 0 ? xpAwarded : Math.round(pct * 3.2);
     return { correct, total, pct, xp };
   })();
 
@@ -262,30 +383,16 @@ const MasteryTestPage = () => {
     <div className="page-shell">
       <Header sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(v => !v)} />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
       <main className="page-main ms-page">
 
-        {pageState === "loading" && (
-          <div className="ms-loading">
-            <span className="ms-loading__dot" />
-            <span className="ms-loading__dot" />
-            <span className="ms-loading__dot" />
-          </div>
-        )}
-
-        {pageState === "empty" && (
-          <div className="ms-empty">
-            <p className="ms-eyebrow">Mastery Test</p>
-            <h2 className="ms-empty__title">No tasks available yet</h2>
-            <p className="ms-empty__sub">Tasks for this topic haven't been added yet.</p>
-            <Link to="/theory" className="ms-btn ms-btn--ghost"><ChevronLeft /> Back to Theory</Link>
-          </div>
-        )}
+        {pageState === "loading" && <div className="ms-loading"><span className="ms-loading__dot" /><span className="ms-loading__dot" /><span className="ms-loading__dot" /></div>}
+        {pageState === "gate"    && <GateScreen topicMeta={topicMeta} topicId={topicId} activeGapCount={activeGapCount} />}
+        {pageState === "blocked" && <BlockedScreen topicMeta={topicMeta} topicId={topicId} />}
+        {pageState === "empty"   && <div className="ms-empty"><p className="ms-eyebrow">Mastery Test</p><h2 className="ms-empty__title">No tasks available yet</h2><p className="ms-empty__sub">Tasks for this topic haven't been added yet.</p><Link to="/theory" className="ms-btn ms-btn--ghost"><ChevronLeft /> Back to Theory</Link></div>}
 
         {/* ── INTRO ── */}
         {pageState === "intro" && (
-          <div className="ms-intro">
-            <GridBg />
+          <div className="ms-intro"><GridBg />
             <section className="ms-hero">
               <div className="ms-hero__inner">
                 <div className="ms-hero__left">
@@ -296,131 +403,64 @@ const MasteryTestPage = () => {
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                     <span className="ms-breadcrumb__cur">Mastery Test</span>
                   </nav>
-                  <div className="ms-hero__tag">
-                    <span className="ms-hero__dot" />
-                    Final Assessment
-                  </div>
+                  <div className="ms-hero__tag"><span className="ms-hero__dot" />Final Assessment</div>
                   <h1 className="ms-hero__title">{topicMeta?.title || topicId}</h1>
-                  <p className="ms-hero__sub">
-                    Prove you've closed the gaps. This test is harder than practice —
-                    it covers all reasoning areas at once. Score 80% or above to
-                    unlock your mastery card on the profile.
-                  </p>
+                  <p className="ms-hero__sub">Prove you've closed the gaps. This test covers all reasoning areas at once in formats you haven't seen before. Score 75%+ to earn a mastery card.</p>
+                  {currentCard && <div className="ms-current-card"><span className="ms-current-card__label">Current card</span><span className="ms-current-card__title" style={{ color: currentCard.titleColor }}>{currentCard.title}</span><span className="ms-current-card__score">{currentCard.score}%</span></div>}
                   <div className="ms-hero__stats">
-                    <div className="ms-hero__stat">
-                      <strong>{totalTasks}</strong>
-                      <span>Questions</span>
-                    </div>
+                    <div className="ms-hero__stat"><strong>{totalTasks}</strong><span>Questions</span></div>
                     <div className="ms-hero__sdiv" />
-                    <div className="ms-hero__stat">
-                      <strong>80%</strong>
-                      <span>To unlock</span>
-                    </div>
+                    <div className="ms-hero__stat"><strong>75%</strong><span>To earn card</span></div>
                     <div className="ms-hero__sdiv" />
-                    <div className="ms-hero__stat">
-                      <strong>~20 min</strong>
-                      <span>Estimated</span>
-                    </div>
+                    <div className="ms-hero__stat"><strong>~20 min</strong><span>Estimated</span></div>
                   </div>
                 </div>
-
                 <div className="ms-hero__right">
                   <div className="ms-action-card">
-                    <div className="ms-action-card__head">
-                      <p className="ms-action-card__cap">How it works</p>
-                    </div>
+                    <div className="ms-action-card__head"><p className="ms-action-card__cap">How it works</p></div>
                     <div className="ms-action-card__rules">
                       {[
-                        "Answers lock after selection — no going back",
-                        "No hints, no notes panel",
-                        "Progress saves — you can resume anytime",
-                        "80%+ unlocks your mastery card on profile",
+                        "Change your answer freely at any time before submitting",
+                        "Press A, B, C, D to select — no mouse needed",
+                        "Navigate between questions with ← →",
+                        "75%+ makes you eligible to save a card",
+                        "Once per day — results need time to settle",
                       ].map((r, i) => (
-                        <div key={i} className="ms-action-rule">
-                          <span className="ms-action-rule__dot" />
-                          <span>{r}</span>
-                        </div>
+                        <div key={i} className="ms-action-rule"><span className="ms-action-rule__dot" /><span>{r}</span></div>
                       ))}
                     </div>
-                    {answeredCount > 0 && (
-                      <div className="ms-action-card__resume">
-                        <div className="ms-action-card__resume-bar">
-                          <div
-                            className="ms-action-card__resume-fill"
-                            style={{ width: `${Math.round((answeredCount / totalTasks) * 100)}%` }}
-                          />
-                        </div>
-                        <span>{answeredCount}/{totalTasks} saved</span>
-                      </div>
-                    )}
-                    <button className="ms-action-card__btn" onClick={handleStartSolving}>
-                      {answeredCount > 0 ? "Continue Test" : "Begin Mastery Test"}
-                      <ChevronRight />
-                    </button>
-                    <p className="ms-action-card__note">
-                      {answeredCount > 0
-                        ? `${totalTasks - answeredCount} questions remaining`
-                        : "Progress is saved automatically"}
-                    </p>
+                    {answeredCount > 0 && <div className="ms-action-card__resume"><div className="ms-action-card__resume-bar"><div className="ms-action-card__resume-fill" style={{ width: `${Math.round((answeredCount / totalTasks) * 100)}%` }} /></div><span>{answeredCount}/{totalTasks} answered</span></div>}
+                    <button className="ms-action-card__btn" onClick={handleStartSolving}>{answeredCount > 0 ? "Continue Test" : "Begin Mastery Test"}<ChevronRight /></button>
+                    <p className="ms-action-card__note">{answeredCount > 0 ? `${totalTasks - answeredCount} questions remaining` : "Progress is saved automatically"}</p>
                   </div>
                 </div>
               </div>
             </section>
-
             <section className="ms-intro__body">
               <div className="ms-intro__body-inner">
-                <div className="ms-info-block">
-                  <p className="ms-info-block__cap">What this tests</p>
-                  <p className="ms-info-block__text">
-                    Unlike practice, this test draws from all five reasoning gap categories at once —
-                    discriminant interpretation, double-root recognition, division traps, factoring
-                    patterns, and Vieta's formulas. All areas must hold up.
-                  </p>
-                </div>
-                <div className="ms-info-block">
-                  <p className="ms-info-block__cap">What you get</p>
-                  <p className="ms-info-block__text">
-                    Pass with 80%+ and a mastery card is added to your profile permanently.
-                    The card shows your title — Learner, Advanced, or Expert — and the date
-                    you earned it.
-                  </p>
-                </div>
-                <div className="ms-info-block">
-                  <p className="ms-info-block__cap">If you don't pass</p>
-                  <p className="ms-info-block__text">
-                    Your result shows which questions you got wrong. Run a diagnostic to
-                    find the exact gap, work through theory and practice, then retry.
-                  </p>
-                </div>
+                <div className="ms-info-block"><p className="ms-info-block__cap">What this tests</p><p className="ms-info-block__text">All five reasoning gap categories at once — discriminant interpretation, double-root recognition, division traps, factoring patterns, and Vieta's formulas. Questions are non-standard.</p></div>
+                <div className="ms-info-block"><p className="ms-info-block__cap">The mastery card</p><p className="ms-info-block__text">Score 75%+ and you can save a card to your profile — Proficient, Advanced, Expert, or Flawless. You decide whether to save. Retry to earn a higher title.</p></div>
+                <div className="ms-info-block"><p className="ms-info-block__cap">If you don't pass</p><p className="ms-info-block__text">Your results show which gap types broke down. Run a diagnostic to find the exact gap, work through practice, then retry tomorrow.</p></div>
               </div>
             </section>
           </div>
         )}
 
-        {/* ── SOLVING ── */}
+        {/* ── SOLVING — full width, no notes panel ── */}
         {pageState === "solving" && (
-          <div className="ms-solve">
-            <GridBg />
+          <div className="ms-solve"><GridBg />
             <div className="ms-solve__bar">
               <div className="ms-solve__bar-left">
-                <Link to="/theory" className="ms-solve__back">
-                  <ChevronLeft /> Theory
-                </Link>
+                <Link to="/theory" className="ms-solve__back"><ChevronLeft /> Theory</Link>
                 <span className="ms-solve__sep">/</span>
                 <span className="ms-solve__topic">{topicMeta?.title || topicId}</span>
               </div>
               <div className="ms-solve__bar-center">
                 <div className="ms-solve__segs">
-                  {tasks.map((t, i) => (
-                    <button
-                      key={i}
-                      className={[
-                        "ms-seg",
-                        i === currentIdx     ? "ms-seg--active"   : "",
-                        t.userAnswer != null ? "ms-seg--answered" : "",
-                      ].filter(Boolean).join(" ")}
-                      onClick={() => setCurrentIdx(i)}
-                      title={`Q${i + 1}`}
+                  {effectiveTasks.map((t, i) => (
+                    <button key={i}
+                      className={["ms-seg", i === currentIdx ? "ms-seg--active" : "", t.userAnswer != null ? "ms-seg--answered" : ""].filter(Boolean).join(" ")}
+                      onClick={() => setCurrentIdx(i)} title={`Q${i + 1}`}
                     />
                   ))}
                 </div>
@@ -428,9 +468,7 @@ const MasteryTestPage = () => {
               </div>
               <div className="ms-solve__bar-right">
                 <span className="ms-solve__timer">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {formatTime(elapsed)}
                 </span>
                 <span className="ms-solve__counter">{currentIdx + 1} / {totalTasks}</span>
@@ -438,163 +476,114 @@ const MasteryTestPage = () => {
             </div>
 
             <div className="diag-shell diag-shell--with-notes ms-solve__shell">
-              <div className="diag-shell__main ms-solve__main">
-                {currentTask && (
-                  <div className="ms-question-card">
-                    <div className="ms-question-card__meta">
-                      <span className="ms-question-card__num">
-                        {String(currentIdx + 1).padStart(2, "0")}
-                        <em>/{String(totalTasks).padStart(2, "0")}</em>
-                      </span>
-                      {currentTask.category && (
-                        <span className="ms-question-card__cat">{currentTask.category}</span>
-                      )}
-                      {isLocked && (
-                        <span className="ms-locked-pill">
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                          </svg>
-                          locked
-                        </span>
-                      )}
-                    </div>
+  <div className="diag-shell__main ms-solve__body">
+    {currentTask && (
+                <div className="ms-question-card">
+                  <div className="ms-question-card__meta">
+                    <span className="ms-question-card__num">
+                      {String(currentIdx + 1).padStart(2, "0")}
+                      <em>/{String(totalTasks).padStart(2, "0")}</em>
+                    </span>
+                    {currentTask.category && (
+                      <span className="ms-question-card__cat">{currentTask.category}</span>
+                    )}
+                    <span className="ms-kbd-hint">
+                      <kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd>
+                      <span>to select</span>
+                    </span>
+                  </div>
 
-                    <h2 className="ms-question-card__text">{currentTask.text}</h2>
+                  <h2 className="ms-question-card__text">{currentTask.text}</h2>
 
-                    <div className="ms-options">
-                      {(currentTask.options || []).map(opt => {
-                        const isSelected = currentTask.userAnswer === opt.label;
-                        const isDimmed   = isLocked && !isSelected;
-                        return (
-                          <button
-                            key={opt.label}
-                            className={[
-                              "ms-option",
-                              isSelected ? "ms-option--selected" : "",
-                              isDimmed   ? "ms-option--dim"      : "",
-                            ].filter(Boolean).join(" ")}
-                            onClick={() => handleSelectAnswer(currentTask.id, opt.label)}
-                            disabled={isLocked}
-                          >
-                            <span className="ms-option__lbl">{opt.label}</span>
-                            <span className="ms-option__val">{opt.value}</span>
-                            {isSelected && <span className="ms-option__check"><CheckIcon /></span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="ms-question-card__nav">
-                      <button
-                        className="ms-navbtn ms-navbtn--ghost"
-                        onClick={handlePrev}
-                        disabled={currentIdx === 0}
-                      >
-                        <ChevronLeft /> Prev
-                      </button>
-                      <div className="ms-navbtn__hint">
-                        <kbd>←</kbd><kbd>→</kbd> navigate
-                      </div>
-                      {isLastTask ? (
-                        <button
-                          className={`ms-navbtn${allAnswered ? " ms-navbtn--primary" : " ms-navbtn--ghost ms-navbtn--disabled"}`}
-                          onClick={handleFinish}
-                          disabled={!allAnswered || completing}
+                  <div className="ms-options">
+                    {(currentTask.options || []).map(opt => {
+                      const isSelected = currentTask.userAnswer === opt.label;
+                      return (
+                        <button key={opt.label}
+                          className={["ms-option", isSelected ? "ms-option--selected" : ""].filter(Boolean).join(" ")}
+                          onClick={() => handleSelectAnswer(currentTask.id, opt.label)}
                         >
-                          {completing ? "Submitting…" : "Submit"} <ChevronRight />
+                          <span className="ms-option__lbl">{opt.label}</span>
+                          <span className="ms-option__val">{opt.value}</span>
+                          {isSelected && <span className="ms-option__check"><CheckIcon /></span>}
                         </button>
-                      ) : (
-                        <button className="ms-navbtn ms-navbtn--primary" onClick={handleNext}>
-                          Next <ChevronRight />
-                        </button>
-                      )}
-                    </div>
+                      );
+                    })}
+                  </div>
 
-                    {isLastTask && !allAnswered && (
-                      <p className="ms-question-card__remaining">
-                        {totalTasks - answeredCount} question{totalTasks - answeredCount !== 1 ? "s" : ""} unanswered
-                      </p>
+                  <div className="ms-question-card__nav">
+                    <button className="ms-navbtn ms-navbtn--ghost" onClick={handlePrev} disabled={currentIdx === 0}><ChevronLeft /> Prev</button>
+                    <div className="ms-navbtn__hint"><kbd>←</kbd><kbd>→</kbd> navigate</div>
+                    {isLastTask ? (
+                      <button
+                        className={`ms-navbtn${allAnswered ? " ms-navbtn--primary" : " ms-navbtn--ghost ms-navbtn--disabled"}`}
+                        onClick={handleFinish} disabled={!allAnswered || completing}
+                      >
+                        {completing ? "Submitting…" : "Submit"} <ChevronRight />
+                      </button>
+                    ) : (
+                      <button className="ms-navbtn ms-navbtn--primary" onClick={handleNext}>Next <ChevronRight /></button>
                     )}
                   </div>
-                )}
-              </div>
-              <NotesPanel sessionId={`mastery_${topicId}`} />
-            </div>
+
+                  {isLastTask && !allAnswered && (
+                    <p className="ms-question-card__remaining">
+                      {totalTasks - answeredCount} question{totalTasks - answeredCount !== 1 ? "s" : ""} unanswered
+                    </p>
+                  )}
+                </div>
+              )}
+  </div>
+  <NotesPanel sessionId={`mastery_${topicId}`} />
+</div>
           </div>
         )}
 
         {/* ── RESULTS ── */}
         {pageState === "results" && scoreData && (() => {
-          const perf  = getPerf(scoreData.pct);
-          const title = getMasteryTitle(scoreData.pct);
+          const perf       = getPerf(scoreData.pct);
+          const titleObj   = getMasteryTitle(scoreData.pct);
+          const wrongTasks = tasks.filter(t => t.userAnswer !== t.correct);
+          const displayedTasks = showAllAnswers ? tasks : wrongTasks;
+
           return (
-            <div className="ms-results">
-              <GridBg />
+            <div className="ms-results"><GridBg />
               <section className="ms-results-hero">
                 <div className="ms-results-hero__inner">
                   <div className="ms-results-hero__left">
                     <nav className="ms-breadcrumb">
                       <Link to="/home" className="ms-breadcrumb__item">Home</Link>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                      <span className="ms-breadcrumb__cur">Mastery Test Results</span>
+                      <span className="ms-breadcrumb__cur">Mastery Results</span>
                     </nav>
-                    <div className="ms-results-hero__grade-row">
-                      <span className="ms-results-grade" style={{ color: perf.color }}>{perf.grade}</span>
-                      <div>
-                        <h1 className="ms-results-title">{perf.title}</h1>
-                        <p className="ms-results-sub">{perf.sub}</p>
-                      </div>
-                    </div>
+                    <h1 className="ms-results-title" style={{ color: perf.color }}>{perf.label}</h1>
+                    <p className="ms-results-sub">{perf.sub}</p>
                     <div className="ms-results-stats">
-                      <div className="ms-results-stat">
-                        <strong style={{ color: perf.color }}>{scoreData.pct}%</strong>
-                        <span>Score</span>
-                      </div>
+                      <div className="ms-results-stat"><strong style={{ color: perf.color }}>{scoreData.pct}%</strong><span>Score</span></div>
                       <div className="ms-results-stat__div" />
-                      <div className="ms-results-stat">
-                        <strong>{scoreData.correct}/{scoreData.total}</strong>
-                        <span>Correct</span>
-                      </div>
+                      <div className="ms-results-stat"><strong>{scoreData.correct}/{scoreData.total}</strong><span>Correct</span></div>
                       <div className="ms-results-stat__div" />
-                      <div className="ms-results-stat">
-                        <strong style={{ color: "var(--teal)" }}>+{scoreData.xp}</strong>
-                        <span>XP earned</span>
-                      </div>
-                      {title && (
-                        <>
-                          <div className="ms-results-stat__div" />
-                          <div className="ms-results-stat">
-                            <strong style={{ color: title === "Expert" ? "#9b59b6" : title === "Advanced" ? "#d35400" : "var(--teal)" }}>
-                              {title}
-                            </strong>
-                            <span>Title</span>
-                          </div>
-                        </>
-                      )}
-                      {hwDoc?.timeSecs > 0 && (
-                        <>
-                          <div className="ms-results-stat__div" />
-                          <div className="ms-results-stat">
-                            <strong>{formatTime(hwDoc.timeSecs)}</strong>
-                            <span>Time</span>
-                          </div>
-                        </>
-                      )}
+                      <div className="ms-results-stat"><strong style={{ color: "var(--teal)" }}>+{scoreData.xp}</strong><span>XP earned</span></div>
+                      {titleObj && <><div className="ms-results-stat__div" /><div className="ms-results-stat"><strong style={{ color: titleObj.color }}>{titleObj.title}</strong><span>{cardSaved ? "Saved" : "Title earned"}</span></div></>}
+                      {hwDoc?.timeSecs > 0 && <><div className="ms-results-stat__div" /><div className="ms-results-stat"><strong>{formatTime(hwDoc.timeSecs)}</strong><span>Time</span></div></>}
                     </div>
+                    <SaveCardPanel decision={saveDecision} currentCard={currentCard} newPct={scoreData.pct} onSave={handleSaveCard} saving={savingCard} saved={cardSaved} cooldown={saveCooldown} />
                     <div className="ms-results-actions">
-                      {scoreData.pct >= 80 ? (
+                      {cardSaved && <Link to="/profile" className="ms-btn ms-btn--primary">View Profile <ChevronRight /></Link>}
+                      {scoreData.pct >= 85 ? (
+                        <button className="ms-btn ms-btn--ghost" onClick={handleRetry}>Retry Test</button>
+                      ) : scoreData.pct >= 75 ? (
                         <>
-                          <Link to="/profile" className="ms-btn ms-btn--primary">View Profile Card <ChevronRight /></Link>
+                          <Link to="/diagnostics" className="ms-btn ms-btn--primary">
+                            Run Diagnostic <ChevronRight />
+                          </Link>
                           <button className="ms-btn ms-btn--ghost" onClick={handleRetry}>Retry Test</button>
-                        </>
-                      ) : scoreData.pct >= 60 ? (
-                        <>
-                          <button className="ms-btn ms-btn--primary" onClick={handleRetry}>Retry Test <ChevronRight /></button>
-                          <Link to="/diagnostics" className="ms-btn ms-btn--ghost">Run Diagnostic</Link>
                         </>
                       ) : (
                         <>
-                          <Link to="/diagnostics" className="ms-btn ms-btn--primary">Run Diagnostic <ChevronRight /></Link>
+                          <Link to="/diagnostics" className="ms-btn ms-btn--primary">
+                            Run Diagnostic <ChevronRight />
+                          </Link>
                           <Link to="/theory" className="ms-btn ms-btn--ghost">Review Theory</Link>
                           <button className="ms-btn ms-btn--ghost" onClick={handleRetry}>Retry Test</button>
                         </>
@@ -606,18 +595,13 @@ const MasteryTestPage = () => {
                     <div className="ms-score-ring-wrap">
                       <svg className="ms-score-ring" viewBox="0 0 120 120">
                         <circle cx="60" cy="60" r="48" fill="none" stroke="var(--border)" strokeWidth="8" />
-                        <circle
-                          cx="60" cy="60" r="48" fill="none"
-                          stroke={perf.color} strokeWidth="8"
+                        <circle cx="60" cy="60" r="48" fill="none" stroke={perf.color} strokeWidth="8"
                           strokeDasharray={`${(scoreData.pct / 100) * 301.6} 301.6`}
                           strokeLinecap="round" transform="rotate(-90 60 60)"
                           style={{ transition: "stroke-dasharray 1s ease" }}
                         />
                       </svg>
-                      <div className="ms-score-ring-center">
-                        <strong style={{ color: perf.color }}>{scoreData.pct}%</strong>
-                        <span>{topicMeta?.title}</span>
-                      </div>
+                      <div className="ms-score-ring-center"><strong style={{ color: perf.color }}>{scoreData.pct}%</strong><span>{topicMeta?.title}</span></div>
                     </div>
                   </div>
                 </div>
@@ -625,15 +609,43 @@ const MasteryTestPage = () => {
 
               <section className="ms-breakdown">
                 <div className="ms-breakdown__inner">
+
+                  {/* Gap summary — first thing student sees */}
+                  <GapSummary tasks={tasks} />
+
                   <div className="ms-breakdown__header">
-                    <p className="ms-breakdown__eyebrow">Answer Breakdown</p>
-                    <span className="ms-breakdown__count">
-                      {tasks.filter(t => t.userAnswer === t.correct).length} correct ·{" "}
-                      {tasks.filter(t => t.userAnswer !== t.correct).length} wrong
-                    </span>
+                    <div className="ms-breakdown__header-left">
+                      <p className="ms-breakdown__eyebrow">Answer Breakdown</p>
+                      <div className="ms-breakdown__toggle">
+                        <button
+                          className={`ms-breakdown__tab${!showAllAnswers ? " ms-breakdown__tab--active" : ""}`}
+                          onClick={() => setShowAllAnswers(false)}
+                        >
+                          Wrong only
+                          {wrongTasks.length > 0 && <span className="ms-breakdown__tab-count">{wrongTasks.length}</span>}
+                        </button>
+                        <button
+                          className={`ms-breakdown__tab${showAllAnswers ? " ms-breakdown__tab--active" : ""}`}
+                          onClick={() => setShowAllAnswers(true)}
+                        >
+                          Show all
+                          <span className="ms-breakdown__tab-count">{tasks.length}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <span className="ms-breakdown__count">{scoreData.correct} correct · {wrongTasks.length} wrong</span>
                   </div>
+
+                  {!showAllAnswers && wrongTasks.length === 0 && (
+                    <div className="ms-breakdown__perfect">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      All {tasks.length} questions correct.
+                    </div>
+                  )}
+
                   <div className="ms-breakdown__list">
-                    {tasks.map((t, i) => {
+                    {displayedTasks.map(t => {
+                      const i          = tasks.indexOf(t);
                       const isCorrect  = t.userAnswer === t.correct;
                       const userOpt    = t.options?.find(o => o.label === t.userAnswer);
                       const correctOpt = t.options?.find(o => o.label === t.correct);
@@ -648,9 +660,7 @@ const MasteryTestPage = () => {
                           <div className="ms-row__answers">
                             <span className={`ms-pill ${isCorrect ? "ms-pill--ok" : "ms-pill--wrong"}`}>
                               <span className="ms-pill__label">Your answer</span>
-                              <span className="ms-pill__val">
-                                {userOpt ? `${userOpt.label} — ${userOpt.value}` : "Not answered"}
-                              </span>
+                              <span className="ms-pill__val">{userOpt ? `${userOpt.label} — ${userOpt.value}` : "Not answered"}</span>
                             </span>
                             {!isCorrect && correctOpt && (
                               <span className="ms-pill ms-pill--ok">
@@ -668,7 +678,6 @@ const MasteryTestPage = () => {
             </div>
           );
         })()}
-
       </main>
     </div>
   );
