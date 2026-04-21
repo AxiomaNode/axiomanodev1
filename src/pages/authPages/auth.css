@@ -1229,3 +1229,301 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
   font-size: 0.95rem;
 }
+
+/* ═══════════════════════════════════════════
+   AUTH — privacy consent
+═══════════════════════════════════════════ */
+
+.auth-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-mid);
+}
+
+.auth-consent input {
+  margin-top: 3px;
+  accent-color: var(--teal);
+}
+
+.auth-consent__link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--teal);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(42, 143, 160, 0.28);
+  transition: color 0.16s ease, border-color 0.16s ease;
+}
+
+.auth-consent__link:hover {
+  color: var(--teal-dark);
+  border-color: rgba(42, 143, 160, 0.55);
+}
+
+.auth-policy-note {
+  margin: 4px 0 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-mid);
+}
+
+/* ═══════════════════════════════════════════
+   PRIVACY MODAL — compact privacy-page style
+═══════════════════════════════════════════ */
+
+.privacy-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(9, 16, 30, 0.52);
+  backdrop-filter: blur(8px);
+}
+
+.privacy-modal {
+  width: min(780px, 100%);
+  max-height: 88vh;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+.privacy-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 28px 30px 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    180deg,
+    var(--card-bg-alt) 0%,
+    var(--card-bg) 100%
+  );
+}
+
+.privacy-modal__hero {
+  max-width: 580px;
+}
+
+.privacy-modal__eyebrow {
+  margin: 0 0 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal);
+  font-family: 'DM Mono', monospace;
+}
+
+.privacy-modal__title {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--text-dark);
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
+}
+
+.privacy-modal__title em {
+  color: var(--teal);
+  font-style: italic;
+}
+
+.privacy-modal__subtitle {
+  margin: 12px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+}
+
+.privacy-modal__close {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card-bg-alt);
+  color: var(--text-light);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.privacy-modal__close:hover {
+  color: var(--text-dark);
+  border-color: var(--text-light);
+  background: var(--card-bg);
+}
+
+.privacy-modal__content {
+  padding: 24px 30px 28px;
+  overflow-y: auto;
+  max-height: calc(88vh - 115px);
+}
+
+.privacy-modal__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.privacy-modal__section {
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.privacy-modal__section--last {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.privacy-modal__section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-light);
+  font-family: 'DM Mono', monospace;
+}
+
+.privacy-modal__tag-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--teal-light);
+  border: 1px solid rgba(42, 143, 160, 0.2);
+  color: var(--teal);
+  font-size: 0.58rem;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+}
+
+.privacy-modal__section-title {
+  margin: 0 0 10px;
+  font-size: 1.18rem;
+  line-height: 1.25;
+  color: var(--text-dark);
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.privacy-modal__body {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.82;
+  color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+}
+
+.privacy-modal__footer {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.privacy-modal__footer-note {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-light);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.privacy-modal__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.privacy-modal__footer-link {
+  color: var(--teal);
+  text-decoration: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem;
+  transition: color 0.15s ease;
+}
+
+.privacy-modal__footer-link:hover {
+  color: var(--teal-dark);
+}
+
+@media (max-width: 720px) {
+  .privacy-modal__backdrop {
+    padding: 14px;
+  }
+
+  .privacy-modal {
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 20px;
+  }
+
+  .privacy-modal__header {
+    padding: 22px 20px 16px;
+  }
+
+  .privacy-modal__content {
+    padding: 18px 20px 22px;
+    max-height: calc(90vh - 108px);
+  }
+
+  .privacy-modal__title {
+    font-size: 1.55rem;
+  }
+
+  .privacy-modal__subtitle {
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+
+  .privacy-modal__section-title {
+    font-size: 1.05rem;
+  }
+
+  .privacy-modal__body {
+    font-size: 0.88rem;
+    line-height: 1.72;
+  }
+
+  .privacy-modal__footer {
+    align-items: flex-start;
+  }
+
+  .privacy-modal__footer-actions {
+    width: 100%;
+    gap: 12px;
+  }
+}

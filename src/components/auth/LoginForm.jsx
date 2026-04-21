@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser, signInWithGoogle } from "../../firebase/auth"; // CHANGED: added signInWithGoogle
+import { loginUser, signInWithGoogle } from "../../firebase/auth";
 import LogoDark from "../../Logo-Dark.png";
 import LogoLight from "../../Logo-Light.png";
 import { useTheme } from "../../context/ThemeContext";
@@ -36,7 +36,6 @@ const LockIcon = () => (
   </svg>
 );
 
-// CHANGED: Google logo SVG
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -46,13 +45,13 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const LoginForm = ({ onSwitch }) => {
-  const [email, setEmail]             = useState("");
-  const [password, setPassword]       = useState("");
+const LoginForm = ({ onSwitch, onOpenPrivacyPolicy }) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError]             = useState("");
-  const [loading, setLoading]         = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false); // CHANGED
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
   const { theme } = useTheme();
 
@@ -70,7 +69,6 @@ const LoginForm = ({ onSwitch }) => {
     }
   };
 
-  // CHANGED: Google handler
   const handleGoogle = async () => {
     setError("");
     setGoogleLoading(true);
@@ -97,20 +95,15 @@ const LoginForm = ({ onSwitch }) => {
         <p className="auth-form__subtitle">Continue your reasoning journey</p>
       </div>
 
-      {/* CHANGED: Google button above form */}
       <button
         type="button"
         className="auth-google-btn"
         onClick={handleGoogle}
         disabled={googleLoading || loading}
       >
-        {googleLoading
-          ? <span className="auth-btn__spinner" />
-          : <><GoogleIcon /> Continue with Google</>
-        }
+        {googleLoading ? <span className="auth-btn__spinner" /> : <><GoogleIcon /> Continue with Google</>}
       </button>
 
-      {/* CHANGED: divider */}
       <div className="auth-divider">
         <span>or sign in with email</span>
       </div>
@@ -155,6 +148,18 @@ const LoginForm = ({ onSwitch }) => {
             </button>
           </div>
         </div>
+
+        <p className="auth-policy-note">
+          By continuing, you confirm that you have read the{" "}
+          <button
+            type="button"
+            className="auth-consent__link"
+            onClick={onOpenPrivacyPolicy}
+          >
+            Privacy Policy
+          </button>
+          .
+        </p>
 
         {error && (
           <div className="auth-error">

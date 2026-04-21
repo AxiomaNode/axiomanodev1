@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { registerUser, signInWithGoogle } from "../../firebase/auth"; // CHANGED: added signInWithGoogle
+import { registerUser, signInWithGoogle } from "../../firebase/auth";
 import LogoDark from "../../Logo-Dark.png";
 import LogoLight from "../../Logo-Light.png";
 import { useTheme } from "../../context/ThemeContext";
@@ -51,7 +51,6 @@ const GlobeIcon = () => (
   </svg>
 );
 
-// CHANGED: Google logo SVG
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -61,54 +60,70 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const LANGUAGES = [
-  { value: "ru", label: "Русский" },
-  { value: "uz", label: "O'zbek" },
-  { value: "en", label: "English" },
-];
 
-const RegisterForm = ({ onSwitch }) => {
+const RegisterForm = ({ onSwitch, onOpenPrivacyPolicy }) => {
   const { theme } = useTheme();
-  const [displayName, setDisplayName]       = useState("");
-  const [email, setEmail]                   = useState("");
-  const [password, setPassword]             = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [language, setLanguage]             = useState("ru");
-  const [showPassword, setShowPassword]     = useState(false);
-  const [error, setError]                   = useState("");
-  const [loading, setLoading]               = useState(false);
-  const [googleLoading, setGoogleLoading]   = useState(false); // CHANGED
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (password !== confirmPassword) { setError("Passwords do not match"); return; }
-    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
-    setLoading(true);
-    try {
-      await registerUser(email, password, displayName, language);
-      navigate("/home");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const validateBeforeAuth = () => {
+    if (!agreedToPrivacy) {
+      setError("You must agree to the Privacy Policy before creating an account.");
+      return false;
     }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return false;
+    }
+    return true;
   };
 
-  // CHANGED: same Google handler as LoginForm — works for both new and existing accounts
-  const handleGoogle = async () => {
-    setError("");
-    setGoogleLoading(true);
-    try {
-      const user = await signInWithGoogle();
-      if (user) navigate("/home");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  if (password !== confirmPassword) { setError("Passwords do not match"); return; }
+  if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+  setLoading(true);
+  try {
+    await registerUser(email, password, displayName);
+    navigate("/home");
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleGoogle = async () => {
+  setError("");
+
+  if (!agreedToPrivacy) {
+    setError("You must agree to the Privacy Policy before creating an account.");
+    return;
+  }
+
+  setGoogleLoading(true);
+  try {
+    const user = await signInWithGoogle();
+    if (user) navigate("/home");
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setGoogleLoading(false);
+  }
+};
 
   return (
     <div className="auth-form">
@@ -123,20 +138,15 @@ const RegisterForm = ({ onSwitch }) => {
         <p className="auth-form__subtitle">Map your mathematical thinking</p>
       </div>
 
-      {/* CHANGED: Google button above form */}
       <button
         type="button"
         className="auth-google-btn"
         onClick={handleGoogle}
         disabled={googleLoading || loading}
       >
-        {googleLoading
-          ? <span className="auth-btn__spinner" />
-          : <><GoogleIcon /> Continue with Google</>
-        }
+        {googleLoading ? <span className="auth-btn__spinner" /> : <><GoogleIcon /> Continue with Google</>}
       </button>
 
-      {/* CHANGED: divider */}
       <div className="auth-divider">
         <span>or register with email</span>
       </div>
@@ -174,24 +184,6 @@ const RegisterForm = ({ onSwitch }) => {
           </div>
         </div>
 
-        <div className="auth-fields-row auth-fields-row--single">
-          <div className="auth-field auth-field__language">
-            <label className="auth-field__label">Language</label>
-            <div className="auth-field__input-wrap">
-              <span className="auth-field__icon"><GlobeIcon /></span>
-              <select
-                className="auth-field__input auth-field__input--select"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                required
-              >
-                {LANGUAGES.map((l) => (
-                  <option key={l.value} value={l.value}>{l.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
 
         <div className="auth-fields-row">
           <div className="auth-field">
@@ -234,6 +226,24 @@ const RegisterForm = ({ onSwitch }) => {
             </div>
           </div>
         </div>
+
+        <label className="auth-consent">
+          <input
+            type="checkbox"
+            checked={agreedToPrivacy}
+            onChange={(e) => setAgreedToPrivacy(e.target.checked)}
+          />
+          <span>
+            I agree to the{" "}
+            <button
+              type="button"
+              className="auth-consent__link"
+              onClick={onOpenPrivacyPolicy}
+            >
+              Privacy Policy
+            </button>
+          </span>
+        </label>
 
         {error && (
           <div className="auth-error">
