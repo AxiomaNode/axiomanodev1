@@ -202,194 +202,178 @@ export const quadraticPracticeTemplates = [
   },
 
   /* ═══════════════════════════════════════════
-     q-discriminant — transfer
-  ═══════════════════════════════════════════ */
+   q-discriminant — transfer
+═══════════════════════════════════════════ */
 
-  { id: "Tp1", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const k = pick([2,3,4]);
-      return {
-        text: `A student is asked whether x(x+${k}) = 5 has two, one, or no real solutions. What hidden feature controls that answer?`,
-        ...buildOptions("The sign of the expression b²−4ac after rewriting", [
-          "The sign of x",
-          "The size of 5",
-          "Whether the equation is already factored"
-        ])
-      };
-    }
-  },
+{ id: "Tp1", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which graph behavior guarantees that a quadratic has no real solutions?`,
+      ...buildOptions("It stays entirely above or below the x-axis without touching it", [
+        "It touches the x-axis once",
+        "It crosses the x-axis twice",
+        "It has a vertex"
+      ])
+    };
+  }
+},
 
-  { id: "Tp2", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A parabola opens upward and never reaches the x-axis. What must be true about the corresponding equation?`,
-        ...buildOptions("It has no real solutions", [
-          "It has one repeated real root",
-          "It has two distinct real roots",
-          "It must be linear"
-        ])
-      };
-    }
-  },
+{ id: "Tp2", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A parabola opens upward and never reaches the x-axis. What must be true about the corresponding equation?`,
+      ...buildOptions("It has no real solutions", [
+        "It has one repeated real root",
+        "It has two distinct real roots",
+        "It must be linear"
+      ])
+    };
+  }
+},
 
-  { id: "Tp3", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `In ax² + bx + c = 0, suppose a > 0 and c < 0. Without solving, what can you guarantee?`,
-        ...buildOptions("There are two distinct real roots", [
-          "There is one repeated root",
-          "There are no real roots",
-          "Nothing can be guaranteed"
-        ])
-      };
-    }
-  },
+{ id: "Tp3", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which graph would touch the x-axis exactly once?`,
+      ...buildOptions("A parabola whose vertex lies on the x-axis", [
+        "A parabola entirely above the x-axis",
+        "A parabola crossing the x-axis twice",
+        "Any parabola with positive leading coefficient"
+      ])
+    };
+  }
+},
 
-  { id: "Tp4", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `A student claims ${fmt(1,-2*r,r*r)} should behave like a two-intercept parabola because it factors. Evaluate.`,
-        ...buildOptions("Incorrect — it factors as a square, so the graph only touches once", [
-          "Correct — every factorization gives two intercepts",
-          "Partially correct — only if r is even",
-          "Incorrect — it has no real intercepts"
-        ])
-      };
-    }
-  },
+{ id: "Tp4", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const k = pick([2,3,4,5]);
+    return {
+      text: `x(x−${k}) = 4. How many real solutions does this equation have?`,
+      ...buildOptions("2", [
+        "1",
+        "0",
+        "Cannot be determined"
+      ])
+    };
+  }
+},
 
-  { id: "Tp5", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `Two different quadratic equations both produce the same sign in b² − 4ac. What do they necessarily share?`,
-        ...buildOptions("The same number of real roots", [
-          "The same roots",
-          "The same coefficients",
-          "The same vertex"
-        ])
-      };
-    }
-  },
+{ id: "Tp5", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which equation cannot have real solutions?`,
+      ...buildOptions("x² + 4x + 5 = 0", [
+        "x² − 4 = 0",
+        "x(x−3) = 0",
+        "x² − 4x + 4 = 0"
+      ])
+    };
+  }
+},
 
-  { id: "Tp6", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const k = pick([1,2,3,4]);
-      return {
-        text: `A teacher wants x² + bx + ${k} = 0 to have exactly one real solution. What condition on b makes that happen?`,
-        ...buildOptions(`b² = ${4*k}`, [
-          `b² > ${4*k}`,
-          `b² < ${4*k}`,
-          `b = ${k}`
-        ])
-      };
-    }
-  },
+{ id: "Tp6", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Two parabolas open upward. One has its vertex above the x-axis, the other below. Which one has more x-intercepts?`,
+      ...buildOptions("The one with vertex below the x-axis", [
+        "The one with vertex above the x-axis",
+        "They have the same number",
+        "Cannot be determined"
+      ])
+    };
+  }
+},
 
-  { id: "Tp7", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A quadratic does not factor over integers, yet its graph crosses the x-axis twice. What does this show?`,
-        ...buildOptions("Integer factorization is not required for real roots", [
-          "Crossing twice means the factoring was hidden but integer",
-          "Graphs can contradict algebra",
-          "Such a quadratic cannot exist"
-        ])
-      };
-    }
-  },
+{ id: "Tp7", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A quadratic does not factor over integers, yet its graph crosses the x-axis twice. What does this show?`,
+      ...buildOptions("Integer factorization is not required for real roots", [
+        "Graphs can contradict algebra",
+        "The roots must be equal",
+        "Such a quadratic cannot exist"
+      ])
+    };
+  }
+},
 
-  { id: "Tp8", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `A graph has equation y = x²−${2*r}x+${r*r}. How many times does it meet the x-axis?`,
-        ...buildOptions("Once", [
-          "Never",
-          "Twice",
-          "Cannot tell without solving"
-        ])
-      };
-    }
-  },
+{ id: "Tp8", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `A graph has equation y = x²−${2*r}x+${r*r}. How many times does it meet the x-axis?`,
+      ...buildOptions("Once", [
+        "Never",
+        "Twice",
+        "Cannot tell without solving"
+      ])
+    };
+  }
+},
 
-  { id: "Tp9", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `If c increases while a and b stay fixed, a quadratic can go from crossing the x-axis twice to not touching it at all. What changed first?`,
-        ...buildOptions("The sign of b²−4ac", [
-          "The degree of the equation",
-          "The sign of a",
-          "The sum of the roots stayed the same so nothing important changed"
-        ])
-      };
-    }
-  },
+{ id: "Tp9", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A quadratic goes from crossing the x-axis twice to not touching it at all as one parameter changes. What happens in between?`,
+      ...buildOptions("There is a stage where it touches the x-axis exactly once", [
+        "It becomes linear",
+        "It has infinitely many solutions",
+        "Nothing special happens"
+      ])
+    };
+  }
+},
 
-  { id: "Tp10", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `Without finding the actual roots, what single check separates 0, 1, and 2 real solutions most efficiently?`,
-        ...buildOptions("Check the sign of b²−4ac", [
-          "Try factoring first",
-          "Substitute x = 0",
-          "Complete the square every time"
-        ])
-      };
-    }
-  },
+{ id: "Tp10", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Three parabolas open upward. One crosses the x-axis twice, one touches it once, and one never reaches it. Which one has the highest vertex?`,
+      ...buildOptions("The one that never reaches the x-axis", [
+        "The one that touches once",
+        "The one that crosses twice",
+        "They all have the same vertex height"
+      ])
+    };
+  }
+},
 
-  { id: "Tp11", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A quadratic produces outputs that are always positive for every real x. What must be true about its graph?`,
-        ...buildOptions("It never intersects the x-axis", [
-          "It crosses the x-axis twice",
-          "It touches the x-axis once",
-          "It must be linear"
-        ])
-      };
-    }
-  },
+{ id: "Tp11", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A quadratic produces outputs that are always positive for every real x. What must be true about its graph?`,
+      ...buildOptions("It never intersects the x-axis", [
+        "It crosses the x-axis twice",
+        "It touches the x-axis once",
+        "It must be linear"
+      ])
+    };
+  }
+},
 
-  { id: "Tp12", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `Equation A has real solutions. Equation B does not. Both are quadratic. What must differ between them?`,
-        ...buildOptions("The sign of the coefficient-expression controlling root count", [
-          "Their degree",
-          "Their variable",
-          "Their leading coefficient must have opposite signs"
-        ])
-      };
-    }
-  },
-
-  { id: "Tp13", gapTag: "q-discriminant", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `As a parameter changes, a quadratic goes from having solutions to having none. What is happening structurally?`,
-        ...buildOptions("A key coefficient-expression changes sign", [
-          "The degree changes",
-          "The graph becomes linear",
-          "The roots swap places but stay real"
-        ])
-      };
-    }
-  },
+{ id: "Tp12", gapTag: "q-discriminant", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Equation A has real solutions. Equation B does not. Both are quadratic. What must differ between them?`,
+      ...buildOptions("The sign of the expression that controls root count", [
+        "Their degree",
+        "Their variable",
+        "Their leading coefficient must have opposite signs"
+      ])
+    };
+  }
+},
 
   /* ═══════════════════════════════════════════
      q-double-root — direct
@@ -576,197 +560,178 @@ export const quadraticPracticeTemplates = [
     }
   },
 
-  /* ═══════════════════════════════════════════
-     q-double-root — transfer
-  ═══════════════════════════════════════════ */
+ /* ═══════════════════════════════════════════
+   q-double-root — transfer
+═══════════════════════════════════════════ */
 
-  { id: "Bt1", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A parabola touches the x-axis but does not cross it. What must be true about the equation?`,
-        ...buildOptions("It has one repeated real root", [
-          "It has two distinct real roots",
-          "It has no real roots",
-          "It is not quadratic"
-        ])
-      };
-    }
-  },
+{ id: "Bt1", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A parabola touches the x-axis but does not cross it. What must be true about the equation?`,
+      ...buildOptions("It has one repeated real root", [
+        "It has two distinct real roots",
+        "It has no real roots",
+        "It is not quadratic"
+      ])
+    };
+  }
+},
 
-  { id: "Bt2", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A student solves a quadratic and gets only one x-value. Which is the best explanation?`,
-        ...buildOptions("The equation may have a repeated root", [
-          "They definitely forgot the second solution",
-          "Quadratics can only have one root",
-          "The equation must be linear"
-        ])
-      };
-    }
-  },
+{ id: "Bt2", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which situation could produce exactly one visible solution?`,
+      ...buildOptions("A square equals zero", [
+        "A square equals a positive number",
+        "A difference of squares equals zero",
+        "A product of two different factors equals zero"
+      ])
+    };
+  }
+},
 
-  { id: "Bt3", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const a = pick([1,2,3,4]), sq = pick([2,3,4]), b = sq*sq;
-      return {
-        text: `(x−${a})² = ${b}. What is the solution set?`,
-        ...buildOptions(`{${a-sq}, ${a+sq}}`, [
-          `{${a+sq}}`,
-          `{−${sq}, ${sq}}`,
-          `{${a}, ${sq}}`
-        ])
-      };
-    }
-  },
+{ id: "Bt3", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A graph meets the x-axis at one point and turns back. What does that say about the root?`,
+      ...buildOptions("It is repeated", [
+        "There are two opposite roots",
+        "There are no real roots",
+        "The equation is linear"
+      ])
+    };
+  }
+},
 
-  { id: "Bt4", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A quadratic has exactly one real x-intercept. What must be true?`,
-        ...buildOptions("Its real root is repeated", [
-          "It has two distinct real roots",
-          "It has no real roots",
-          "It must be linear"
-        ])
-      };
-    }
-  },
+{ id: "Bt4", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A quadratic has exactly one real x-intercept. What must be true?`,
+      ...buildOptions("Its real root is repeated", [
+        "It has two distinct real roots",
+        "It has no real roots",
+        "It must be linear"
+      ])
+    };
+  }
+},
 
-  { id: "Bt5", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `One equation crosses the x-axis twice. Another only touches it once. What is the key difference?`,
-        ...buildOptions("The second has a repeated root", [
-          "The second is not quadratic",
-          "The first has no real roots",
-          "Both have repeated roots"
-        ])
-      };
-    }
-  },
+{ id: "Bt5", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `One equation crosses the x-axis twice. Another only touches it once. What is the key difference?`,
+      ...buildOptions("The second has a repeated root", [
+        "The second is not quadratic",
+        "The first has no real roots",
+        "Both have repeated roots"
+      ])
+    };
+  }
+},
 
-  { id: "Bt6", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4]);
-      return {
-        text: `A student rewrites an equation into the form (x−${r})² = 0. What should they conclude immediately?`,
-        ...buildOptions(`There is one repeated root at x = ${r}`, [
-          `There are two roots: ${r} and -${r}`,
-          "There are no real roots",
-          "The equation still needs factoring first"
-        ])
-      };
-    }
-  },
+{ id: "Bt6", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A final answer shows one number, and the graph only touches the x-axis once. Best conclusion?`,
+      ...buildOptions("That one value is repeated, not missing a second distinct root", [
+        "A second different root was forgotten",
+        "There are no real roots",
+        "The equation must be linear"
+      ])
+    };
+  }
+},
 
-  { id: "Bt7", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `Which situation is the clearest sign of a repeated root?`,
-        ...buildOptions("The graph is tangent to the x-axis", [
-          "The graph crosses the x-axis twice",
-          "The graph has a negative y-intercept",
-          "The equation has three terms"
-        ])
-      };
-    }
-  },
+{ id: "Bt7", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which situation is the clearest sign of a repeated root?`,
+      ...buildOptions("The graph is tangent to the x-axis", [
+        "The graph crosses the x-axis twice",
+        "The graph has a negative y-intercept",
+        "The equation has three terms"
+      ])
+    };
+  }
+},
 
-  { id: "Bt8", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A student says "a quadratic with one real root must actually be linear." Evaluate.`,
-        ...buildOptions("Incorrect — a quadratic can have one repeated real root", [
-          "Correct",
-          "Partially correct",
-          "Incorrect — quadratics always have two distinct real roots"
-        ])
-      };
-    }
-  },
+{ id: "Bt8", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A student says "a quadratic with one real root must actually be linear." Evaluate.`,
+      ...buildOptions("Incorrect — a quadratic can have one repeated real root", [
+        "Correct",
+        "Partially correct",
+        "Incorrect — quadratics always have two distinct real roots"
+      ])
+    };
+  }
+},
 
-  { id: "Bt9", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `How many x-intercepts does y = (x−${r})² have?`,
-        ...buildOptions("1", [
-          "0",
-          "2",
-          "Depends on the coefficient of x"
-        ])
-      };
-    }
-  },
+{ id: "Bt9", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A number is 4 units away from 7. How many possible values are there?`,
+      ...buildOptions("2", [
+        "1",
+        "0",
+        "Cannot determine"
+      ])
+    };
+  }
+},
 
-  { id: "Bt10", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `A student claims ${fmt(1,-2*r,r*r)} and x² = ${r*r} are "basically the same because both have squares." Evaluate.`,
-        ...buildOptions("Incorrect — the first has one repeated root, the second has two distinct real roots", [
-          "Correct",
-          "Partially correct",
-          "Incorrect — neither has real roots"
-        ])
-      };
-    }
-  },
+{ id: "Bt10", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which situation guarantees exactly one distinct real solution?`,
+      ...buildOptions("The graph is tangent to the x-axis", [
+        "The graph crosses the x-axis twice",
+        "The constant term is positive",
+        "The leading coefficient is 1"
+      ])
+    };
+  }
+},
 
-  { id: "Bt11", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `A quadratic has vertex (${r}, 0). What is true about its real roots?`,
-        ...buildOptions("It has one repeated real root", [
-          "It has two distinct real roots",
-          "It has no real roots",
-          "It must be linear"
-        ])
-      };
-    }
-  },
+{ id: "Bt11", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `A quadratic has vertex (${r}, 0). What is true about its real roots?`,
+      ...buildOptions("It has one repeated real root", [
+        "It has two distinct real roots",
+        "It has no real roots",
+        "It must be linear"
+      ])
+    };
+  }
+},
 
-  { id: "Bt12", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `Which situation guarantees exactly one distinct real solution?`,
-        ...buildOptions("The graph is tangent to the x-axis", [
-          "The graph crosses the x-axis twice",
-          "The constant term is positive",
-          "The leading coefficient is 1"
-        ])
-      };
-    }
-  },
-
-  { id: "Bt13", gapTag: "q-double-root", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4]);
-      return {
-        text: `A student rewrites an equation as (x−${r})² = 0 and then searches for a second different root. Evaluate.`,
-        ...buildOptions("Unnecessary — the root is repeated, not distinct", [
-          "Correct — every quadratic has two different roots",
-          `Correct — the second root is −${r}`,
-          "Incorrect — there are no real roots"
-        ])
-      };
-    }
-  },
+{ id: "Bt12", gapTag: "q-double-root", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Two equations are solved. One gives one real value, the other gives two equally spaced values around a center. What changed?`,
+      ...buildOptions("The second moved from a zero-distance case to a positive-distance case", [
+        "The degree changed",
+        "The second became linear",
+        "The variable changed"
+      ])
+    };
+  }
+},
 
   /* ═══════════════════════════════════════════
      q-div-by-var — direct
@@ -1298,158 +1263,156 @@ export const quadraticPracticeTemplates = [
      q-factoring — transfer
   ═══════════════════════════════════════════ */
 
-  { id: "Ft1", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `${fmt(1,0,-r*r)} = 0. A student uses (x−${r})² = 0. What error is this?`,
-        ...buildOptions(`Confused difference of squares with perfect square — loses x = −${r}`, [
-          "No error",
-          "Sign error only",
-          "Correct factoring"
-        ])
-      };
-    }
-  },
+{ id: "Ft1", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `${fmt(1,0,-r*r)} = 0. A student uses (x−${r})² = 0. What error is this?`,
+      ...buildOptions(`Confused difference of squares with perfect square — loses x = −${r}`, [
+        "No error",
+        "Sign error only",
+        "Correct factoring"
+      ])
+    };
+  }
+},
 
-  { id: "Ft2", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const a = pick([2,3]), b = pick([2,3,5]);
-      return {
-        text: `${a*a}x²−${b*b} = 0. Choose the correct factorization.`,
-        ...buildOptions(`(${a}x−${b})(${a}x+${b}) = 0`, [
-          `(${a}x−${b})² = 0`,
-          `(x−${b})(x+${b}) = 0`,
-          `${a*a}(x−${b})(x+${b}) = 0`
-        ])
-      };
-    }
-  },
+{ id: "Ft2", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which equation is most naturally associated with two real values that are opposites of each other?`,
+      ...buildOptions("x² − 16 = 0", [
+        "x² + 16 = 0",
+        "x² − 8x + 16 = 0",
+        "x² + 8x + 16 = 0"
+      ])
+    };
+  }
+},
 
-  { id: "Ft3", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const a = pick([1,2,3,4]), sq = pick([2,3,4,5]), b = sq*sq;
-      const x1 = sq-a, x2 = -sq-a;
-      return {
-        text: `(x+${a})²−${b} = 0. What is the solution set?`,
-        ...buildOptions(`{${Math.min(x1,x2)}, ${Math.max(x1,x2)}}`, [
-          `{${Math.max(x1,x2)}}`,
-          `{${a-sq}, ${a+sq}}`,
-          `{−${a}, ${a}}`
-        ])
-      };
-    }
-  },
+{ id: "Ft3", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const a = pick([1,2,3,4]), sq = pick([2,3,4,5]), b = sq * sq;
+    const x1 = sq - a, x2 = -sq - a;
+    return {
+      text: `(x+${a})²−${b} = 0. What is the solution set?`,
+      ...buildOptions(`{${Math.min(x1, x2)}, ${Math.max(x1, x2)}}`, [
+        `{${Math.max(x1, x2)}}`,
+        `{${a-sq}, ${a+sq}}`,
+        `{−${a}, ${a}}`
+      ])
+    };
+  }
+},
 
-  { id: "Ft4", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `A student says x²−${r*r} and x²−${2*r}x+${r*r} "look similar — probably same factoring." Evaluate.`,
-        ...buildOptions("Incorrect — first is difference of squares, second is perfect square trinomial", [
-          "Correct",
-          "Partially correct — same if r = 1",
-          "Correct for all r"
-        ])
-      };
-    }
-  },
+{ id: "Ft4", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `A student says x²−${r*r} and x²−${2*r}x+${r*r} "look similar — probably same factoring." Evaluate.`,
+      ...buildOptions("Incorrect — first is difference of squares, second is perfect square trinomial", [
+        "Correct",
+        "Partially correct — same if r = 1",
+        "Correct for all r"
+      ])
+    };
+  }
+},
 
-  { id: "Ft5", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `x⁴−${r*r} = 0. How many real solutions?`,
-        ...buildOptions("2", [
-          "4",
-          "1",
-          "0"
-        ])
-      };
-    }
-  },
+{ id: "Ft5", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Three equations are shown:
+I. x² − 25 = 0
+II. x² − 10x + 25 = 0
+III. x² + 25 = 0
+Which one has exactly one real solution?`,
+      ...buildOptions("II", [
+        "I",
+        "III",
+        "None of them"
+      ])
+    };
+  }
+},
 
-  { id: "Ft6", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const t = pick([1,4,9]);
-      const root = Math.sqrt(t);
-      return {
-        text: `x⁴−${2*t}x²+${t*t} = 0. Factor and identify the real solutions.`,
-        ...buildOptions(`(x²−${t})² = 0, so x = ±${root} (each repeated)`, [
-          `x = ±${t}`,
-          `x = ${t} only`,
-          "No real solutions"
-        ])
-      };
-    }
-  },
+{ id: "Ft6", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which expression is not factorable into real linear factors by the standard patterns?`,
+      ...buildOptions("x² + 9", [
+        "x² − 9",
+        "x² − 6x + 9",
+        "x² + 6x + 9"
+      ])
+    };
+  }
+},
 
-  { id: "Ft7", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `(x−${r})² > 0. For which x is this true?`,
-        ...buildOptions(`All x except x = ${r}`, [
-          "All x",
-          "No x",
-          `x > ${r} only`
-        ])
-      };
-    }
-  },
+{ id: "Ft7", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `(x−${r})² > 0. For which x is this true?`,
+      ...buildOptions(`All x except x = ${r}`, [
+        "All x",
+        "No x",
+        `x > ${r} only`
+      ])
+    };
+  }
+},
 
-  { id: "Ft8", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4]);
-      return {
-        text: `Complete the square: x²−${2*r}x = ___−${r*r}.`,
-        ...buildOptions(`(x−${r})²`, [
-          `(x+${r})²`,
-          `x²−${r*r}`,
-          `(x−${r*r})²`
-        ])
-      };
-    }
-  },
+{ id: "Ft8", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `One equation has a repeated root. Another has two opposite roots. Which pair fits?`,
+      ...buildOptions("x²−6x+9 and x²−9", [
+        "x²−9 and x²+9",
+        "x²+6x+9 and x²+9",
+        "x²−6x and x²−9"
+      ])
+    };
+  }
+},
 
-  { id: "Ft9", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `x²−${r*r} factors, but x²+${r*r} doesn't over ℝ. Why?`,
-        ...buildOptions("Difference of squares gives real roots; sum of squares does not", [
-          "They both factor the same way",
-          "Factoring depends on the sign of r",
-          `x²+${r*r} = (x+${r})(x−${r})`
-        ])
-      };
-    }
-  },
+{ id: "Ft9", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `x²−${r*r} factors, but x²+${r*r} doesn't over ℝ. Why?`,
+      ...buildOptions("Difference of squares gives real roots; sum of squares does not", [
+        "They both factor the same way",
+        "Factoring depends on the sign of r",
+        `x²+${r*r} = (x+${r})(x−${r})`
+      ])
+    };
+  }
+},
 
-  { id: "Ft10", gapTag: "q-factoring", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `A student factors x²−${2*r}x+${r*r} as (x−${r})(x+${r}) and gets x = ±${r}. The actual solution is x = ${r} only. What caused the extra solution?`,
-        ...buildOptions("Wrong factoring pattern — introduced an extra root", [
-          "Arithmetic error",
-          "Correct — both solutions are valid",
-          "Sign convention error"
-        ])
-      };
-    }
-  },
-
+{ id: "Ft10", gapTag: "q-factoring", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `A student factors x²−${2*r}x+${r*r} as (x−${r})(x+${r}) and gets x = ±${r}. The actual solution is x = ${r} only. What caused the extra solution?`,
+      ...buildOptions("Wrong factoring pattern — introduced an extra root", [
+        "Arithmetic error",
+        "Correct — both solutions are valid",
+        "Sign convention error"
+      ])
+    };
+  }
+},
   /* ═══════════════════════════════════════════
      q-vieta — direct
   ═══════════════════════════════════════════ */
@@ -1635,353 +1598,267 @@ export const quadraticPracticeTemplates = [
     }
   },
 
-  /* ═══════════════════════════════════════════
-     q-vieta — transfer
-  ═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   q-vieta — transfer
+═══════════════════════════════════════════ */
 
-  { id: "Vt1", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([1,2,3,4,5]), r2 = pick([1,2,3,4,5].filter(v => v !== r1)), s = r1+r2, p = r1*r2;
-      return {
-        text: `For ${fmt(1,-s,p)}, find x₁²+x₂² without solving.`,
-        ...buildOptions(String(s*s-2*p), [
-          String(s*s),
-          String(s*s+2*p),
-          String(p*p)
-        ])
-      };
-    }
-  },
+{ id: "Vt1", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const a = pick([2,3,4,6,12]), b = pick([7,8,9,10]);
+    return {
+      text: `Two numbers multiply to ${a} and add to ${b}. What is the sum of their squares?`,
+      ...buildOptions(String(b*b - 2*a), [
+        String(b*b),
+        String(b*b + 2*a),
+        String(a*a)
+      ])
+    };
+  }
+},
 
-  { id: "Vt2", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([1,2,3,4]), r2 = pick([1,2,3,4,5].filter(v => v !== r1)), s = r1+r2, p = r1*r2;
-      return {
-        text: `For ${fmt(1,-s,p)}, find (x₁+1)(x₂+1) without solving.`,
-        ...buildOptions(String(p+s+1), [
-          String(p+s),
-          String(p-s+1),
-          String((p+1)*(s+1))
-        ])
-      };
-    }
-  },
+{ id: "Vt2", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const a = pick([2,3,4]), b = pick([5,6,7,8]);
+    return {
+      text: `Two numbers multiply to ${a} and add to ${b}. What is (n₁+1)(n₂+1)?`,
+      ...buildOptions(String(a + b + 1), [
+        String(a + b),
+        String(a - b + 1),
+        String((a + 1) * (b + 1))
+      ])
+    };
+  }
+},
 
-  { id: "Vt3", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `For x²+bx+c = 0 with nonzero roots, which expression equals 1/x₁ + 1/x₂?`,
-        ...buildOptions("−b/c", [
-          "b/c",
-          "−c/b",
-          "c/b"
-        ])
-      };
-    }
-  },
+{ id: "Vt3", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Which equation has roots that are opposites of each other?`,
+      ...buildOptions("x² − 9 = 0", [
+        "x² − 6x + 9 = 0",
+        "x² + 6x + 9 = 0",
+        "x² + 4x = 0"
+      ])
+    };
+  }
+},
 
-  { id: "Vt4", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([1,2,3,4,5]), r2 = pick([1,2,3,4,5].filter(v => v !== r1)), s = r1+r2, p = r1*r2;
-      return {
-        text: `For ${fmt(1,-s,p)}, find (x₁−x₂)² without solving.`,
-        ...buildOptions(String(s*s-4*p), [
-          String(s*s+4*p),
-          String(s*s-2*p),
-          String(s*s)
-        ])
-      };
-    }
-  },
+{ id: "Vt4", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const a = pick([2,3,4]), b = pick([5,6,7,8]);
+    return {
+      text: `Two numbers multiply to ${a} and add to ${b}. What is the square of their difference?`,
+      ...buildOptions(String(b*b - 4*a), [
+        String(b*b + 4*a),
+        String(b*b - 2*a),
+        String(b*b)
+      ])
+    };
+  }
+},
 
-  { id: "Vt5", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4]);
-      return {
-        text: `A student builds a quadratic with roots ${r} and −${r} and writes x²+${r*r} = 0. Evaluate.`,
-        ...buildOptions(`Incorrect — product = −${r*r}, so c = −${r*r}, giving x²−${r*r} = 0`, [
-          `Correct — product is ${r*r}`,
-          "Partially correct",
-          `Correct — b = 0 so c = ${r*r}`
-        ])
-      };
-    }
-  },
+{ id: "Vt5", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4]);
+    return {
+      text: `A student builds a quadratic with roots ${r} and −${r} and writes x²+${r*r} = 0. Evaluate.`,
+      ...buildOptions(`Incorrect — product = −${r*r}, so c = −${r*r}, giving x²−${r*r} = 0`, [
+        `Correct — product is ${r*r}`,
+        "Partially correct",
+        `Correct — b = 0 so c = ${r*r}`
+      ])
+    };
+  }
+},
 
-  { id: "Vt6", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([1,2,3]), r2 = pick([1,2,3].filter(v => v !== r1)), s = r1+r2, p = r1*r2;
-      return {
-        text: `For ${fmt(1,-s,p)}, find x₁x₂²+x₁²x₂ without solving.`,
-        ...buildOptions(String(p*s), [
-          String(p*s*s),
-          String(s*p*p),
-          String(p+s)
-        ])
-      };
-    }
-  },
+{ id: "Vt6", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const a = pick([2,3,4]), b = pick([5,6,7]);
+    return {
+      text: `Two numbers multiply to ${a} and add to ${b}. What is n₁n₂² + n₁²n₂?`,
+      ...buildOptions(String(a * b), [
+        String(a * b * b),
+        String(b * a * a),
+        String(a + b)
+      ])
+    };
+  }
+},
 
-  { id: "Vt7", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const cb = 12, r1 = 2, r2 = 6, s = r1+r2;
-      return {
-        text: `x²+bx+${cb} = 0 has one root x = ${r1}. Find b using Vieta.`,
-        ...buildOptions(String(-s), [
-          String(s),
-          String(-r1),
-          String(-cb)
-        ])
-      };
-    }
-  },
+{ id: "Vt7", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const p = pick([12,15,16,18]);
+    const r1 = pick([2,3,4]);
+    const r2 = p / r1;
+    const sum = r1 + r2;
+    return {
+      text: `Two numbers multiply to ${p}. One of them is ${r1}. Their sum is used as the opposite of a quadratic’s middle coefficient. What is that coefficient?`,
+      ...buildOptions(String(-sum), [
+        String(sum),
+        String(-r1),
+        String(-p)
+      ])
+    };
+  }
+},
 
-  { id: "Vt8", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([1,2,3,4]), r2 = pick([1,2,3,4,5].filter(v => v !== r1)), s = r1+r2, p = r1*r2, b = -s, c = p;
-      return {
-        text: `For ${fmt(1,b,c)}, find x₁³+x₂³ without solving. Hint: use (x₁+x₂)³−3x₁x₂(x₁+x₂).`,
-        ...buildOptions(String(s*s*s-3*p*s), [
-          String(s*s*s),
-          String(s*s*s+3*p*s),
-          String(p*s)
-        ])
-      };
-    }
-  },
+{ id: "Vt8", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const a = pick([2,3,4]), b = pick([5,6,7]);
+    return {
+      text: `Two numbers multiply to ${a} and add to ${b}. What is the sum of their cubes?`,
+      ...buildOptions(String(b*b*b - 3*a*b), [
+        String(b*b*b),
+        String(b*b*b + 3*a*b),
+        String(a*b)
+      ])
+    };
+  }
+},
 
-  { id: "Vt9", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([1,2,3,4]), r2 = pick([1,2,3,4,5].filter(v => v !== r1)), s = r1+r2, p = r1*r2, b = -s, c = p;
-      const value = p*p + s*s - 2*p + 1;
-      return {
-        text: `For ${fmt(1,b,c)}, find (x₁²+1)(x₂²+1) without solving.`,
-        ...buildOptions(String(value), [
-          String(p*p+1),
-          String((s*s-2*p)*p),
-          String((p+1)*(p+1))
-        ])
-      };
-    }
-  },
+{ id: "Vt9", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const a = pick([2,3,4]), b = pick([5,6,7]);
+    const value = a*a + b*b - 2*a + 1;
+    return {
+      text: `Two numbers multiply to ${a} and add to ${b}. What is (n₁²+1)(n₂²+1)?`,
+      ...buildOptions(String(value), [
+        String(a*a + 1),
+        String((b*b - 2*a) * a),
+        String((a + 1) * (a + 1))
+      ])
+    };
+  }
+},
 
-  { id: "Vt10", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([2,3,4,5]), r2 = pick([-1,-2,-3,-4,-5].filter(v => v !== -r1)), s = r1+r2, p = r1*r2, b = -s, c = p;
-      return {
-        text: `For ${fmt(1,b,c)}, a student says "product is negative so one root is negative." Is this complete?`,
-        ...buildOptions("Yes — negative product means the roots have opposite signs", [
-          "No — need to check sum too",
-          "No — product doesn't determine signs",
-          "Yes — and both are integers"
-        ])
-      };
-    }
-  },
+{ id: "Vt10", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Two numbers multiply to a negative value. What must be true?`,
+      ...buildOptions("They have opposite signs", [
+        "Both are positive",
+        "Both are negative",
+        "One must be zero"
+      ])
+    };
+  }
+},
 
-  { id: "Vt11", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A quadratic has sum of roots 0 and product negative. What can you conclude?`,
-        ...buildOptions("The roots are opposites with different signs", [
-          "Both roots are positive",
-          "Both roots are negative",
-          "The roots must be equal"
-        ])
-      };
-    }
-  },
+{ id: "Vt11", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Two numbers add to zero. What kind of pair are they?`,
+      ...buildOptions("They are opposites", [
+        "They are equal positive numbers",
+        "They are equal negative numbers",
+        "One must be zero and the other positive"
+      ])
+    };
+  }
+},
 
-  { id: "Vt12", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const s = pick([4,5,6,7]), p = pick([3,4,6,8]);
-      return {
-        text: `A student knows only the sum ${s} and product ${p} of the roots. What is the fastest way to build the equation?`,
-        ...buildOptions(`Write x²−${s}x+${p} = 0`, [
-          "Use the discriminant first",
-          "Solve for the roots numerically",
-          "Graph the parabola"
-        ])
-      };
-    }
-  },
+{ id: "Vt12", gapTag: "q-vieta", difficulty: "transfer",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `Two numbers multiply to a positive value and add to a negative value. What must be true?`,
+      ...buildOptions("Both numbers are negative", [
+        "Both are positive",
+        "They are opposites",
+        "One is zero"
+      ])
+    };
+  }
+},
 
-  { id: "Vt13", gapTag: "q-vieta", difficulty: "transfer",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `Which quantity can Vieta give immediately without finding the roots one by one?`,
-        ...buildOptions("Their sum and product", [
-          "Their exact decimal values only",
-          "Their graphs",
-          "Their multiplicity only"
-        ])
-      };
-    }
-  },
+ /* ═══════════════════════════════════════════
+   mixed — spans multiple gap types
+═══════════════════════════════════════════ */
 
-  /* ═══════════════════════════════════════════
-     mixed — spans multiple gap types
-  ═══════════════════════════════════════════ */
+{ id: "Mx1", gapTag: "q-div-by-var", difficulty: "mixed",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r = pick([2,3,4,5]);
+    return {
+      text: `x² = ${r}x. A student divides by x and gets x = ${r}. Identify ALL errors.`,
+      ...buildOptions(`They lost x = 0 by dividing by x, so the full solution set is {0, ${r}}`, [
+        "They only made an arithmetic error",
+        `No error — x = ${r} is complete`,
+        "They should have taken square roots"
+      ])
+    };
+  }
+},
 
-  { id: "Mx1", gapTag: "q-div-by-var", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4,5]);
-      return {
-        text: `x² = ${r}x. A student divides by x and gets x = ${r}. Identify ALL errors.`,
-        ...buildOptions(`They lost x = 0 by dividing by x, so the full solution set is {0, ${r}}`, [
-          "They only made an arithmetic error",
-          `No error — x = ${r} is complete`,
-          "They should have taken square roots"
-        ])
-      };
-    }
-  },
+{ id: "Mx2", gapTag: "q-vieta", difficulty: "mixed",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const r1 = pick([2,3,4,5]);
+    const r2 = pick([1,2,3,4]);
+    const s = r1 + r2;
+    const p = r1 * r2;
+    return {
+      text: `${fmt(1,-s,p)} — without solving: the equation has two real roots, and their sum is ${s}. Which summary is correct?`,
+      ...buildOptions(`2 roots, sum = ${s}`, [
+        `1 root, sum = ${s}`,
+        `2 roots, sum = ${-s}`,
+        "0 roots"
+      ])
+    };
+  }
+},
 
-  { id: "Mx2", gapTag: "q-vieta", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([2,3,4,5]), r2 = pick([1,2,3,4]), s = r1+r2, p = r1*r2;
-      return {
-        text: `${fmt(1,-s,p)} — without solving: D = ${s*s-4*p} > 0, sum = ${s}, product = ${p}. How many real roots and what is their sum?`,
-        ...buildOptions(`2 roots, sum = ${s}`, [
-          `1 root, sum = ${s}`,
-          `2 roots, sum = ${-s}`,
-          "0 roots"
-        ])
-      };
-    }
-  },
+{ id: "Mx3", gapTag: "q-discriminant", difficulty: "mixed",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `A graph touches the x-axis once, and a student also claims its two roots add to zero. Which kind of equation best fits both facts?`,
+      ...buildOptions("A perfect square centered at the origin, like x² = 0", [
+        "A difference of squares like x²−9 = 0",
+        "A no-root equation like x²+9 = 0",
+        "A linear equation"
+      ])
+    };
+  }
+},
 
-  { id: "Mx3", gapTag: "q-discriminant", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4]);
-      return {
-        text: `${fmt(1,-2*r,r*r)}. A student says "since it factors, it has two roots." Evaluate.`,
-        ...buildOptions("Incorrect — it factors as a square, so only one repeated root", [
-          "Correct",
-          "Partially correct",
-          "Incorrect — no real roots"
-        ])
-      };
-    }
-  },
+{ id: "Mx4", gapTag: "q-div-by-var", difficulty: "mixed",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    const k = pick([2,3,4]);
+    return {
+      text: `x² = ${k}x. A student divides by x and then tries to reason about the remaining equation as if nothing was lost. What is the real issue?`,
+      ...buildOptions("The step removed x = 0, so the reduced equation is not fully equivalent to the original one", [
+        "There is no issue if the final answer is x = " + k,
+        "The only problem is arithmetic",
+        "Vieta should be used instead of factoring"
+      ])
+    };
+  }
+},
 
-  { id: "Mx4", gapTag: "q-div-by-var", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const k = pick([2,3,4]);
-      return {
-        text: `x² = ${k}x. A student divides by x and then uses Vieta on x = ${k}. What is wrong?`,
-        ...buildOptions("They removed x = 0, so they are reasoning from an incomplete equation", [
-          "Nothing is wrong",
-          "Vieta cannot ever be used with quadratics",
-          "Division is always valid here"
-        ])
-      };
-    }
-  },
-
-  { id: "Mx5", gapTag: "q-factoring", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4]);
-      return {
-        text: `Compare x²−${r*r} and x²−${2*r}x+${r*r}. Which is true?`,
-        ...buildOptions("First has 2 roots, second has 1 repeated root", [
-          "Both have 2 roots",
-          "Both have 1 root",
-          "Neither has real roots"
-        ])
-      };
-    }
-  },
-
-  { id: "Mx6", gapTag: "q-vieta", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r1 = pick([2,3,4]), r2 = pick([1,2,3]), s = r1+r2, p = r1*r2;
-      return {
-        text: `${fmt(1,-s,p)} has D > 0. What must be true?`,
-        ...buildOptions(`It has two distinct real roots with sum ${s}`, [
-          "It has one root",
-          "It has no roots",
-          "Its sum cannot be determined"
-        ])
-      };
-    }
-  },
-
-  { id: "Mx7", gapTag: "q-div-by-var", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const k = pick([2,3,4]);
-      return {
-        text: `x(x−${k}) = 0. A student divides by x and gets x = ${k}. Then checks root count from the rewritten equation. What went wrong first?`,
-        ...buildOptions("They lost x = 0 before doing any further analysis", [
-          "Nothing went wrong",
-          "Checking root count fixes the mistake",
-          "Division is the preferred first move"
-        ])
-      };
-    }
-  },
-
-  { id: "Mx8", gapTag: "q-discriminant", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `A quadratic has D = 0 and is factorable. What must its factorization look like?`,
-        ...buildOptions("(x − a)²", [
-          "(x − a)(x + a)",
-          "x(x − a)",
-          "It cannot be factored"
-        ])
-      };
-    }
-  },
-
-  { id: "Mx9", gapTag: "q-factoring", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      const r = pick([2,3,4]);
-      return {
-        text: `A student uses (x−${r})² instead of x²−${r*r}. What is the consequence?`,
-        ...buildOptions("They reduce two solutions to one", [
-          "They add extra solutions",
-          "No change",
-          "They remove all solutions"
-        ])
-      };
-    }
-  },
-
-  { id: "Mx10", gapTag: "q-vieta", difficulty: "mixed",
-    diagnostic: false, practice: true, mastery: false,
-    generate() {
-      return {
-        text: `Without solving fully, which pair gives faster insight into a quadratic: one about how many real roots it has, and one about how the roots combine?`,
-        ...buildOptions("Discriminant and Vieta", [
-          "Factoring and graphing only",
-          "Square roots and substitution",
-          "None — full solving is always required"
-        ])
-      };
-    }
-  },
-
+{ id: "Mx5", gapTag: "q-factoring", difficulty: "mixed",
+  diagnostic: false, practice: true, mastery: false,
+  generate() {
+    return {
+      text: `One student factors first. Another checks graph behavior first. They both conclude an equation has exactly one real solution. Which structure most likely appeared?`,
+      ...buildOptions("A perfect square trinomial", [
+        "A difference of squares",
+        "A sum of squares over ℝ",
+        "A cubic with three roots"
+      ])
+    };
+  }
+},
 ];

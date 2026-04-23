@@ -95,40 +95,40 @@ export const display = (x) => (x < 0 ? `−${Math.abs(x)}` : String(x));
  * Prefer difficulty when available for the new layered diagnostic bank.
  * Fall back to format heuristics for older practice/mastery banks.
  */
+
 export const deriveStage = (format = "", difficulty = "") => {
   const d = String(difficulty || "").toLowerCase();
 
   if (d === "direct") return "recognition";
   if (d === "applied") return "application";
   if (d === "transfer") return "transfer";
+  if (d === "mixed") return "transfer";
 
   const f = String(format || "").toLowerCase();
 
+  // fallback only for legacy templates without difficulty
   if (
-    f.includes("identify")   || f.includes("recognize") || f.includes("classify") ||
-    f.includes("name")       || f.includes("which")     || f.includes("is-")      ||
-    f.includes("true-false") || f.includes("evaluate")  || f.includes("interpret")||
-    f.includes("compute")    || f.includes("fill")      || f.includes("find")     ||
-    f.includes("choose")     || f.includes("select")
-  ) return "recognition";
-
-  if (
-    f.includes("isolat") || f.includes("describe") || f.includes("compare") ||
-    f.includes("signal") || f.includes("count")    || f.includes("missing") ||
-    f.includes("detect")
-  ) return "isolation";
-
-  if (
-    f.includes("transfer")         || f.includes("graph")        || f.includes("word") ||
-    f.includes("context")          || f.includes("non-standard") || f.includes("geometric") ||
-    f.includes("symbolic")         || f.includes("equation-from")|| f.includes("rearrange") ||
-    f.includes("disguised")        || f.includes("roots-to")     || f.includes("d-to") ||
-    f.includes("vertex")           || f.includes("relational")   || f.includes("table") ||
-    f.includes("standard-form-to") || f.includes("completing")   || f.includes("factored-form") ||
-    f.includes("vertex-form")
+    f.includes("graph") ||
+    f.includes("word") ||
+    f.includes("context") ||
+    f.includes("non-standard") ||
+    f.includes("disguised") ||
+    f.includes("geometric") ||
+    f.includes("relational") ||
+    f.includes("table") ||
+    f.includes("vertex")
   ) return "transfer";
 
-  return "application";
+  if (
+    f.includes("compare") ||
+    f.includes("detect") ||
+    f.includes("describe") ||
+    f.includes("missing") ||
+    f.includes("count") ||
+    f.includes("signal")
+  ) return "application";
+
+  return "recognition";
 };
 
 /* ── Internal helpers ─────────────────────────────────────────────────────── */
@@ -207,65 +207,88 @@ const STAGE_SLOTS = [
  * Uses stage-balanced selection for targeted practice.
  */
 
-export const generatePracticeSession = (templatesByTopic, topicId, count = 24, gapTag = null) => {
-  if (!templatesByTopic || !templatesByTopic[topicId]) return [];
-  const allTemplates = (templatesByTopic[topicId] || []).filter(t => t.practice !== false);
+export const generatePracticeSession = (
+  templatesByTopic,
+  topicId,
+  count = 15,
+  gapTag = null
+) => {
+  const allTemplates = (templatesByTopic[topicId] || []).filter(t => t.practice === true);
   const pool = gapTag
     ? allTemplates.filter(t => t.gapTag === gapTag)
     : allTemplates;
 
   if (!pool.length) return [];
 
-  // 🔥 NEW: strict layer grouping
   const byDifficulty = {
-    direct: pool.filter(t => t.difficulty === "direct"),
-    applied: pool.filter(t => t.difficulty === "applied"),
-    transfer: pool.filter(t => t.difficulty === "transfer"),
-    mixed: pool.filter(t => t.difficulty === "mixed"),
+    direct:   [],
+    applied:  [],
+    transfer: [],
+    mixed:    [],
+    other:    [],
   };
 
-  const STRUCTURE = {
-    direct: 4,
-    applied: 8,
-    transfer: 10,
-    mixed: 2,
-  };
+  pool.forEach((t) => {
+    const key = t.difficulty || "other";
+    if (byDifficulty[key]) byDifficulty[key].push(t);
+    else byDifficulty.other.push(t);
+  });
 
-  const selected = [];
-  const usedIds = new Set();
+  Object.keys(byDifficulty).forEach((k) => {
+    byDifficulty[k] = shuffle([...byDifficulty[k]]);
+  });
 
-  const pickFrom = (arr, needed) => {
-    const shuffled = shuffle(arr);
+  const takeUnique = (arr, n, used) => {
     const picked = [];
-
-    for (let t of shuffled) {
-      if (picked.length >= needed) break;
-      if (usedIds.has(t.id)) continue;
-
+    for (const t of arr) {
+      if (picked.length >= n) break;
+      if (used.has(t.id)) continue;
+      used.add(t.id);
       picked.push(t);
-      usedIds.add(t.id);
     }
-
     return picked;
   };
 
-  Object.entries(STRUCTURE).forEach(([type, count]) => {
-    const pool = byDifficulty[type] || [];
-    selected.push(...pickFrom(pool, count));
-  });
+  const used = new Set();
+  let selected = [];
 
-  // 🔁 fallback if missing templates
-  if (selected.length < 24) {
-    const fallback = shuffle(pool);
-    for (let t of fallback) {
-      if (selected.length >= 24) break;
-      if (usedIds.has(t.id)) continue;
-      selected.push(t);
-      usedIds.add(t.id);
-    }
+  if (gapTag) {
+    // TARGETED MODE: gap repair
+    // direct 3, applied 6, transfer 6 (for 15 total)
+    selected.push(...takeUnique(byDifficulty.direct,   3, used));
+    selected.push(...takeUnique(byDifficulty.applied,  6, used));
+    selected.push(...takeUnique(byDifficulty.transfer, 6, used));
+  } else {
+    // FREE MODE: broader but still layered
+    // direct 3, applied 6, transfer 4, mixed 2 (for 15 total)
+    selected.push(...takeUnique(byDifficulty.direct,   3, used));
+    selected.push(...takeUnique(byDifficulty.applied,  6, used));
+    selected.push(...takeUnique(byDifficulty.transfer, 4, used));
+    selected.push(...takeUnique(byDifficulty.mixed,    2, used));
   }
 
-  return shuffle(selected).map(t => buildQuestionFromTemplate(topicId, t));
+  // Fallback fill if one bucket is short
+  if (selected.length < count) {
+    const fallbackPool = shuffle([
+      ...byDifficulty.applied,
+      ...byDifficulty.transfer,
+      ...byDifficulty.direct,
+      ...byDifficulty.mixed,
+      ...byDifficulty.other,
+    ]);
+
+    selected.push(...takeUnique(fallbackPool, count - selected.length, used));
+  }
+
+  selected = shuffle(selected).slice(0, Math.min(count, selected.length));
+
+  return selected.map((t) => ({
+    id: `${topicId}_${t.id}_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+    gapTag: t.gapTag,
+    stage: deriveStage(t.format, t.difficulty),
+    category: t.gapTag.replace("q-", "").replace(/-/g, " "),
+    ...t.generate(),
+  }));
 };
 
 /**
@@ -275,18 +298,40 @@ export const generatePracticeSession = (templatesByTopic, topicId, count = 24, g
  */
 export const generateMasterySession = (templatesByTopic, topicId, count = 15) => {
   const allTemplates = templatesByTopic[topicId] || [];
-
   const masteryPool = allTemplates.filter((t) => t.mastery === true);
-  const pool        = masteryPool.length >= count
-    ? masteryPool
-    : allTemplates.filter((t) => t.diagnostic === true);
 
-  if (!pool.length) return [];
+  if (!masteryPool.length) return [];
 
-  const shuffled = shuffle([...pool]);
-  const selected = shuffled.slice(0, Math.min(count, shuffled.length));
+  const byGap = {};
+  masteryPool.forEach((t) => {
+    if (!byGap[t.gapTag]) {
+      byGap[t.gapTag] = { direct: [], applied: [], transfer: [], other: [] };
+    }
+    const bucket = t.difficulty || "other";
+    if (byGap[t.gapTag][bucket]) byGap[t.gapTag][bucket].push(t);
+    else byGap[t.gapTag].other.push(t);
+  });
 
-  return selected.map((t) => buildQuestionFromTemplate(topicId, t));
+  const selected = [];
+
+  Object.values(byGap).forEach((gapBuckets) => {
+    const applied = shuffle([...gapBuckets.applied]).slice(0, 1);
+    const transfer = shuffle([...gapBuckets.transfer]).slice(0, 2);
+
+    // fallback if not enough transfer/applied
+    const needed = 3 - (applied.length + transfer.length);
+    const fallbackPool = shuffle([
+      ...gapBuckets.applied.slice(1),
+      ...gapBuckets.transfer.slice(2),
+      ...gapBuckets.direct,
+      ...gapBuckets.other,
+    ]).slice(0, Math.max(0, needed));
+
+    selected.push(...applied, ...transfer, ...fallbackPool);
+  });
+
+  const finalTemplates = shuffle(selected).slice(0, count);
+  return finalTemplates.map((t) => buildQuestionFromTemplate(topicId, t));
 };
 
 // All 5 gap tags active in diagnostic

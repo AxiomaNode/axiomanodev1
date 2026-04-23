@@ -1,12 +1,5 @@
 // src/components/sections/NotesSection.jsx
-// Displays all saved topic notes for the current user.
-// Props:
-//   notes         {Array}    from getAllTopicNotes() — filtered to non-empty content
-//   uid           {string}   current user uid, passed down for saves
-//   onNoteUpdated {Function} (topicId: string, content: string) → void
-//                            Called after a successful save so ProfilePage can
-//                            update its local notes state.
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { saveTopicNote } from "../../services/db";
 import "./notes-section.css";
 import { Link } from "react-router-dom";
@@ -17,6 +10,15 @@ const stripHtml = (html) => {
   const div = document.createElement("div");
   div.innerHTML = html;
   return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
+};
+
+/* ── Normalize HTML so unchanged notes are detected reliably ── */
+const normalizeHtml = (html) => {
+  return (html || "")
+    .replace(/\u200B/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 };
 
 /* ── Icons ─────────────────────────────── */
@@ -40,33 +42,53 @@ const NoteIcon = () => (
 
 /* ── NotesSection ──────────────────────── */
 const NotesSection = ({ notes = [], uid, onNoteUpdated }) => {
-  const [openId,   setOpenId]   = useState(() => notes[0]?.topicId ?? null);
-  const [editing,  setEditing]  = useState(false);
-  const [saving,   setSaving]   = useState(false);
+  const [openId,  setOpenId]  = useState(() => notes[0]?.topicId ?? null);
+  const [editing, setEditing] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const editorRef = useRef(null);
-
-  // When the open note changes, exit edit mode
-  useEffect(() => {
-    setEditing(false);
-  }, [openId]);
-
-  // Seed the editor with the current note's content when entering edit mode
-  useEffect(() => {
-    if (!editing) return;
-    const note = notes.find((n) => n.topicId === openId);
-    if (editorRef.current && note) {
-      editorRef.current.innerHTML = note.content || "";
-      editorRef.current.focus();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing]);
 
   const openNote = notes.find((n) => n.topicId === openId) ?? null;
 
+  const initialNormalized = useMemo(
+    () => normalizeHtml(openNote?.content || ""),
+    [openNote]
+  );
+
+  useEffect(() => {
+    setEditing(false);
+    setIsDirty(false);
+  }, [openId]);
+
+  useEffect(() => {
+    if (!editing) return;
+    if (editorRef.current && openNote) {
+      editorRef.current.innerHTML = openNote.content || "";
+      editorRef.current.focus();
+      setIsDirty(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, openNote?.topicId]);
+
+  const handleEditorInput = () => {
+    if (!editorRef.current) return;
+    const currentNormalized = normalizeHtml(editorRef.current.innerHTML);
+    setIsDirty(currentNormalized !== initialNormalized);
+  };
+
   const handleSave = async () => {
-    if (!editorRef.current || !openNote || !uid) return;
-    setSaving(true);
+    if (!editorRef.current || !openNote || !uid || saving) return;
+
     const newContent = editorRef.current.innerHTML;
+    const newNormalized = normalizeHtml(newContent);
+
+    if (newNormalized === initialNormalized) {
+      setEditing(false);
+      setIsDirty(false);
+      return;
+    }
+
+    setSaving(true);
     try {
       await saveTopicNote(uid, openNote.topicId, {
         topicTitle: openNote.topicTitle,
@@ -74,32 +96,28 @@ const NotesSection = ({ notes = [], uid, onNoteUpdated }) => {
       });
       onNoteUpdated?.(openNote.topicId, newContent);
       setEditing(false);
+      setIsDirty(false);
     } finally {
       setSaving(false);
     }
   };
 
   const handleCancel = () => {
-    // Reset editor content to current saved note
     if (editorRef.current && openNote) {
       editorRef.current.innerHTML = openNote.content || "";
     }
+    setIsDirty(false);
     setEditing(false);
   };
 
-  // Prevent arrow keys in edit mode from bubbling to page-level listeners
   const handleEditorKeyDown = (e) => {
     e.stopPropagation();
-    // Allow Escape to cancel
     if (e.key === "Escape") handleCancel();
   };
-
-  /* ── Empty state ── */
 
   if (notes.length === 0) {
     return (
       <div className="profile-empty-state">
-
         <div className="profile-empty-state__head">
           <div className="profile-empty-state__head-icon profile-empty-state__head-icon--teal">
             <NoteIcon />
@@ -159,15 +177,13 @@ const NotesSection = ({ notes = [], uid, onNoteUpdated }) => {
             Go to Theory
           </Link>
         </div>
-
       </div>
     );
   }
+
   return (
     <div className="ns-inner">
       <div className="ns-layout">
-
-        {/* ── Topic list ── */}
         <aside className="ns-list">
           <p className="ns-list__label">Topics</p>
           {notes.map((note) => {
@@ -191,7 +207,6 @@ const NotesSection = ({ notes = [], uid, onNoteUpdated }) => {
           })}
         </aside>
 
-        {/* ── Note detail ── */}
         <div className="ns-detail">
           {!openNote ? (
             <div className="ns-detail__placeholder">
@@ -199,7 +214,6 @@ const NotesSection = ({ notes = [], uid, onNoteUpdated }) => {
             </div>
           ) : (
             <>
-              {/* Header */}
               <div className="ns-detail__header">
                 <div className="ns-detail__header-left">
                   <span className="ns-detail__header-icon"><NoteIcon /></span>
@@ -227,29 +241,30 @@ const NotesSection = ({ notes = [], uid, onNoteUpdated }) => {
                       <button
                         className="ns-save-btn"
                         onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || !isDirty}
                       >
                         {saving ? "Saving…" : "Save"}
                       </button>
+                      {!isDirty && !saving && (
+                        <span className="ns-unchanged-hint">No changes</span>
+                      )}
                     </>
                   )}
                 </div>
               </div>
 
-              {/* Content */}
               {!editing ? (
-                /* Read mode: render note HTML */
                 <div
                   className="ns-content"
                   dangerouslySetInnerHTML={{ __html: openNote.content || "" }}
                 />
               ) : (
-                /* Edit mode: contentEditable, no toolbar (same content, just editable) */
                 <div
                   ref={editorRef}
                   className="ns-editor"
                   contentEditable
                   suppressContentEditableWarning
+                  onInput={handleEditorInput}
                   onKeyDown={handleEditorKeyDown}
                   spellCheck={false}
                 />

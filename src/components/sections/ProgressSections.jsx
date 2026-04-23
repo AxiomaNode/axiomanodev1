@@ -66,37 +66,285 @@ const computeInsights = (diagnostics, practice) => {
   const weekStart = getThisWeekDates();
   const monthStart = getThisMonthStart();
 
-  const diagThisWeek = diagnostics.filter(d => new Date(d.date) >= weekStart).length;
-  if (diagThisWeek >= 3) {
-    insights.push({ type: "fire", text: `${diagThisWeek} diagnostics this week — strong consistency.`, positive: true });
-  } else if (diagThisWeek === 1) {
-    insights.push({ type: "clock", text: "1 diagnostic this week. Come back tomorrow to keep the signal clean.", positive: null });
-  }
+  const now = new Date();
 
-  const pracThisWeek = practice.filter(p => new Date(p.date) >= weekStart).length;
-  if (pracThisWeek >= 3) {
-    insights.push({ type: "check", text: `${pracThisWeek} practice sessions this week.`, positive: true });
-  }
+  const sortedDiagnosticsAsc = [...diagnostics].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const sortedDiagnosticsDesc = [...diagnostics].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sortedPracticeDesc = [...practice].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  const sorted = [...diagnostics].sort((a,b) => new Date(b.date) - new Date(a.date));
-  if (sorted.length >= 6) {
-    const avg = (arr) => arr.reduce((s,d) => s + (d.score.correct/d.score.total)*100, 0) / arr.length;
-    const delta = Math.round(avg(sorted.slice(0,3)) - avg(sorted.slice(3,6)));
-    if (delta >= 5)       insights.push({ type: "up",   text: `Accuracy up ${delta}% over your last 3 diagnostics.`,              positive: true  });
-    else if (delta <= -5) insights.push({ type: "down", text: `Accuracy down ${Math.abs(delta)}% over your last 3 diagnostics. Review gaps.`, positive: false });
-  }
+  const latestDiagnostic = sortedDiagnosticsDesc[0] || null;
+  const latestPractice = sortedPracticeDesc[0] || null;
 
-  const activeDays = new Set([
-    ...diagnostics.filter(d => new Date(d.date) >= monthStart).map(d => toLocalDate(d.date)),
-    ...practice.filter(p => new Date(p.date) >= monthStart).map(p => toLocalDate(p.date)),
+  const latestActivityDate = [latestDiagnostic?.date, latestPractice?.date]
+    .filter(Boolean)
+    .map((d) => new Date(d))
+    .sort((a, b) => b - a)[0] || null;
+
+  const daysSinceLatestActivity = latestActivityDate
+    ? Math.floor((now - latestActivityDate) / (1000 * 60 * 60 * 24))
+    : null;
+
+  const diagThisWeek = diagnostics.filter((d) => new Date(d.date) >= weekStart).length;
+  const pracThisWeek = practice.filter((p) => new Date(p.date) >= weekStart).length;
+
+  const activeDaysThisMonth = new Set([
+    ...diagnostics
+      .filter((d) => new Date(d.date) >= monthStart)
+      .map((d) => toLocalDate(d.date)),
+    ...practice
+      .filter((p) => new Date(p.date) >= monthStart)
+      .map((p) => toLocalDate(p.date)),
   ]).size;
-  if (activeDays >= 10)     insights.push({ type: "calendar", text: `Active ${activeDays} days this month.`,                             positive: true });
-  else if (activeDays >= 5) insights.push({ type: "calendar", text: `Active ${activeDays} days this month — keep building the habit.`,   positive: null });
 
+  const totalSessions = diagnostics.length + practice.length;
+
+  const avgDiagnosticScore = diagnostics.length
+    ? Math.round(
+        diagnostics.reduce((sum, d) => {
+          const total = d?.score?.total || 0;
+          const correct = d?.score?.correct || 0;
+          return total > 0 ? sum + (correct / total) * 100 : sum;
+        }, 0) / diagnostics.length
+      )
+    : null;
+
+  const latestGapsCount = latestDiagnostic?.gaps?.length ?? null;
   const gapsClosed = computeGapsClosedThisMonth(diagnostics);
-  if (gapsClosed > 0) insights.push({ type: "trophy", text: `${gapsClosed} reasoning gap${gapsClosed !== 1 ? "s" : ""} closed this month.`, positive: true });
 
-  return insights.slice(0, 4);
+  const pushInsight = (key, type, text, tone = "neutral", priority = 0) => {
+    insights.push({ key, type, text, tone, priority });
+  };
+
+  // 1) Consistency / activity
+  if (activeDaysThisMonth >= 12) {
+    pushInsight(
+      "active-days-strong",
+      "calendar",
+      `Active ${activeDaysThisMonth} days this month — strong consistency.`,
+      "good",
+      100
+    );
+  } else if (activeDaysThisMonth >= 5) {
+    pushInsight(
+      "active-days-building",
+      "calendar",
+      `Active ${activeDaysThisMonth} days this month — the habit is taking shape.`,
+      "neutral",
+      85
+    );
+  } else if (activeDaysThisMonth >= 2) {
+    pushInsight(
+      "active-days-early",
+      "calendar",
+      `Active ${activeDaysThisMonth} days this month so far.`,
+      "neutral",
+      70
+    );
+  }
+
+  // 2) Weekly diagnostic / practice volume
+  if (diagThisWeek >= 3) {
+    pushInsight(
+      "diag-week-strong",
+      "fire",
+      `${diagThisWeek} diagnostics this week — strong diagnostic consistency.`,
+      "good",
+      95
+    );
+  } else if (diagThisWeek === 2) {
+    pushInsight(
+      "diag-week-two",
+      "clock",
+      `2 diagnostics this week — enough to start seeing a pattern.`,
+      "neutral",
+      82
+    );
+  } else if (diagThisWeek === 1) {
+    pushInsight(
+      "diag-week-one",
+      "clock",
+      `1 diagnostic this week. One more would make the signal more reliable.`,
+      "neutral",
+      76
+    );
+  }
+
+  if (pracThisWeek >= 4) {
+    pushInsight(
+      "prac-week-strong",
+      "check",
+      `${pracThisWeek} practice sessions this week — good follow-through.`,
+      "good",
+      90
+    );
+  } else if (pracThisWeek >= 2) {
+    pushInsight(
+      "prac-week-mid",
+      "check",
+      `${pracThisWeek} practice sessions this week.`,
+      "neutral",
+      74
+    );
+  } else if (pracThisWeek === 1) {
+    pushInsight(
+      "prac-week-one",
+      "check",
+      `1 practice session this week.`,
+      "neutral",
+      66
+    );
+  }
+
+  // 3) Accuracy / trend
+  if (sortedDiagnosticsDesc.length >= 6) {
+    const avg = (arr) =>
+      arr.reduce((sum, d) => sum + (d.score.correct / d.score.total) * 100, 0) / arr.length;
+
+    const recentAvg = avg(sortedDiagnosticsDesc.slice(0, 3));
+    const previousAvg = avg(sortedDiagnosticsDesc.slice(3, 6));
+    const delta = Math.round(recentAvg - previousAvg);
+
+    if (delta >= 5) {
+      pushInsight(
+        "accuracy-up",
+        "up",
+        `Accuracy is up ${delta}% across your last 3 diagnostics.`,
+        "good",
+        98
+      );
+    } else if (delta <= -5) {
+      pushInsight(
+        "accuracy-down",
+        "down",
+        `Accuracy is down ${Math.abs(delta)}% across your last 3 diagnostics.`,
+        "warn",
+        98
+      );
+    } else {
+      pushInsight(
+        "accuracy-stable",
+        "clock",
+        `Accuracy is relatively stable across recent diagnostics.`,
+        "neutral",
+        72
+      );
+    }
+  } else if (avgDiagnosticScore !== null) {
+    if (avgDiagnosticScore >= 75) {
+      pushInsight(
+        "avg-score-high",
+        "up",
+        `Your average diagnostic score is ${avgDiagnosticScore}%.`,
+        "good",
+        88
+      );
+    } else if (avgDiagnosticScore >= 45) {
+      pushInsight(
+        "avg-score-mid",
+        "clock",
+        `Your average diagnostic score is ${avgDiagnosticScore}%.`,
+        "neutral",
+        80
+      );
+    } else {
+      pushInsight(
+        "avg-score-low",
+        "down",
+        `Your average diagnostic score is ${avgDiagnosticScore}%.`,
+        "warn",
+        84
+      );
+    }
+  }
+
+  // 4) Gaps / learning state
+  if (latestDiagnostic) {
+    if (latestGapsCount === 0) {
+      pushInsight(
+        "latest-gaps-none",
+        "trophy",
+        `Your latest diagnostic shows no active gaps.`,
+        "good",
+        97
+      );
+    } else if (latestGapsCount > 0) {
+      pushInsight(
+        "latest-gaps-some",
+        "down",
+        `Your latest diagnostic still shows ${latestGapsCount} active gap${latestGapsCount !== 1 ? "s" : ""}.`,
+        latestGapsCount >= 3 ? "warn" : "neutral",
+        97
+      );
+    }
+  }
+
+  if (gapsClosed > 0) {
+    pushInsight(
+      "gaps-closed",
+      "trophy",
+      `${gapsClosed} reasoning gap${gapsClosed !== 1 ? "s" : ""} closed this month.`,
+      "good",
+      92
+    );
+  }
+
+  // 5) Data confidence / enough evidence
+  if (diagnostics.length === 1) {
+    pushInsight(
+      "one-diagnostic",
+      "clock",
+      `You have only 1 diagnostic so far — the profile is still early.`,
+      "neutral",
+      78
+    );
+  } else if (diagnostics.length >= 4) {
+    pushInsight(
+      "diagnostic-base",
+      "check",
+      `Your profile is now supported by ${diagnostics.length} diagnostics.`,
+      "neutral",
+      73
+    );
+  }
+
+  // 6) Recency
+  if (daysSinceLatestActivity !== null) {
+    if (daysSinceLatestActivity === 0) {
+      pushInsight(
+        "activity-today",
+        "fire",
+        `You were active today.`,
+        "good",
+        68
+      );
+    } else if (daysSinceLatestActivity >= 7) {
+      pushInsight(
+        "activity-stale",
+        "clock",
+        `It has been ${daysSinceLatestActivity} days since your last recorded session.`,
+        "warn",
+        86
+      );
+    } else if (daysSinceLatestActivity >= 3) {
+      pushInsight(
+        "activity-recent-gap",
+        "clock",
+        `Your last recorded session was ${daysSinceLatestActivity} days ago.`,
+        "neutral",
+        69
+      );
+    }
+  }
+
+  // Remove duplicate-ish signals by key, then sort by priority
+  const deduped = Array.from(
+    new Map(insights.map((item) => [item.key, item])).values()
+  ).sort((a, b) => b.priority - a.priority);
+
+  // Keep 2–4 meaningful items, but allow only 1 if data is genuinely thin
+  if (deduped.length <= 1) return deduped;
+
+  return deduped.slice(0, Math.min(4, deduped.length));
 };
 
 const INSIGHT_ICONS = {
@@ -122,7 +370,10 @@ const DisciplineInsights = ({ diagnostics, practice }) => {
       </div>
       <div className="progress-insights__list">
         {insights.map((ins, i) => (
-          <div key={i} className={`progress-insight progress-insight--${ins.positive === true ? "good" : ins.positive === false ? "warn" : "neutral"}`}>
+          <div
+            key={i}
+            className={`progress-insight progress-insight--${ins.tone || "neutral"}`}
+          >
             <span className="progress-insight__icon">{INSIGHT_ICONS[ins.type]}</span>
             <span className="progress-insight__text">{ins.text}</span>
           </div>

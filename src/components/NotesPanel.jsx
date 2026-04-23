@@ -55,7 +55,7 @@ const ClearConfirmModal = ({ onConfirm, onCancel }) => {
       if (e.key === "Escape" || e.key === "Enter") {
         e.stopImmediatePropagation();
         if (e.key === "Escape") onCancel();
-        if (e.key === "Enter")  onConfirm();
+        if (e.key === "Enter") onConfirm();
       }
     };
     window.addEventListener("keydown", h);
@@ -68,8 +68,12 @@ const ClearConfirmModal = ({ onConfirm, onCancel }) => {
         <p className="notes-confirm__title">Clear all notes?</p>
         <p className="notes-confirm__sub">This cannot be undone.</p>
         <div className="notes-confirm__actions">
-          <button className="notes-confirm__btn notes-confirm__btn--cancel"  onClick={onCancel}>Cancel</button>
-          <button className="notes-confirm__btn notes-confirm__btn--confirm" onClick={onConfirm}>Clear</button>
+          <button className="notes-confirm__btn notes-confirm__btn--cancel" onClick={onCancel}>
+            Cancel
+          </button>
+          <button className="notes-confirm__btn notes-confirm__btn--confirm" onClick={onConfirm}>
+            Clear
+          </button>
         </div>
       </div>
     </div>
@@ -78,32 +82,32 @@ const ClearConfirmModal = ({ onConfirm, onCancel }) => {
 
 /* ── Constants ─────────────────────────────────────────────────────────── */
 
-const FONT_STEPS       = [13, 14, 15, 16, 17, 18, 20];
+const FONT_STEPS = [13, 14, 15, 16, 17, 18, 20];
 const DEFAULT_FONT_IDX = 2;
-const MIN_WIDTH        = 280;
-const MAX_WIDTH_RATIO  = 0.5;
+const MIN_WIDTH = 280;
+const MAX_WIDTH_RATIO = 0.5;
 
 const MATH_SYMBOLS = [
-  { sym: "√",  label: "Square root"      },
-  { sym: "²",  label: "Squared"          },
-  { sym: "³",  label: "Cubed"            },
-  { sym: "π",  label: "Pi"               },
-  { sym: "∞",  label: "Infinity"         },
-  { sym: "≤",  label: "Less or equal"    },
-  { sym: "≥",  label: "Greater or equal" },
-  { sym: "≠",  label: "Not equal"        },
-  { sym: "×",  label: "Multiply"         },
-  { sym: "÷",  label: "Divide"           },
-  { sym: "∑",  label: "Sum (Sigma)"      },
-  { sym: "Δ",  label: "Delta"            },
+  { sym: "√", label: "Square root" },
+  { sym: "²", label: "Squared" },
+  { sym: "³", label: "Cubed" },
+  { sym: "π", label: "Pi" },
+  { sym: "∞", label: "Infinity" },
+  { sym: "≤", label: "Less or equal" },
+  { sym: "≥", label: "Greater or equal" },
+  { sym: "≠", label: "Not equal" },
+  { sym: "×", label: "Multiply" },
+  { sym: "÷", label: "Divide" },
+  { sym: "∑", label: "Sum (Sigma)" },
+  { sym: "Δ", label: "Delta" },
 ];
 
 const HIGHLIGHT_COLORS = [
   { id: "aqua",   color: "#0e7490", label: "Aqua"   },
-  { id: "red",    color: "#9f1239", label: "Red"     },
-  { id: "green",  color: "#166534", label: "Green"   },
-  { id: "yellow", color: "#854d0e", label: "Yellow"  },
-  { id: "purple", color: "#581c87", label: "Purple"  },
+  { id: "red",    color: "#9f1239", label: "Red"    },
+  { id: "green",  color: "#166534", label: "Green"  },
+  { id: "yellow", color: "#854d0e", label: "Yellow" },
+  { id: "purple", color: "#581c87", label: "Purple" },
 ];
 
 /* ── Storage helpers ────────────────────────────────────────────────────── */
@@ -112,17 +116,18 @@ const getStorageKey  = (id) => `axioma_notes_${id || "temp"}`;
 const getCollapseKey = (id) => `axioma_notes_col_${id || "temp"}`;
 const getFontKey     = (id) => `axioma_notes_font_${id || "temp"}`;
 
-const lsGet    = (k)    => { try { return localStorage.getItem(k);  } catch { return null; } };
-const lsSet    = (k, v) => { try { localStorage.setItem(k, v);      } catch { /* */ } };
-const lsRemove = (k)    => { try { localStorage.removeItem(k);      } catch { /* */ } };
+const lsGet    = (k)    => { try { return localStorage.getItem(k); }    catch { return null; } };
+const lsSet    = (k, v) => { try { localStorage.setItem(k, v); }        catch {} };
+const lsRemove = (k)    => { try { localStorage.removeItem(k); }        catch {} };
 
 /* ── DOM helpers ────────────────────────────────────────────────────────── */
 
+const BLOCK_TAGS = new Set(["DIV","P","H1","H2","H3","H4","H5","H6","LI","BLOCKQUOTE","PRE"]);
+
 const getBlockAncestor = (node, root) => {
-  const BLOCK = new Set(["DIV","P","H1","H2","H3","H4","H5","H6","LI","BLOCKQUOTE","PRE"]);
   let cur = node;
   while (cur && cur !== root) {
-    if (cur.nodeType === 1 && BLOCK.has(cur.tagName)) return cur;
+    if (cur.nodeType === 1 && BLOCK_TAGS.has(cur.tagName)) return cur;
     cur = cur.parentNode;
   }
   return null;
@@ -134,13 +139,60 @@ const getTopLevelChild = (node, root) => {
   return cur !== root ? cur : null;
 };
 
+/* ── Highlight helpers ──────────────────────────────────────────────────── */
+
+/**
+ * Walk up from `node` to find the nearest highlight <span data-hl="color">.
+ * Stops at `root`.
+ */
+const findHighlightAncestor = (node, root) => {
+  let cur = node;
+  while (cur && cur !== root) {
+    if (cur.nodeType === 1 && cur.tagName === "SPAN" && cur.dataset.hl) return cur;
+    cur = cur.parentNode;
+  }
+  return null;
+};
+
+/**
+ * Unwrap a highlight span — keep its children, remove the wrapper.
+ */
+const unwrapSpan = (span) => {
+  const parent = span.parentNode;
+  while (span.firstChild) parent.insertBefore(span.firstChild, span);
+  parent.removeChild(span);
+  parent.normalize(); // merge adjacent text nodes
+};
+
+/**
+ * Check if the entire selection lives inside a single highlight span
+ * of the given color. Returns that span, or null.
+ */
+const getEnclosingHighlight = (range, root, color) => {
+  const startHl = findHighlightAncestor(range.startContainer, root);
+  const endHl   = findHighlightAncestor(range.endContainer, root);
+  if (startHl && startHl === endHl && startHl.dataset.hl === color) return startHl;
+  return null;
+};
+
+/**
+ * Collect all highlight spans that overlap with `range` inside `root`.
+ */
+const getOverlappingHighlights = (range, root) => {
+  const spans = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) =>
+      node.tagName === "SPAN" && node.dataset.hl && range.intersectsNode(node)
+        ? NodeFilter.FILTER_ACCEPT
+        : NodeFilter.FILTER_SKIP,
+  });
+  let n;
+  while ((n = walker.nextNode())) spans.push(n);
+  return spans;
+};
+
 /* ══════════════════════════════════════════════════════════════════════════
    NotesPanel
-   Props:
-     sessionId      {string}    localStorage namespace key (default "")
-     initialContent {string}    HTML loaded from Firestore before mount
-     onSave         {Function}  Called with (html) only when user clicks Save button
-     mode           {string}    "floating" (default) | "embedded"
 ══════════════════════════════════════════════════════════════════════════ */
 
 const NotesPanel = ({
@@ -160,21 +212,19 @@ const NotesPanel = ({
     return lsGet(storageKey) ?? "";
   };
 
-  const [htmlValue,   setHtmlValue]   = useState(resolveInitial);
-  const [collapsed,   setCollapsed]   = useState(() =>
+  const [htmlValue,     setHtmlValue]     = useState(resolveInitial);
+  const [collapsed,     setCollapsed]     = useState(() =>
     isEmbedded ? false : lsGet(collapseKey) === "true"
   );
-  const [fontIdx, setFontIdx] = useState(() => {
+  const [fontIdx,       setFontIdx]       = useState(() => {
     const saved = parseInt(lsGet(fontKey), 10);
-    return isNaN(saved) ? DEFAULT_FONT_IDX : Math.max(0, Math.min(FONT_STEPS.length - 1, saved));
+    return Number.isNaN(saved) ? DEFAULT_FONT_IDX : Math.max(0, Math.min(FONT_STEPS.length - 1, saved));
   });
   const [showClear,     setShowClear]     = useState(false);
   const [panelWidth,    setPanelWidth]    = useState(300);
   const [dragging,      setDragging]      = useState(false);
   const [activeHeading, setActiveHeading] = useState(null);
-  // "idle" | "saving" | "saved"
   const [saveStatus,    setSaveStatus]    = useState("idle");
-  // true when content differs from last profile save
   const [isDirty,       setIsDirty]       = useState(false);
 
   const lsTimer         = useRef(null);
@@ -185,14 +235,14 @@ const NotesPanel = ({
   const lastHtml        = useRef(htmlValue);
   const savedRange      = useRef(null);
 
-  /* ── Seed editor on expand ── */
+  /* ── Sync editor innerHTML when toggling collapsed ── */
   useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
     if (el.innerHTML !== lastHtml.current) el.innerHTML = lastHtml.current;
   }, [collapsed]);
 
-  /* ── Input handler: writes to localStorage only ── */
+  /* ── Input handler ── */
   const handleInput = useCallback(() => {
     const el = editorRef.current;
     if (!el) return;
@@ -204,7 +254,7 @@ const NotesPanel = ({
     lsTimer.current = setTimeout(() => lsSet(storageKey, html), 600);
   }, [storageKey]);
 
-  /* ── Manual save to Firestore ── */
+  /* ── Save to profile ── */
   const handleSaveToProfile = useCallback(async () => {
     if (!onSave) return;
     setSaveStatus("saving");
@@ -219,13 +269,27 @@ const NotesPanel = ({
     }
   }, [onSave]);
 
-  /* ── Persist collapse + font ── */
+  /* ── Ctrl+S shortcut for save ── */
+  useEffect(() => {
+    if (!onSave) return;
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        if (isDirty && saveStatus !== "saving") handleSaveToProfile();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onSave, isDirty, saveStatus, handleSaveToProfile]);
+
+  /* ── Persist collapse / font ── */
   useEffect(() => {
     if (!isEmbedded) lsSet(collapseKey, collapsed);
   }, [collapsed, collapseKey, isEmbedded]);
+
   useEffect(() => { lsSet(fontKey, fontIdx); }, [fontIdx, fontKey]);
 
-  /* ── Drag resize — floating only ── */
+  /* ── Drag to resize ── */
   const onDragStart = useCallback((e) => {
     if (isEmbedded || window.innerWidth < 1024) return;
     e.preventDefault();
@@ -261,43 +325,109 @@ const NotesPanel = ({
     setShowClear(false);
   };
 
-  /* ── Selection helpers ── */
+  /* ── Selection save/restore ── */
   const saveSelection = () => {
     const sel = window.getSelection();
     if (sel?.rangeCount > 0) savedRange.current = sel.getRangeAt(0).cloneRange();
   };
+
   const restoreSelection = () => {
     const sel = window.getSelection();
-    if (sel && savedRange.current) { sel.removeAllRanges(); sel.addRange(savedRange.current); }
+    if (sel && savedRange.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange.current);
+    }
   };
 
-  /* ── Highlight ── */
+  /* ════════════════════════════════════════
+     HIGHLIGHT — toggle & replace logic
+  ════════════════════════════════════════ */
+
   const applyHighlight = (color) => {
     const range = savedRange.current;
     if (!range || range.collapsed) return;
     const el = editorRef.current;
     if (!el || !el.contains(range.commonAncestorContainer)) return;
+
     const sel = window.getSelection();
-    sel.removeAllRanges(); sel.addRange(range);
-    const span = document.createElement("span");
-    span.style.cssText = `background:${color};border-radius:2px;padding:0 2px;color:rgba(255,255,255,0.92)`;
-    try { range.surroundContents(span); }
-    catch {
-      const frag = range.extractContents();
-      span.appendChild(frag); range.insertNode(span);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    // Case 1: entire selection is inside a single span of the SAME color → remove highlight
+    const enclosing = getEnclosingHighlight(range, el, color);
+    if (enclosing) {
+      unwrapSpan(enclosing);
+      handleInput();
+      return;
     }
+
+    // Case 2: remove any existing overlapping highlights (different color or partial)
+    const overlapping = getOverlappingHighlights(range, el);
+    for (const span of overlapping) {
+      unwrapSpan(span);
+    }
+
+    // Re-select after DOM mutations from unwrapping
+    // The range may have been invalidated, so re-read from selection
+    const freshSel = window.getSelection();
+    if (!freshSel || freshSel.rangeCount === 0) {
+      handleInput();
+      return;
+    }
+    const freshRange = freshSel.getRangeAt(0);
+    if (freshRange.collapsed) {
+      handleInput();
+      return;
+    }
+
+    // Case 3: wrap selection in new highlight span
+    const span = document.createElement("span");
+    span.dataset.hl = color;
+    span.style.cssText = `background:${color};border-radius:2px;padding:0 2px;color:rgba(255,255,255,0.92)`;
+
+    try {
+      freshRange.surroundContents(span);
+    } catch {
+      // Selection crosses element boundaries — extract and wrap
+      const frag = freshRange.extractContents();
+      span.appendChild(frag);
+      freshRange.insertNode(span);
+    }
+
+    // Place caret after the span
     const reset = document.createTextNode("\u200B");
     span.parentNode.insertBefore(reset, span.nextSibling);
     const after = document.createRange();
-    after.setStart(reset, 1); after.collapse(true);
-    sel.removeAllRanges(); sel.addRange(after);
+    after.setStart(reset, 1);
+    after.collapse(true);
+    freshSel.removeAllRanges();
+    freshSel.addRange(after);
     savedRange.current = after.cloneRange();
+
     handleInput();
   };
 
-  /* ── Heading ── */
+  /** Remove all highlights from the current selection */
+  const removeHighlight = () => {
+    const range = savedRange.current;
+    if (!range || range.collapsed) return;
+    const el = editorRef.current;
+    if (!el || !el.contains(range.commonAncestorContainer)) return;
+
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const overlapping = getOverlappingHighlights(range, el);
+    if (overlapping.length === 0) return;
+
+    for (const span of overlapping) unwrapSpan(span);
+    handleInput();
+  };
+
+  /* ── Headings ── */
   const applyHeading = (tag) => {
-    const el   = editorRef.current;
+    const el  = editorRef.current;
     const next = activeHeading === tag ? null : tag;
     setActiveHeading(next);
     if (!el) return;
@@ -307,20 +437,29 @@ const NotesPanel = ({
     if (!sel || sel.rangeCount === 0) return;
     const anchor = sel.getRangeAt(0).startContainer;
     let block = getBlockAncestor(anchor, el) || getTopLevelChild(anchor, el);
+
     if (!block || block === el) {
       const nb = document.createElement(next ? next.toUpperCase() : "DIV");
       nb.appendChild(document.createElement("br"));
-      el.innerHTML = ""; el.appendChild(nb);
-      const r = document.createRange(); r.setStart(nb, 0); r.collapse(true);
-      sel.removeAllRanges(); sel.addRange(r); savedRange.current = r.cloneRange();
-      handleInput(); return;
+      el.innerHTML = "";
+      el.appendChild(nb);
+      const r = document.createRange();
+      r.setStart(nb, 0); r.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r);
+      savedRange.current = r.cloneRange();
+      handleInput();
+      return;
     }
+
     if (block.textContent.trim() !== "") return;
+
     const rep = document.createElement(next ? next.toUpperCase() : "DIV");
     rep.appendChild(document.createElement("br"));
     block.parentNode.replaceChild(rep, block);
-    const r = document.createRange(); r.setStart(rep, 0); r.collapse(true);
-    sel.removeAllRanges(); sel.addRange(r); savedRange.current = r.cloneRange();
+    const r = document.createRange();
+    r.setStart(rep, 0); r.collapse(true);
+    sel.removeAllRanges(); sel.addRange(r);
+    savedRange.current = r.cloneRange();
     handleInput();
   };
 
@@ -334,27 +473,34 @@ const NotesPanel = ({
     if (!sel || sel.rangeCount === 0) return;
     const anchor = sel.getRangeAt(0).startContainer;
     const block  = getBlockAncestor(anchor, edEl) || getTopLevelChild(anchor, edEl);
-    const nb     = document.createElement(activeHeading ? activeHeading.toUpperCase() : "DIV");
+    const nb = document.createElement(activeHeading ? activeHeading.toUpperCase() : "DIV");
     nb.appendChild(document.createElement("br"));
     if (block && block !== edEl) block.parentNode.insertBefore(nb, block.nextSibling);
     else edEl.appendChild(nb);
-    const r = document.createRange(); r.setStart(nb, 0); r.collapse(true);
-    sel.removeAllRanges(); sel.addRange(r); savedRange.current = r.cloneRange();
+    const r = document.createRange();
+    r.setStart(nb, 0); r.collapse(true);
+    sel.removeAllRanges(); sel.addRange(r);
+    savedRange.current = r.cloneRange();
     handleInput();
   };
 
-  /* ── Insert symbol ── */
+  /* ── Symbol insertion ── */
   const insertSymbol = (sym) => {
     const el = editorRef.current;
     if (!el) return;
     el.focus({ preventScroll: true });
     restoreSelection();
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) { el.innerHTML += sym; handleInput(); return; }
+    if (!sel || sel.rangeCount === 0) {
+      el.innerHTML += sym;
+      handleInput();
+      return;
+    }
     const range = sel.getRangeAt(0);
     range.deleteContents();
     const tn = document.createTextNode(sym);
-    range.insertNode(tn); range.setStartAfter(tn); range.setEndAfter(tn);
+    range.insertNode(tn);
+    range.setStartAfter(tn); range.setEndAfter(tn);
     sel.removeAllRanges(); sel.addRange(range);
     savedRange.current = range.cloneRange();
     handleInput();
@@ -362,9 +508,9 @@ const NotesPanel = ({
 
   const fontSize = FONT_STEPS[fontIdx];
 
-  /* ─────────────────────────────────────────────────────────────────────────
-     FLOATING COLLAPSED PILL
-  ───────────────────────────────────────────────────────────────────────── */
+  /* ════════════════════════════════════════
+     COLLAPSED STATE
+  ════════════════════════════════════════ */
   if (!isEmbedded && collapsed) {
     return (
       <div className="notes-collapsed">
@@ -378,15 +524,32 @@ const NotesPanel = ({
     );
   }
 
-  /* ─────────────────────────────────────────────────────────────────────────
-     PANEL
-  ───────────────────────────────────────────────────────────────────────── */
-
   const panelClass = [
     "notes-panel",
     isEmbedded ? "notes-panel--embedded" : "notes-panel--floating",
-    dragging   ? "notes-panel--dragging" : "",
+    dragging ? "notes-panel--dragging" : "",
   ].filter(Boolean).join(" ");
+
+  /* ── Floating-mode save button (footer) ── */
+  const floatingSaveButton = !isEmbedded && onSave ? (
+    <button
+      className={[
+        "notes-save-btn",
+        saveStatus === "saved"  ? "notes-save-btn--saved"  : "",
+        saveStatus === "saving" ? "notes-save-btn--saving" : "",
+      ].filter(Boolean).join(" ")}
+      onClick={handleSaveToProfile}
+      disabled={saveStatus === "saving" || !isDirty}
+    >
+      {saveStatus === "saving" ? (
+        <><span className="notes-save-btn__spinner" />Saving…</>
+      ) : saveStatus === "saved" ? (
+        <><CheckIcon />Saved</>
+      ) : (
+        <><SaveIcon />Save to profile</>
+      )}
+    </button>
+  ) : null;
 
   return (
     <>
@@ -411,26 +574,13 @@ const NotesPanel = ({
           </div>
           <div className="notes-panel__header-actions">
             <div className="notes-font-ctrl">
-              <button
-                className="notes-font-ctrl__btn"
-                onClick={() => setFontIdx(i => Math.max(0, i - 1))}
-                disabled={fontIdx === 0}
-                title="Decrease font size"
-              >A−</button>
+              <button className="notes-font-ctrl__btn" onClick={() => setFontIdx(i => Math.max(0, i - 1))} disabled={fontIdx === 0} title="Decrease font size">A−</button>
               <span className="notes-font-ctrl__val">{fontSize}</span>
-              <button
-                className="notes-font-ctrl__btn"
-                onClick={() => setFontIdx(i => Math.min(FONT_STEPS.length - 1, i + 1))}
-                disabled={fontIdx === FONT_STEPS.length - 1}
-                title="Increase font size"
-              >A+</button>
+              <button className="notes-font-ctrl__btn" onClick={() => setFontIdx(i => Math.min(FONT_STEPS.length - 1, i + 1))} disabled={fontIdx === FONT_STEPS.length - 1} title="Increase font size">A+</button>
             </div>
-            <button
-              className="notes-icon-btn"
-              onClick={() => setShowClear(true)}
-              disabled={!htmlValue}
-              title="Clear notes"
-            ><TrashIcon /></button>
+            <button className="notes-icon-btn" onClick={() => setShowClear(true)} disabled={!htmlValue} title="Clear notes">
+              <TrashIcon />
+            </button>
             {!isEmbedded && (
               <button className="notes-icon-btn" onClick={() => setCollapsed(true)} title="Close">
                 <CollapseIcon />
@@ -439,17 +589,45 @@ const NotesPanel = ({
           </div>
         </div>
 
-        {/* ── Formatting toolbar ── */}
+        {/* ── Save bar — embedded mode: dedicated row that slides in when dirty ── */}
+        {isEmbedded && onSave && (
+          <div className={`notes-save-bar${isDirty || saveStatus !== "idle" ? " notes-save-bar--visible" : ""}`}>
+            <button
+              className={[
+                "notes-save-bar__btn",
+                saveStatus === "saved"  ? "notes-save-bar__btn--saved"  : "",
+                saveStatus === "saving" ? "notes-save-bar__btn--saving" : "",
+              ].filter(Boolean).join(" ")}
+              onClick={handleSaveToProfile}
+              disabled={saveStatus === "saving" || !isDirty}
+            >
+              {saveStatus === "saving" ? (
+                <><span className="notes-save-bar__spinner" />Saving…</>
+              ) : saveStatus === "saved" ? (
+                <><CheckIcon />Saved</>
+              ) : (
+                <><SaveIcon />Save</>
+              )}
+            </button>
+            {isDirty && saveStatus === "idle" && (
+              <span className="notes-save-bar__hint">Unsaved · Ctrl+S</span>
+            )}
+          </div>
+        )}
+
+        {/* ── Format toolbar ── */}
         <div className="notes-fmt-bar">
           <div className="notes-fmt-bar__group">
-            {["h1","h2","h3"].map((tag) => (
+            {["h1","h2","h3"].map(tag => (
               <button
                 key={tag}
                 className={`notes-fmt-bar__btn${activeHeading === tag ? " notes-fmt-bar__btn--active" : ""}`}
-                onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+                onMouseDown={e => { e.preventDefault(); saveSelection(); }}
                 onClick={() => applyHeading(tag)}
                 title={`Heading ${tag.slice(1)}`}
-              >{tag.toUpperCase()}</button>
+              >
+                {tag.toUpperCase()}
+              </button>
             ))}
           </div>
           <div className="notes-fmt-bar__divider" />
@@ -459,26 +637,35 @@ const NotesPanel = ({
                 key={id}
                 className="notes-fmt-bar__swatch"
                 style={{ "--swatch-color": color }}
-                onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+                onMouseDown={e => { e.preventDefault(); saveSelection(); }}
                 onClick={() => applyHighlight(color)}
                 title={`Highlight: ${label}`}
                 aria-label={`Highlight ${label}`}
               />
             ))}
+            <button
+              className="notes-fmt-bar__remove-hl"
+              onMouseDown={e => { e.preventDefault(); saveSelection(); }}
+              onClick={removeHighlight}
+              title="Remove highlight"
+              aria-label="Remove highlight"
+            />
           </div>
         </div>
 
-        {/* ── Math symbols ── */}
+        {/* ── Symbol toolbar ── */}
         <div className="notes-symbols">
           {MATH_SYMBOLS.map(({ sym, label }) => (
             <button
               key={sym}
               className="notes-symbols__btn"
-              onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+              onMouseDown={e => { e.preventDefault(); saveSelection(); }}
               onClick={() => insertSymbol(sym)}
               title={label}
               tabIndex={-1}
-            >{sym}</button>
+            >
+              {sym}
+            </button>
           ))}
         </div>
 
@@ -500,33 +687,16 @@ const NotesPanel = ({
           />
         </div>
 
-        {/* ── Save footer (only when onSave provided) ── */}
-        {onSave && (
+        {/* ── Save footer — floating mode only ── */}
+        {!isEmbedded && onSave && (
           <div className="notes-panel__footer">
-            <button
-              className={[
-                "notes-save-btn",
-                saveStatus === "saved"  ? "notes-save-btn--saved"  : "",
-                saveStatus === "saving" ? "notes-save-btn--saving" : "",
-              ].filter(Boolean).join(" ")}
-              onClick={handleSaveToProfile}
-              disabled={saveStatus === "saving" || !isDirty}
-            >
-              {saveStatus === "saving" ? (
-                <><span className="notes-save-btn__spinner" />Saving…</>
-              ) : saveStatus === "saved" ? (
-                <><CheckIcon />Saved to profile</>
-              ) : (
-                <><SaveIcon />Save to profile</>
-              )}
-            </button>
+            {floatingSaveButton}
             {isDirty && saveStatus === "idle" && (
               <span className="notes-unsaved-hint">Unsaved changes</span>
             )}
           </div>
         )}
 
-        {/* Resize handle — floating only */}
         {!isEmbedded && (
           <div className="notes-resize-handle" onMouseDown={onDragStart} title="Drag to resize" />
         )}

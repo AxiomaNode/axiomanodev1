@@ -503,3 +503,7 @@
   color: var(--text-mid);
 }
 .progress-insight--good .progress-insight__text { color: var(--text-dark); }
+
+.progress-insight--warn .progress-insight__text {
+  color: var(--text-dark);
+}
